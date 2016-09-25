@@ -1,2 +1,6 @@
 using SwitchedSystems
-using Base.Test
+using FactCheck
+
+include("ex54.jl")
+
+FactCheck.exitstatus()
