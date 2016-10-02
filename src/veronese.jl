@@ -3,8 +3,7 @@ export permanent, veroneselift
 using Combinatorics
 
 function permanent(A)
-  m, n = size(A)
-  m == n || throw(ArgumentError("permanent is for square matrices only"))
+  n = LinAlg.checksquare(A)
   sum(σ -> prod(i -> A[i,σ[i]], 1:n), permutations(1:n))
 end
 
@@ -27,9 +26,7 @@ end
 function veroneselift(A::AbstractMatrix, d::Integer)
   d > 0 || throw(ArgumentError("d should be a positive integer"))
 
-  m, n = size(A)
-  m == n || throw(ArgumentError("veroneselift is for square matrices only"))
-
+  n = LinAlg.checksquare(A)
   N = binomial(n+d-1, d)
 
   Ad = Matrix{Float64}(N, N)

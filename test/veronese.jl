@@ -1,6 +1,6 @@
 facts("Veronese Lift") do
-  @fact_throws ArgumentError permanent([1 2])
-  @fact_throws ArgumentError veroneselift([1 2], 3)
+  @fact_throws DimensionMismatch permanent([1 2])
+  @fact_throws DimensionMismatch veroneselift([1 2], 3)
   @fact_throws ArgumentError veroneselift([1 2; 3 4], 0)
 
   obtained = veroneselift([11 12; 21 22], 3)
