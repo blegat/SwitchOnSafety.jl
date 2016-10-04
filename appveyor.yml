@@ -28,7 +28,7 @@ build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
   - C:\projects\julia\bin\julia -e "versioninfo();
-      Pkg.clone(pwd(), \"SumOfSquares\"); Pkg.clone(pwd(), \"SwitchedSystems\"); Pkg.build(\"SwitchedSystems\")"
+      Pkg.clone(\"https://github.com/blegat/SumOfSquares.jl\"); Pkg.clone(pwd(), \"SwitchedSystems\"); Pkg.build(\"SwitchedSystems\")"
 
 test_script:
   - C:\projects\julia\bin\julia -e "Pkg.test(\"SwitchedSystems\")"
