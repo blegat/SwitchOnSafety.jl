@@ -16,7 +16,7 @@ function soslyap(s::SwitchedSystem, d, γ; solver=MathProgBase.defaultSDPsolver)
   if status == :Optimal
     status, getvalue(p), nothing
   elseif status == :Infeasible
-    status, nothing, nothing
+    status, nothing, [getdual(c) for c in cons]
   else
     error("Solver returned with status : $status")
   end
