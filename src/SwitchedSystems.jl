@@ -34,22 +34,26 @@ end
 
 function updatelb!(s, lb)
   s.lb = max(s.lb, lb)
+  lb
 end
 
 function updateub!(s, ub)
   s.ub = min(s.ub, ub)
+  ub
+end
+
+function updateb!(s, lb, ub)
+  updatelb!(s, lb), updateub!(s, ub)
 end
 
 function quicklb(s::SwitchedSystem)
   qlb = maximum(map(ρ, s.A))
   updatelb!(s, qlb)
-  qlb
 end
 
 function quickub(s::SwitchedSystem)
   qub = minimum(map(p -> maximum(map(A->norm(A,p), s.A)), [1, 2, Inf]))
   updateub!(s, qub)
-  qub
 end
 
 function quickb(s::SwitchedSystem)

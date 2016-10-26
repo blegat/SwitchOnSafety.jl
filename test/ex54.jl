@@ -28,10 +28,10 @@ facts("Example 5.4") do
   @fact ub --> roughly(4.076078925)
   for solver in sdp_solvers
     context("With solver $(typeof(solver))") do
-      lb, ub = sosb(s, 1, solver=solver)
+      lb, ub = soslyapb(s, 1, solver=solver)
       @fact lb --> roughly(2.814640557, rtol=1e-5)
       @fact ub --> roughly(3.980502849, rtol=1e-5)
-      lb, ub = sosb(s, 2, solver=solver)
+      lb, ub = soslyapb(s, 2, solver=solver)
       @fact lb --> roughly(3.299750624, rtol=1e-5)
       @fact ub --> roughly(3.924086919, rtol=1e-5)
     end

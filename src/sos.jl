@@ -2,19 +2,17 @@ using JuMP
 using SumOfSquares
 using MathProgBase
 
-export sosb, soscert
+export soslyap, soslyapb, sosduallyap, sosduallyapb
 
-function soscert(s::SwitchedSystem, d, γ; solver=MathProgBase.defaultSDPsolver)
+function soslyap(s::SwitchedSystem, d, γ; solver=MathProgBase.defaultSDPsolver)
   n = dim(s)
   @polyvar x[1:n]
-  m = JuMP.Model(solver=solver)
+  model = JuMP.Model(solver=solver)
   Z = monomials(x, 2*d)
-  @SOSvariable m p Z
-  @SOSconstraint m p >= sum(x.^(2*d))
-  for A in s.A
-    @SOSconstraint m p(A*x, x) <= γ^(2*d) * p
-  end
-  status = solve(m)
+  @SOSvariable model p Z
+  @SOSconstraint model p >= sum(x.^(2*d))
+  cons = [@SOSconstraint model p(A*x, x) <= γ^(2*d) * p for A in s.A]
+  status = solve(model)
   if status == :Optimal
     status, getvalue(p), nothing
   elseif status == :Infeasible
@@ -24,14 +22,13 @@ function soscert(s::SwitchedSystem, d, γ; solver=MathProgBase.defaultSDPsolver)
   end
 end
 
-function sosb(s::SwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPsolver, tol=1e-5)
+function soslyapb(s::SwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPsolver, tol=1e-5)
   # The SOS ub is greater than the JSR hence also greater than any of its lower bound
   soslb = s.lb
   (lb, sosub) = pradiusb(s, 2*d)
-  updatelb!(s, lb)
   while sosub - soslb > tol
     mid = (soslb + sosub) / 2
-    status, primal, dual = soscert(s, d, mid; solver=solver)
+    status, primal, dual = soslyap(s, d, mid; solver=solver)
     if status == :Optimal
       sosub = mid
     elseif status == :Infeasible
@@ -41,7 +38,5 @@ function sosb(s::SwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPsolve
   ub = sosub
   n = dim(s)
   lb = sosub / min(length(s.A), binomial(n+d-1, d))^(1/(2*d))
-  updatelb!(s, lb)
-  updateub!(s, ub)
-  lb, ub
+  updateb!(s, lb, ub)
 end

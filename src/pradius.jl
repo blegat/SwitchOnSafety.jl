@@ -46,7 +46,5 @@ end
 function pradiusb(s::SwitchedSystem, p)
   ρpmp = pradius(s, p, :VeroneseLift, forceub=true)
   ρp = ρpmp / length(s.A)^(1/p)
-  updatelb!(s, ρp)
-  updateub!(s, ρpmp)
-  (ρp, ρpmp)
+  updateb!(s, ρp, ρpmp)
 end
