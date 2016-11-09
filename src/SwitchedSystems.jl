@@ -7,10 +7,20 @@ function ρ(A::AbstractMatrix)
   maximum(abs.(eigvals(A)))
 end
 
+type Lyapunov
+  d::Int
+  soslb::Float64
+  dual::Vector{PseudoExpectation{Float64}}
+  sosub::Float64
+  primal::VecPolynomial{Float64}
+end
+
 type SwitchedSystem
   A::Vector
   lb::Float64
   ub::Float64
+  # There will typically only be lyapunov for small d so a dictionary would be overkill
+  lyaps::Vector{Nullable{Lyapunov}}
   function SwitchedSystem(A::Vector)
     if isempty(A)
       error("Needs at least one matrix in the system")
@@ -24,7 +34,7 @@ type SwitchedSystem
         error("The matrices should all have the same dimensions")
       end
     end
-    new(A, 0, Inf)
+    new(A, 0, Inf, Nullable{Lyapunov}[])
   end
 end
 
