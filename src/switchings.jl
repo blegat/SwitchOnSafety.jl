@@ -5,10 +5,10 @@ type SwitchingSequence
 end
 
 type SwitchingIterator
-  s::SwitchedSystem
-  k::Int
-  v0::Int
-  forward::Bool
+    s::SwitchedSystem
+    k::Int
+    v0::Int
+    forward::Bool
 end
 
 function switchings(s::SwitchedSystem, k::Int, v0::Int, forward=true)
