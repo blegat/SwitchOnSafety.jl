@@ -2,6 +2,8 @@ module SwitchedSystems
 
 using MultivariatePolynomials
 
+import Base.==
+
 export AbstractSwitchedSystem
 export dim, ρ, quicklb, quickub, quickb
 
@@ -27,7 +29,7 @@ function dim(s::AbstractSwitchedSystem)
     size(s.A[1], 1)
 end
 
-function updatelb!(s::AbstractSwitchedSystem, lb)
+function updatelb!(s::AbstractSwitchedSystem, lb, smp=nothing)
     s.lb = max(s.lb, lb)
     lb
 end
@@ -46,6 +48,7 @@ function quickb(s::AbstractSwitchedSystem)
 end
 
 include("discrete.jl")
+include("switchings.jl")
 include("veronese.jl")
 include("pradius.jl")
 include("sos.jl")

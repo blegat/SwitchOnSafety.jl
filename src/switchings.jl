@@ -1,3 +1,5 @@
+import Base.start, Base.done, Base.next
+
 type SwitchingSequence
     s::SwitchedSystem
     A::AbstractMatrix
@@ -33,7 +35,8 @@ nextoutnode(s, v, u) = u+1
 doneoutnode(s, v, u) = u >= length(s.A)
 
 function start(it::SwitchingIterator)
-    seq = Vector{Int}(it.k)
+    k = it.k
+    seq = Vector{Int}(k)
     I = it.forward ? (1:k) : (k:-1:1)
     v = it.v0
     A = speye(dim(it.s))
@@ -41,17 +44,22 @@ function start(it::SwitchingIterator)
     modeit = Vector{Any}(k)
     modest = Vector{Any}(k)
     for i in I
-        modeit[i] = modes(it.s, v, it.forward)
-        seq[i], modest[i] = start(modeit[i])
-        As[i] = matrixfor(it.s, seq[i]) * A
-        A = As[i]
-        v = state(it.s, seq[i], it.forward)
+        modeit[i] = v == -1 ? (1:0) : modes(it.s, v, it.forward)
+        modest[i] = start(modeit[i])
+        if done(modeit[i], modest[i])
+            v = -1
+        elseif i != last(I)
+            seq[i], modest[i] = next(modeit[i], modest[i])
+            As[i] = matrixfor(it.s, seq[i]) * A
+            A = As[i]
+            v = state(it.s, seq[i], it.forward)
+        end
     end
-    (SwitchingSequence(it.s, A, copy(seq)), (modeit, modest, As, seq))
+    (modeit, modest, As, seq)
 end
 function done(it::SwitchingIterator, st)
     modeit, modest, _, _ = st
-    I = it.forward ? (k:-1:1) : (1:k)
+    I = it.forward ? (it.k:-1:1) : (1:it.k)
     for i in I
         if !done(modeit[i], modest[i])
             return false
@@ -61,23 +69,26 @@ function done(it::SwitchingIterator, st)
 end
 function next(it::SwitchingIterator, st)
     modeit, modest, As, seq = st
-    I = it.forward ? (k:-1:1) : (1:k)
-    for i in I
-        if !done(modeit[i], modest[i])
+    I = it.forward ? (it.k:-1:1) : (1:it.k)
+    i = -1
+    for j in I
+        if !done(modeit[j], modest[j])
+            i = j
             break
         end
     end
     inc = it.forward ? 1 : -1
     prev = i - inc
     A = (prev >= 1 && prev <= it.k) ? As[prev] : speye(dim(it.s))
-    while i > 0 && i <= k
+    while i > 0 && i <= it.k
         seq[i], modest[i] = next(modeit[i], modest[i])
         As[i] = matrixfor(it.s, seq[i]) * A
         A = As[i]
-        v = state(seq[i], it.forward)
+        v = state(it.s, seq[i], it.forward)
         i += inc
-        if i > 0 && i <= k
+        if i > 0 && i <= it.k
             modeit[i], modest[i] = modes(it.s, v, it.forward)
         end
     end
+    (SwitchingSequence(it.s, A, copy(seq)), (modeit, modest, As, seq))
 end

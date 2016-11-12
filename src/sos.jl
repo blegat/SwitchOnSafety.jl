@@ -3,7 +3,7 @@ using PolyJuMP
 using SumOfSquares
 using MathProgBase
 
-export soslyap, soslyapb, sosduallyap, sosduallyapb
+export soslyap, soslyapb, sosbuildsequence
 
 function setlyap!(s, lyap::Lyapunov)
     d = lyap.d
@@ -32,7 +32,8 @@ function soslyap(s::SwitchedSystem, d, γ; solver=MathProgBase.defaultSDPsolver)
     @polyvariable model p Z
     @polyconstraint model p >= sum(x.^(2*d))
     cons = [@polyconstraint model p(A*x, x) <= γ^(2*d) * p for A in s.A]
-    status = solve(model)
+    # I suppress the warning "Not solved to optimality, status: Infeasible"
+    status = solve(model, suppress_warnings=true)
     if status == :Optimal
         status, getvalue(p), nothing
     elseif status == :Infeasible
@@ -77,11 +78,11 @@ function soslyapb(s::SwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPs
     updateb!(s, lb, ub)
 end
 
-function sosbuildsequence(s::SwitchedSystem, d::Integer; v_0=:Random, p_0=:Random, solver=MathProgBase.defaultSDPsolver, tol=1e-5)
+function sosbuildsequence(s::SwitchedSystem, d::Integer; v_0=:Random, p_0=:Random, l=1, niter=42, solver=MathProgBase.defaultSDPsolver, tol=1e-5)
     lyap = getlyap(s, d, solver=solver, tol=tol)
     if p_0 == :Primal
-        x = vars(p_0)
         p_0 = lyap.primal
+        x = vars(p_0)
     elseif p_0 == :Random
         @polyvar x[1:n]
         Z = monomials(x, d)
@@ -89,7 +90,7 @@ function sosbuildsequence(s::SwitchedSystem, d::Integer; v_0=:Random, p_0=:Rando
     end # otherwise p_0 is assumed to be an sos polynomial given by the user
     p_0 = VecPolynomial(p_0)
     if v_0 == :Random
-        curstate = randi(1)
+        curstate = rand(1:1)
     else
         if !isa(v_0, Integer) || v_0 < 1 || v_0 > 1
             throw(ArgumentError("Invalid v_0=$v_0"))
@@ -104,21 +105,22 @@ function sosbuildsequence(s::SwitchedSystem, d::Integer; v_0=:Random, p_0=:Rando
 
     for iter = 1:l:(niter-l+1)
         best = 0
-        best_seq = -1
-        npaths = 0
+        best_seq = nothing
+        nswitchings = 0
         for cur_seq in switchings(s, l, curstate, false)
             nswitchings = nswitchings + 1
             cur = dot(lyap.dual[first(cur_seq.seq)], p_k(cur_seq.A * x, x))
+            @assert cur_seq.A == s.A[cur_seq.seq[1]]
             if cur > best
                 best = cur
                 best_seq = cur_seq
             end
         end
 
-        if npaths == 0
+        if nswitchings == 0
             error("$curstate does not have any incoming path of length $l.")
         end
-        if best_e == -1
+        if best_seq == nothing
             error("Oops, this should not happend, please report this bug.")
         end
         curstate = state(s, best_seq.seq[1], false)
@@ -127,7 +129,7 @@ function sosbuildsequence(s::SwitchedSystem, d::Integer; v_0=:Random, p_0=:Rando
         prod = prod * best_seq.A
     end
 
-    lbd = 0
+    smp = Nullable{PeriodicSwitching}()
     for i = 1:length(seq)
         P = speye(n)
         startNode = state(s, seq[i], false)
@@ -138,17 +140,18 @@ function sosbuildsequence(s::SwitchedSystem, d::Integer; v_0=:Random, p_0=:Rando
             P = matrixfor(s, mode) * P
             if state(s, mode, true) == startNode
                 lambda = ρ(P)
-                newLbd = abs(lambda)^(1/k)
-                if newLbd > lbd * (1 + sqrt(epsilon(lbd)))
-                    smp = seq[i:j]
-                    lbd = newLbd
+                growthrate = abs(lambda)^(1/k)
+                if isnull(smp) || isbetter(growthrate, length(i:j), get(smp))
+                    smp = Nullable{PeriodicSwitching}(PeriodicSwitching(s, seq[i:j], growthrate))
                 end
             end
         end
     end
 
-    lb = lbd^(1/(2*d))
-    updatelb!(s, lb)
+    if !isnull(smp)
+        updatesmp!(s, get(smp))
+    end
+    smp
 end
 
 #function sosbuildsequence(s::SwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPsolver, tol=1e-5)
