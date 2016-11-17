@@ -3,7 +3,7 @@ abstract AbstractPeriodicSwitching
 function (::Type{T}){T<:AbstractPeriodicSwitching}(s::AbstractSwitchedSystem, period::Vector)
     A = speye(dim(s))
     for mode in period
-        A = matrixforward(s, mode) * A
+        A = integratorfor(s, mode) * A
     end
     lambda = ρ(A)
     growthrate = abs(lambda)^(1/length(period))

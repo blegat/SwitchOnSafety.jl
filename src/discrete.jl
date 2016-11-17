@@ -7,7 +7,7 @@ type DiscretePeriodicSwitching <: AbstractPeriodicSwitching
     period::Vector{Int}
     growthrate::Float64
 end
-matrixforward(s::AbstractDiscreteSwitchedSystem, mode::Int) = matrixfor(s, mode)
+integratorfor(s::AbstractDiscreteSwitchedSystem, mode::Int) = dynamicfor(s, mode)
 
 type DiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
     A::Vector

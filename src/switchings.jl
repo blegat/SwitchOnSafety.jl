@@ -2,7 +2,7 @@ import Base.start, Base.done, Base.next, Base.append!
 
 type SwitchingSequence
     s::DiscreteSwitchedSystem
-    A::AbstractMatrix
+    A::AbstractMatrix # /!\ could be dynamic or integrator
     seq::Vector{Int}
     len::Int
 end
@@ -30,6 +30,15 @@ function append!(s::SwitchingSequence, other::SwitchingSequence)
     s.len += other.len
 end
 
+function measurefor(μ, s::SwitchingSequence)
+    μ[first(s.seq)]
+end
+
+# Only makes sense for discrete
+function dynamicfor(s::AbstractDiscreteSwitchedSystem, sw::SwitchingSequence)
+    sw.A
+end
+
 type SwitchingIterator
     s::DiscreteSwitchedSystem
     k::Int
@@ -45,7 +54,7 @@ function modes(s::DiscreteSwitchedSystem, v, forward=true)
     1:length(s.A)
 end
 
-function matrixfor(s::DiscreteSwitchedSystem, mode)
+function dynamicfor(s::DiscreteSwitchedSystem, mode::Int)
     s.A[mode]
 end
 
@@ -74,7 +83,7 @@ function start(it::SwitchingIterator)
             v = -1
         elseif i != last(I)
             seq[i], modest[i] = next(modeit[i], modest[i])
-            As[i] = matrixfor(it.s, seq[i]) * A
+            As[i] = dynamicfor(it.s, seq[i]) * A
             A = As[i]
             v = state(it.s, seq[i], it.forward)
         end
@@ -106,7 +115,7 @@ function next(it::SwitchingIterator, st)
     A = (prev >= 1 && prev <= it.k) ? As[prev] : speye(dim(it.s))
     while i > 0 && i <= it.k
         seq[i], modest[i] = next(modeit[i], modest[i])
-        As[i] = matrixfor(it.s, seq[i]) * A
+        As[i] = dynamicfor(it.s, seq[i]) * A
         A = As[i]
         v = state(it.s, seq[i], it.forward)
         i += inc

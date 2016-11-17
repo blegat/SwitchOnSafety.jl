@@ -133,6 +133,31 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver=MathProgBase.def
     updateb!(s, lb, ub)
 end
 
+function best_dynamic(s::AbstractSwitchedSystem, μs, p, l, curstate)
+    best = 0
+    best_dyn = nothing
+    nswitchings = 0
+    for dyn in switchings(s, l, curstate, false)
+        nswitchings = nswitchings + 1
+        soslf = soslyapforward(s, p, dynamicfor(s, dyn))
+        μ = measurefor(μs, dyn)
+        cur = dot(μ, soslf)
+        if cur > best
+            best = cur
+            best_dyn = dyn
+        end
+    end
+
+    if nswitchings == 0
+        error("$curstate does not have any incoming path of length $l.")
+    end
+    if best_dyn == nothing
+        error("Oops, this should not happend, please report this bug.")
+    end
+    best_dyn
+end
+
+
 # Extracting trajectory from Lyapunov
 function sosbuildsequence(s::DiscreteSwitchedSystem, d::Integer; v_0=:Random, p_0=:Random, l::Integer=1, Δt=.01, niter::Integer=42, solver=MathProgBase.defaultSDPsolver, tol=1e-5)
     lyap = getlyap(s, d, solver=solver, tol=tol)
@@ -159,29 +184,11 @@ function sosbuildsequence(s::DiscreteSwitchedSystem, d::Integer; v_0=:Random, p_
     seq = SwitchingSequence(s, niter)
 
     for iter = 1:l:(niter-l+1)
-        best = 0
-        best_seq = nothing
-        nswitchings = 0
-        for cur_seq in switchings(s, l, curstate, false)
-            nswitchings = nswitchings + 1
-            soslf = soslyapforward(s, p_k, cur_seq.A)
-            cur = dot(lyap.dual[first(cur_seq.seq)], soslf)
-            @assert cur_seq.A == s.A[cur_seq.seq[1]]
-            if cur > best
-                best = cur
-                best_seq = cur_seq
-            end
-        end
+        best_dyn = best_dynamic(s, lyap.dual, p_k, l, curstate)
 
-        if nswitchings == 0
-            error("$curstate does not have any incoming path of length $l.")
-        end
-        if best_seq == nothing
-            error("Oops, this should not happend, please report this bug.")
-        end
-        curstate = state(s, best_seq.seq[1], false)
-        append!(seq, best_seq)
-        p_k = p_k(best_seq.A * x, x)
+        curstate = state(s, best_dyn.seq[1], false)
+        append!(seq, best_dyn)
+        p_k = p_k(best_dyn.A * x, x)
     end
     @assert seq.len == length(seq.seq)
 
@@ -193,7 +200,7 @@ function sosbuildsequence(s::DiscreteSwitchedSystem, d::Integer; v_0=:Random, p_
         for j = i:seq.len
             mode = seq.seq[j]
             k = k + nlabels(s, mode)
-            P = matrixfor(s, mode) * P
+            P = integratorfor(s, mode) * P
             if state(s, mode, true) == startNode
                 lambda = ρ(P)
                 growthrate = abs(lambda)^(1/k)

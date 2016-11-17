@@ -7,7 +7,7 @@ type ContinuousPeriodicSwitching <: AbstractPeriodicSwitching
     period::Vector{Tuple{Int, Float64}}
     growthrate::Float64
 end
-matrixforward(s::AbstractDiscreteSwitchedSystem, mode::Tuple{Int,Float64}) = expm(matrixfor(s, mode[1]) * mode[2])
+integratorfor(s::AbstractDiscreteSwitchedSystem, mode::Tuple{Int,Float64}) = expm(dynamicfor(s, mode[1]) * mode[2])
 
 type ContinuousSwitchedSystem <: AbstractContinuousSwitchedSystem
     A::Vector
