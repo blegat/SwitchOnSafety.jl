@@ -5,6 +5,7 @@ using MathProgBase
 
 export soslyap, soslyapb, sosbuildsequence
 
+# Storing the Lyapunov
 function setlyap!(s, lyap::Lyapunov)
     d = lyap.d
     if length(s.lyaps) < d
@@ -15,23 +16,40 @@ function setlyap!(s, lyap::Lyapunov)
     end
     s.lyaps[d] = lyap
 end
-
-function getlyap(s::DiscreteSwitchedSystem, d::Int; solver=MathProgBase.defaultSDPsolver, tol=1e-5)
+function getlyap(s::AbstractSwitchedSystem, d::Int; solver=MathProgBase.defaultSDPsolver, tol=1e-5)
     if d > length(s.lyaps) || isnull(s.lyaps[d])
         soslyapb(s, d; solver=solver, tol=1e-5, cached=true)
     end
     get(s.lyaps[d])
 end
 
+# Building the Lyapunov constraints
+function soslyapforward(s::AbstractDiscreteSwitchedSystem, p, A)
+    x = vars(p)
+    p(A*x, x)
+end
+function soslyapforward(s::AbstractContinuousSwitchedSystem, p, A)
+    x = vars(p)
+    dot(differentiate(p, x), A*x)
+end
+soslyapscaling(s::AbstractDiscreteSwitchedSystem, γ, d) = γ^(2*d)
+soslyapscaling(s::AbstractContinuousSwitchedSystem, γ, d) = 2*d*γ
+function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, A, d, γ)
+    @polyconstraint model soslyapforward(s, p, A) <= soslyapscaling(s, γ, d) * p
+end
+function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
+    [soslyapconstraint(s, model, p, A, d, γ) for A in s.A]
+end
 
-function soslyap(s::DiscreteSwitchedSystem, d, γ; solver=MathProgBase.defaultSDPsolver)
+# Solving the Lyapunov problem
+function soslyap(s::AbstractSwitchedSystem, d, γ; solver=MathProgBase.defaultSDPsolver)
     n = dim(s)
     @polyvar x[1:n]
     model = JuMP.Model(solver=solver)
     Z = monomials(x, 2*d)
     @polyvariable model p Z
     @polyconstraint model p >= sum(x.^(2*d))
-    cons = [@polyconstraint model p(A*x, x) <= γ^(2*d) * p for A in s.A]
+    cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     status = solve(model, suppress_warnings=true)
     if status == :Optimal
@@ -43,13 +61,51 @@ function soslyap(s::DiscreteSwitchedSystem, d, γ; solver=MathProgBase.defaultSD
     end
 end
 
-function soslyapb(s::DiscreteSwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPsolver, tol=1e-5, cached=true)
+function getsoslyapinitub(s::AbstractDiscreteSwitchedSystem, d::Integer)
+    _, sosub = pradiusb(s, 2*d)
+    sosub
+end
+function getsoslyapinitub(s::AbstractContinuousSwitchedSystem, d::Integer)
+    Inf
+end
+
+function increaselb(s::AbstractDiscreteSwitchedSystem, lb, step)
+    lb *= step
+end
+
+soschecktol(soslb, sosub, tol) = sosub - soslb > tol
+soschecktol(s::AbstractDiscreteSwitchedSystem, soslb, sosub, tol) = soschecktol(log(soslb), log(sosub), tol)
+soschecktol(s::AbstractContinuousSwitchedSystem, soslb, sosub, tol) = soschecktol(soslb, sosub, tol)
+
+function sosmid(soslb, sosub, step)
+    if isfinite(soslb) && isfinite(sosub)
+        mid = (soslb + sosub) / 2
+    elseif isfinite(soslb)
+        mid = soslb + step
+    elseif isfinite(sosub)
+        mid = sosub - step
+    else
+        mid = 0
+    end
+end
+sosmid(s::AbstractDiscreteSwitchedSystem, soslb, sosub, step) = exp(sosmid(log(soslb), log(sosub), step))
+sosmid(s::AbstractContinuousSwitchedSystem, soslb, sosub, step) = sosmid(soslb, sosub, step)
+
+function soslb2lb(s::AbstractDiscreteSwitchedSystem, sosub, d)
+    n = dim(s)
+    η = min(length(s.A), binomial(n+d-1, d))
+    sosub / η^(1/(2*d))
+end
+soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
+
+# Obtaining bounds with Lyapunov
+function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPsolver, tol=1e-5, step=1, cached=true)
     # The SOS ub is greater than the JSR hence also greater than any of its lower bound
     soslb = s.lb
-    (lb, sosub) = pradiusb(s, 2*d)
+    sosub = getsoslyapinitub(s, d)
     primal = dual = nothing
-    while sosub - soslb > tol
-        mid = (soslb + sosub) / 2
+    while soschecktol(s, soslb, sosub, tol)
+        mid = sosmid(s, soslb, sosub, step)
         status, curprimal, curdual = soslyap(s, d, mid; solver=solver)
         if status == :Optimal
             primal = curprimal
@@ -73,12 +129,12 @@ function soslyapb(s::DiscreteSwitchedSystem, d::Integer; solver=MathProgBase.def
         setlyap!(s, Lyapunov(d, soslb, dual, sosub, primal))
     end
     ub = sosub
-    n = dim(s)
-    lb = sosub / min(length(s.A), binomial(n+d-1, d))^(1/(2*d))
+    lb = soslb2lb(s, soslb, d)
     updateb!(s, lb, ub)
 end
 
-function sosbuildsequence(s::DiscreteSwitchedSystem, d::Integer; v_0=:Random, p_0=:Random, l=1, niter=42, solver=MathProgBase.defaultSDPsolver, tol=1e-5)
+# Extracting trajectory from Lyapunov
+function sosbuildsequence(s::DiscreteSwitchedSystem, d::Integer; v_0=:Random, p_0=:Random, l::Integer=1, Δt=.01, niter::Integer=42, solver=MathProgBase.defaultSDPsolver, tol=1e-5)
     lyap = getlyap(s, d, solver=solver, tol=tol)
     if p_0 == :Primal
         p_0 = lyap.primal
@@ -100,8 +156,7 @@ function sosbuildsequence(s::DiscreteSwitchedSystem, d::Integer; v_0=:Random, p_
 
     p_k = p_0
     n = dim(s)
-    prod = speye(n)
-    seq = zeros(Int, niter)
+    seq = SwitchingSequence(s, niter)
 
     for iter = 1:l:(niter-l+1)
         best = 0
@@ -109,7 +164,8 @@ function sosbuildsequence(s::DiscreteSwitchedSystem, d::Integer; v_0=:Random, p_
         nswitchings = 0
         for cur_seq in switchings(s, l, curstate, false)
             nswitchings = nswitchings + 1
-            cur = dot(lyap.dual[first(cur_seq.seq)], p_k(cur_seq.A * x, x))
+            soslf = soslyapforward(s, p_k, cur_seq.A)
+            cur = dot(lyap.dual[first(cur_seq.seq)], soslf)
             @assert cur_seq.A == s.A[cur_seq.seq[1]]
             if cur > best
                 best = cur
@@ -124,25 +180,25 @@ function sosbuildsequence(s::DiscreteSwitchedSystem, d::Integer; v_0=:Random, p_
             error("Oops, this should not happend, please report this bug.")
         end
         curstate = state(s, best_seq.seq[1], false)
-        seq[(niter-iter-l+2):(niter-iter+1)] = best_seq.seq
+        append!(seq, best_seq)
         p_k = p_k(best_seq.A * x, x)
-        prod = prod * best_seq.A
     end
+    @assert seq.len == length(seq.seq)
 
     smp = Nullable{DiscretePeriodicSwitching}()
-    for i = 1:length(seq)
+    for i = 1:seq.len
         P = speye(n)
-        startNode = state(s, seq[i], false)
+        startNode = state(s, seq.seq[i], false)
         k = 0
-        for j = i:length(seq)
-            mode = seq[j]
+        for j = i:seq.len
+            mode = seq.seq[j]
             k = k + nlabels(s, mode)
             P = matrixfor(s, mode) * P
             if state(s, mode, true) == startNode
                 lambda = ρ(P)
                 growthrate = abs(lambda)^(1/k)
                 if isnull(smp) || isbetter(growthrate, length(i:j), get(smp))
-                    smp = Nullable{DiscretePeriodicSwitching}(DiscretePeriodicSwitching(s, seq[i:j], growthrate))
+                    smp = Nullable{DiscretePeriodicSwitching}(DiscretePeriodicSwitching(s, seq.seq[i:j], growthrate))
                 end
             end
         end

@@ -1,9 +1,33 @@
-import Base.start, Base.done, Base.next
+import Base.start, Base.done, Base.next, Base.append!
 
 type SwitchingSequence
     s::DiscreteSwitchedSystem
     A::AbstractMatrix
     seq::Vector{Int}
+    len::Int
+end
+
+function SwitchingSequence(s::DiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector{Int})
+    SwitchingSequence(s, A, seq, length(seq))
+end
+function SwitchingSequence(s::DiscreteSwitchedSystem, len=0)
+    SwitchingSequence(s, speye(dim(s)), Vector{Int}(len), 0)
+end
+
+function append!(s::SwitchingSequence, other::SwitchingSequence)
+    s.A = other.A * s.A
+    if s.len < length(s.seq)
+        if s.len + other.len <= length(s.seq)
+            s.seq[(s.len+1):(s.len+other.len)] = other.seq
+        else
+            off = length(s.seq) - s.len
+            s.seq[(s.len+1):end] = @view other.seq[1:off]
+            append!(s.seq, @view other.seq[(off+1):end])
+        end
+    else
+        append!(s.seq, other.seq)
+    end
+    s.len += other.len
 end
 
 type SwitchingIterator

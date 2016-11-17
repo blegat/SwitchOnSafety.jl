@@ -7,12 +7,11 @@ import Base.==
 export AbstractSwitchedSystem
 export dim, ρ, quicklb, quickub, quickb
 
-abstract AbstractSwitchedSystem
-abstract AbstractPeriodicSwitching
-
 function ρ(A::AbstractMatrix)
     maximum(abs.(eigvals(A)))
 end
+
+abstract AbstractSwitchedSystem
 
 type Lyapunov
     d::Int
@@ -48,7 +47,9 @@ function quickb(s::AbstractSwitchedSystem)
     (quicklb(s), quickub(s))
 end
 
+include("periodic.jl")
 include("discrete.jl")
+include("continuous.jl")
 include("switchings.jl")
 include("veronese.jl")
 include("pradius.jl")
