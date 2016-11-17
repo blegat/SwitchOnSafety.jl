@@ -1,12 +1,15 @@
 abstract AbstractPeriodicSwitching
 
+adaptgrowthrate(g, period::AbstractVector{Int}) = g^(1/length(period))
+adaptgrowthrate(g, period::AbstractVector{Tuple{Int,Float64}}) = log(g)/sum(map(p->p[2],period))
+
 function (::Type{T}){T<:AbstractPeriodicSwitching}(s::AbstractSwitchedSystem, period::Vector)
     A = speye(dim(s))
     for mode in period
         A = integratorfor(s, mode) * A
     end
     lambda = ρ(A)
-    growthrate = abs(lambda)^(1/length(period))
+    growthrate = adaptgrowthrate(abs(lambda), period)
     T(s, period, growthrate)
 end
 
