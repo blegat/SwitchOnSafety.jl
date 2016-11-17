@@ -1,10 +1,8 @@
 using SwitchedSystems
-using FactCheck
+using Base.Test
 
 include("veronese.jl")
 
 include("solvers.jl")
 
-include("ex54.jl")
-
-FactCheck.exitstatus()
+include("discrete.jl")
