@@ -49,6 +49,7 @@ function soslyapb(s::SwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPs
     (lb, sosub) = pradiusb(s, 2*d)
     primal = dual = nothing
     while sosub - soslb > tol
+        @show sosub - soslb
         mid = (soslb + sosub) / 2
         status, curprimal, curdual = soslyap(s, d, mid; solver=solver)
         if status == :Optimal

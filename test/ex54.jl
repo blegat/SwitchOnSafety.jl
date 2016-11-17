@@ -27,14 +27,15 @@ facts("Example 5.4") do
     @fact lb --> roughly(3.427560156)
     @fact ub --> roughly(4.076078925)
     smp = PeriodicSwitching(s, [1, 2])
+    tol=1e-3
     for solver in sdp_solvers
         context("With solver $(typeof(solver))") do
-            lb, ub = soslyapb(s, 1, solver=solver)
-            @fact lb --> roughly(2.814640557, rtol=1e-5)
-            @fact ub --> roughly(3.980502849, rtol=1e-5)
-            lb, ub = soslyapb(s, 2, solver=solver)
-            @fact lb --> roughly(3.299750624, rtol=1e-5)
-            @fact ub --> roughly(3.924086919, rtol=1e-5)
+            lb, ub = soslyapb(s, 1, solver=solver, tol=tol)
+            @fact lb --> roughly(2.814640557, rtol=tol)
+            @fact ub --> roughly(3.980502849, rtol=tol)
+            lb, ub = soslyapb(s, 2, solver=solver, tol=tol)
+            @fact lb --> roughly(3.299750624, rtol=tol)
+            @fact ub --> roughly(3.924086919, rtol=tol)
             psw = sosbuildsequence(s, 1, p_0=:Primal)
             @fact isnull(psw) --> false
             @fact get(psw) --> smp
