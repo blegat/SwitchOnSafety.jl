@@ -5,7 +5,7 @@ function pradiusk(As, p, k, pnorm)
 end
 
 # The Inf- and 1-norm of a matrices are easier to compute than the 2-norm
-function pradius(s::SwitchedSystem, p, algo=:VeroneseLift; pnorm=Inf, ɛ=1e-2, forceub=false)
+function pradius(s::DiscreteSwitchedSystem, p, algo=:VeroneseLift; pnorm=Inf, ɛ=1e-2, forceub=false)
     if algo == :VeroneseLift
         if !iseven(p)
             throw(ArgumentError("Odd p is not supported yet for pradius computation"))
@@ -43,7 +43,7 @@ function pradius(s::SwitchedSystem, p, algo=:VeroneseLift; pnorm=Inf, ɛ=1e-2, f
         end
     end
 
-    function pradiusb(s::SwitchedSystem, p)
+    function pradiusb(s::DiscreteSwitchedSystem, p)
         ρpmp = pradius(s, p, :VeroneseLift, forceub=true)
         ρp = ρpmp / length(s.A)^(1/p)
         updateb!(s, ρp, ρpmp)

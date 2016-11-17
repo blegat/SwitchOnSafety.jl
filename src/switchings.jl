@@ -1,31 +1,31 @@
 import Base.start, Base.done, Base.next
 
 type SwitchingSequence
-    s::SwitchedSystem
+    s::DiscreteSwitchedSystem
     A::AbstractMatrix
     seq::Vector{Int}
 end
 
 type SwitchingIterator
-    s::SwitchedSystem
+    s::DiscreteSwitchedSystem
     k::Int
     v0::Int
     forward::Bool
 end
 
-function switchings(s::SwitchedSystem, k::Int, v0::Int, forward=true)
+function switchings(s::DiscreteSwitchedSystem, k::Int, v0::Int, forward=true)
     SwitchingIterator(s, k, v0, forward)
 end
 
-function modes(s::SwitchedSystem, v, forward=true)
+function modes(s::DiscreteSwitchedSystem, v, forward=true)
     1:length(s.A)
 end
 
-function matrixfor(s::SwitchedSystem, mode)
+function matrixfor(s::DiscreteSwitchedSystem, mode)
     s.A[mode]
 end
 
-function state(s::SwitchedSystem, mode, forward=true)
+function state(s::DiscreteSwitchedSystem, mode, forward=true)
     1
 end
 

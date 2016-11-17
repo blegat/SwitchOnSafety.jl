@@ -16,7 +16,7 @@ function setlyap!(s, lyap::Lyapunov)
     s.lyaps[d] = lyap
 end
 
-function getlyap(s::SwitchedSystem, d::Int; solver=MathProgBase.defaultSDPsolver, tol=1e-5)
+function getlyap(s::DiscreteSwitchedSystem, d::Int; solver=MathProgBase.defaultSDPsolver, tol=1e-5)
     if d > length(s.lyaps) || isnull(s.lyaps[d])
         soslyapb(s, d; solver=solver, tol=1e-5, cached=true)
     end
@@ -24,7 +24,7 @@ function getlyap(s::SwitchedSystem, d::Int; solver=MathProgBase.defaultSDPsolver
 end
 
 
-function soslyap(s::SwitchedSystem, d, γ; solver=MathProgBase.defaultSDPsolver)
+function soslyap(s::DiscreteSwitchedSystem, d, γ; solver=MathProgBase.defaultSDPsolver)
     n = dim(s)
     @polyvar x[1:n]
     model = JuMP.Model(solver=solver)
@@ -43,7 +43,7 @@ function soslyap(s::SwitchedSystem, d, γ; solver=MathProgBase.defaultSDPsolver)
     end
 end
 
-function soslyapb(s::SwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPsolver, tol=1e-5, cached=true)
+function soslyapb(s::DiscreteSwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPsolver, tol=1e-5, cached=true)
     # The SOS ub is greater than the JSR hence also greater than any of its lower bound
     soslb = s.lb
     (lb, sosub) = pradiusb(s, 2*d)
@@ -78,7 +78,7 @@ function soslyapb(s::SwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPs
     updateb!(s, lb, ub)
 end
 
-function sosbuildsequence(s::SwitchedSystem, d::Integer; v_0=:Random, p_0=:Random, l=1, niter=42, solver=MathProgBase.defaultSDPsolver, tol=1e-5)
+function sosbuildsequence(s::DiscreteSwitchedSystem, d::Integer; v_0=:Random, p_0=:Random, l=1, niter=42, solver=MathProgBase.defaultSDPsolver, tol=1e-5)
     lyap = getlyap(s, d, solver=solver, tol=tol)
     if p_0 == :Primal
         p_0 = lyap.primal
@@ -129,7 +129,7 @@ function sosbuildsequence(s::SwitchedSystem, d::Integer; v_0=:Random, p_0=:Rando
         prod = prod * best_seq.A
     end
 
-    smp = Nullable{PeriodicSwitching}()
+    smp = Nullable{DiscretePeriodicSwitching}()
     for i = 1:length(seq)
         P = speye(n)
         startNode = state(s, seq[i], false)
@@ -142,7 +142,7 @@ function sosbuildsequence(s::SwitchedSystem, d::Integer; v_0=:Random, p_0=:Rando
                 lambda = ρ(P)
                 growthrate = abs(lambda)^(1/k)
                 if isnull(smp) || isbetter(growthrate, length(i:j), get(smp))
-                    smp = Nullable{PeriodicSwitching}(PeriodicSwitching(s, seq[i:j], growthrate))
+                    smp = Nullable{DiscretePeriodicSwitching}(DiscretePeriodicSwitching(s, seq[i:j], growthrate))
                 end
             end
         end
@@ -154,5 +154,5 @@ function sosbuildsequence(s::SwitchedSystem, d::Integer; v_0=:Random, p_0=:Rando
     smp
 end
 
-#function sosbuildsequence(s::SwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPsolver, tol=1e-5)
+#function sosbuildsequence(s::DiscreteSwitchedSystem, d::Integer; solver=MathProgBase.defaultSDPsolver, tol=1e-5)
 #end

@@ -1,23 +1,23 @@
-export SwitchedSystem, PeriodicSwitching, getsmp
+export DiscreteSwitchedSystem, DiscretePeriodicSwitching, getsmp
 
 abstract AbstractDiscreteSwitchedSystem <: AbstractSwitchedSystem
 
-type PeriodicSwitching
+type DiscretePeriodicSwitching <: AbstractPeriodicSwitching
     s::AbstractDiscreteSwitchedSystem
     period::Vector{Int}
     growthrate::Float64
 end
-function PeriodicSwitching(s::AbstractDiscreteSwitchedSystem, period::Vector{Int})
+function DiscretePeriodicSwitching(s::AbstractDiscreteSwitchedSystem, period::Vector{Int})
     A = speye(dim(s))
     for mode in period
         A = matrixfor(s, mode) * A
     end
     lambda = ρ(A)
     growthrate = abs(lambda)^(1/length(period))
-    PeriodicSwitching(s, period, growthrate)
+    DiscretePeriodicSwitching(s, period, growthrate)
 end
 
-function (==)(s1::PeriodicSwitching, s2::PeriodicSwitching)
+function (==)(s1::DiscretePeriodicSwitching, s2::DiscretePeriodicSwitching)
     if !(s1.s === s2.s)
         false
     elseif !isapprox(s1.growthrate, s2.growthrate)
@@ -47,26 +47,26 @@ function (==)(s1::PeriodicSwitching, s2::PeriodicSwitching)
     end
 end
 
-function isbetter(g1, k1, s2::PeriodicSwitching)
+function isbetter(g1, k1, s2::DiscretePeriodicSwitching)
     g2 = s2.growthrate
     k2 = length(s2.period)
     g1 >= g2 * (1 + eps(g2)) || (g1 >= g2 * (1 - eps(g2)) && k1 < k2)
 end
 
-function isbetter(s1::PeriodicSwitching, s2::PeriodicSwitching)
+function isbetter(s1::DiscretePeriodicSwitching, s2::DiscretePeriodicSwitching)
     g1 = s1.growthrate
     k1 = length(s1.period)
     isbetter(g1, k1, s2)
 end
 
-type SwitchedSystem <: AbstractDiscreteSwitchedSystem
+type DiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
     A::Vector
     lb::Float64
     ub::Float64
     # There will typically only be lyapunov for small d so a dictionary would be overkill
     lyaps::Vector{Nullable{Lyapunov}}
-    smp::Nullable{PeriodicSwitching}
-    function SwitchedSystem(A::Vector)
+    smp::Nullable{DiscretePeriodicSwitching}
+    function DiscreteSwitchedSystem(A::Vector)
         if isempty(A)
             error("Needs at least one matrix in the system")
         end
@@ -83,7 +83,7 @@ type SwitchedSystem <: AbstractDiscreteSwitchedSystem
     end
 end
 
-function updatesmp!(s::AbstractDiscreteSwitchedSystem, smp::PeriodicSwitching)
+function updatesmp!(s::AbstractDiscreteSwitchedSystem, smp::DiscretePeriodicSwitching)
     updatelb!(s, smp.growthrate)
     if isnull(s.smp) || isbetter(smp, get(s.smp))
         s.smp = smp
@@ -98,12 +98,12 @@ function getsmp(s::AbstractDiscreteSwitchedSystem)
     get(s.smp)
 end
 
-function quicklb(s::SwitchedSystem)
+function quicklb(s::DiscreteSwitchedSystem)
     qlb = maximum(map(ρ, s.A))
     updatelb!(s, qlb)
 end
 
-function quickub(s::SwitchedSystem)
+function quickub(s::DiscreteSwitchedSystem)
     qub = minimum(map(p -> maximum(map(A->norm(A,p), s.A)), [1, 2, Inf]))
     updateub!(s, qub)
 end

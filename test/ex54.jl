@@ -5,7 +5,7 @@
 # The JSR is 3.917384715148
 
 facts("Example 5.4") do
-    s = SwitchedSystem([[-1 -1; -4 0],[3 3; -2 1]])
+    s = DiscreteSwitchedSystem([[-1 -1; -4 0],[3 3; -2 1]])
     qub = 4.3195961
     @fact quicklb(s) --> roughly(3)
     @fact quickub(s) --> roughly(qub)
@@ -26,7 +26,7 @@ facts("Example 5.4") do
     lb, ub = pradiusb(s, 4)
     @fact lb --> roughly(3.427560156)
     @fact ub --> roughly(4.076078925)
-    smp = PeriodicSwitching(s, [1, 2])
+    smp = DiscretePeriodicSwitching(s, [1, 2])
     for solver in sdp_solvers
         context("With solver $(typeof(solver))") do
             lb, ub = soslyapb(s, 1, solver=solver)

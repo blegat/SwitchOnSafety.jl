@@ -8,6 +8,7 @@ export AbstractSwitchedSystem
 export dim, ρ, quicklb, quickub, quickb
 
 abstract AbstractSwitchedSystem
+abstract AbstractPeriodicSwitching
 
 function ρ(A::AbstractMatrix)
     maximum(abs.(eigvals(A)))
