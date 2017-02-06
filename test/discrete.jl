@@ -28,13 +28,14 @@
     @test_approx_eq(ub, 4.0760789246858735)
     smp = DiscretePeriodicSwitching(s, [1, 2])
     for solver in sdp_solvers
+        tol = ismosek(solver) ? 1e-5 : 1e-4
         println("  > With solver $(typeof(solver))")
-        lb, ub = soslyapb(s, 1, solver=solver)
-        @test_approx_eq_eps(log(lb), log(2.814640557), 1e-5)
-        @test_approx_eq_eps(log(ub), log(3.980502849), 1e-5)
-        lb, ub = soslyapb(s, 2, solver=solver)
-        @test_approx_eq_eps(log(lb), log(3.299750624), 1e-5)
-        @test_approx_eq_eps(log(ub), log(3.924086919), 1e-5)
+        lb, ub = soslyapb(s, 1, solver=solver, tol=tol)
+        @test isapprox(log(lb), log(2.814640557), rtol=tol)
+        @test isapprox(log(ub), log(3.980502849), rtol=tol)
+        lb, ub = soslyapb(s, 2, solver=solver, tol=tol)
+        @test isapprox(log(lb), log(3.299750624), rtol=tol)
+        @test isapprox(log(ub), log(3.924086919), rtol=tol)
         psw = sosbuildsequence(s, 1, p_0=:Primal)
         @test isnull(psw) == false
         @test get(psw) == smp
@@ -43,10 +44,10 @@
         @test get(psw) == smp
     end
     @test getsmp(s) == smp
-    @test_approx_eq_eps(s.lb, 3.917384715148, 1e-12)
+    @test isapprox(s.lb, 3.917384715148, rtol=1e-12)
     if isempty(sdp_solvers)
-        @test_approx_eq(s.ub, 4.0760789246858735)
+        @test isapprox(s.ub, 4.0760789246858735)
     else
-        @test_approx_eq_eps(log(s.ub), log(3.924086919), 1e-5)
+        @test isapprox(log(s.ub), log(3.924086919), rtol=1e-4)
     end
 end

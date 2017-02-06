@@ -6,3 +6,4 @@ include("veronese.jl")
 include("solvers.jl")
 
 include("discrete.jl")
+include("continuous.jl")

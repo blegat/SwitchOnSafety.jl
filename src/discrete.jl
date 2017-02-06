@@ -9,6 +9,10 @@ type DiscretePeriodicSwitching <: AbstractPeriodicSwitching
 end
 integratorfor(s::AbstractDiscreteSwitchedSystem, mode::Int) = dynamicfor(s, mode)
 
+function bestperiod(s::AbstractDiscreteSwitchedSystem, seq::Vector{Int}, I, ::AbstractMatrix, Q::AbstractMatrix)
+    adaptgrowthrate(abs(ρ(Q)), @view seq[I]), 1
+end
+
 type DiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
     A::Vector
     lb::Float64
