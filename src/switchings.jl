@@ -1,20 +1,44 @@
-import Base.start, Base.done, Base.next, Base.append!
+import Base.start, Base.done, Base.next, Base.append!, Base.push!
 
-type SwitchingSequence
+abstract AbstractSwitchingSequence
+
+duration(seq::AbstractVector{Int}) = length(seq)
+duration(seq::AbstractVector{Tuple{Int,Float64}}) = sum(map(p->p[2], seq))
+
+type DiscreteSwitchingSequence <: AbstractSwitchingSequence
     s::DiscreteSwitchedSystem
     A::AbstractMatrix # /!\ could be dynamic or integrator
     seq::Vector{Int}
     len::Int
 end
 
-function SwitchingSequence(s::DiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector{Int})
-    SwitchingSequence(s, A, seq, length(seq))
-end
-function SwitchingSequence(s::DiscreteSwitchedSystem, len=0)
-    SwitchingSequence(s, speye(dim(s)), Vector{Int}(len), 0)
+type ContinuousSwitchingSequence <: AbstractSwitchingSequence
+    s::ContinuousSwitchedSystem
+    A::AbstractMatrix # /!\ could be dynamic or integrator
+    seq::Vector{Tuple{Int,Float64}}
+    len::Int
 end
 
-function append!(s::SwitchingSequence, other::SwitchingSequence)
+function push!(s::AbstractSwitchingSequence, el)
+    if s.len < length(s.seq)
+        s.seq[s.len + 1] = el
+    else
+        push!(s.seq, el)
+    end
+    s.len += 1
+end
+
+function DiscreteSwitchingSequence(s::DiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector{Int})
+    DiscreteSwitchingSequence(s, A, seq, length(seq))
+end
+function SwitchingSequence(s::DiscreteSwitchedSystem, len=0)
+    DiscreteSwitchingSequence(s, speye(dim(s)), Vector{Int}(len), 0)
+end
+function SwitchingSequence(s::ContinuousSwitchedSystem, len=0)
+    ContinuousSwitchingSequence(s, speye(dim(s)), Vector{Tuple{Int,Float64}}(len), 0)
+end
+
+function append!(s::AbstractSwitchingSequence, other::AbstractSwitchingSequence)
     s.A = other.A * s.A
     if s.len < length(s.seq)
         if s.len + other.len <= length(s.seq)
@@ -30,12 +54,12 @@ function append!(s::SwitchingSequence, other::SwitchingSequence)
     s.len += other.len
 end
 
-function measurefor(μ, s::SwitchingSequence)
+function measurefor(μ, s::DiscreteSwitchingSequence)
     μ[first(s.seq)]
 end
 
 # Only makes sense for discrete
-function dynamicfor(s::AbstractDiscreteSwitchedSystem, sw::SwitchingSequence)
+function dynamicfor(s::AbstractDiscreteSwitchedSystem, sw::DiscreteSwitchingSequence)
     sw.A
 end
 
@@ -48,18 +72,6 @@ end
 
 function switchings(s::DiscreteSwitchedSystem, k::Int, v0::Int, forward=true)
     SwitchingIterator(s, k, v0, forward)
-end
-
-function modes(s::DiscreteSwitchedSystem, v, forward=true)
-    1:length(s.A)
-end
-
-function dynamicfor(s::DiscreteSwitchedSystem, mode::Int)
-    s.A[mode]
-end
-
-function state(s::DiscreteSwitchedSystem, mode, forward=true)
-    1
 end
 
 nextinnode(s, v, u) = u+1
@@ -123,5 +135,5 @@ function next(it::SwitchingIterator, st)
             modeit[i], modest[i] = modes(it.s, v, it.forward)
         end
     end
-    (SwitchingSequence(it.s, A, copy(seq)), (modeit, modest, As, seq))
+    (DiscreteSwitchingSequence(it.s, A, copy(seq)), (modeit, modest, As, seq))
 end

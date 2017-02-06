@@ -1,8 +1,9 @@
 using SwitchedSystems
 using Base.Test
 
-include("veronese.jl")
+#include("veronese.jl")
 
 include("solvers.jl")
 
-include("discrete.jl")
+#include("discrete.jl")
+include("continuous.jl")

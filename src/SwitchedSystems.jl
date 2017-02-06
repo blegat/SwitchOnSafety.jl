@@ -16,17 +16,29 @@ abstract AbstractSwitchedSystem
 type Lyapunov
     d::Int
     soslb::Float64
-    dual::Vector{Measure{Float64}}
+    dual::Vector{Measure{true, Float64}}
     sosub::Float64
-    primal::VecPolynomial{Float64}
+    primal::Polynomial{true, Float64}
+end
+
+function dim(s::AbstractSwitchedSystem)
+    size(s.A[1], 1)
 end
 
 function nlabels(s::AbstractSwitchedSystem, mode)
     1
 end
 
-function dim(s::AbstractSwitchedSystem)
-    size(s.A[1], 1)
+function modes(s::AbstractSwitchedSystem, v, forward=true)
+    1:length(s.A)
+end
+
+function dynamicfor(s::AbstractSwitchedSystem, mode::Int)
+    s.A[mode]
+end
+
+function state(s::AbstractSwitchedSystem, mode, forward=true)
+    1
 end
 
 function updatelb!(s::AbstractSwitchedSystem, lb, smp=nothing)
