@@ -26,38 +26,49 @@ function getlyap(s::AbstractSwitchedSystem, d::Int; solver::AbstractMathProgSolv
 end
 
 # Building the Lyapunov constraints
-function soslyapforward(s::AbstractDiscreteSwitchedSystem, p, A)
-    x = vars(p)
-    p(A*x, x)
+function soslyapforward(s::AbstractDiscreteSwitchedSystem, p::Polynomial, path)
+    xin = vars(s, startnode(path))
+    xout = vars(s, endnode(path))
+    p(dynamicfor(s, path) * xin, xout)
 end
-function soslyapforward(s::AbstractContinuousSwitchedSystem, p, A)
+function soslyapforward(s::AbstractContinuousSwitchedSystem, p::Polynomial, mode::Int)
     x = vars(p)
-    dot(differentiate(p, x), A*x)
+    dot(differentiate(p, x), dynamicfor(s, mode) * x)
 end
 soslyapscaling(s::AbstractDiscreteSwitchedSystem, γ, d) = γ^(2*d)
 soslyapscaling(s::AbstractContinuousSwitchedSystem, γ, d) = 2*d*γ
-function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, A, d, γ)
-    @polyconstraint model soslyapforward(s, p, A) <= soslyapscaling(s, γ, d) * p
+function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, edge, d, γ)
+    @polyconstraint model soslyapforward(s, lyapforout(p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(p, edge)
 end
 function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
-    [soslyapconstraint(s, model, p, A, d, γ) for A in s.A]
+    [soslyapconstraint(s, model, p, mode, d, γ) for mode in modes(s, 1)]
+end
+function soslyapconstraints(s::ConstrainedDiscreteSwitchedSystem, model::JuMP.Model, p, d, γ)
+    [soslyapconstraint(s, model, p, edge, d, γ) for edge in edges(s.G)]
 end
 
-# Solving the Lyapunov problem
-function soslyap(s::AbstractSwitchedSystem, d, γ; solver::AbstractMathProgSolver=JuMP.UnsetSolver())
-    n = dim(s)
-    @polyvar x[1:n]
-    model = JuMP.Model(solver=solver)
+function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     Z = monomials(x, 2*d)
     @polyvariable model p Z
     @polyconstraint model p >= sum(x.^(2*d))
+    p
+end
+lyapforin(p::Vector, mode::Int) = p[1]
+lyapforout(p::Vector, mode::Int) = p[1]
+lyapforin(p::Vector, edge::Edge) = p[edge.first]
+lyapforout(p::Vector, edge::Edge) = p[edge.second]
+
+# Solving the Lyapunov problem
+function soslyap(s::AbstractSwitchedSystem, d, γ; solver::AbstractMathProgSolver=JuMP.UnsetSolver())
+    model = JuMP.Model(solver=solver)
+    p = [buildlyap(model, vars(s, v), d) for v in 1:nnodes(s)]
     cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     status = solve(model, suppress_warnings=true)
     if status == :Optimal
-        status, getvalue(p), nothing
+        status, getvalue.(p), nothing
     elseif status == :Infeasible
-        status, nothing, [getdual(c) for c in cons]
+        status, nothing, getdual.(cons)
     else
         status, nothing, nothing
     end
@@ -96,7 +107,7 @@ sosmid(s::AbstractContinuousSwitchedSystem, soslb, sosub, step) = sosmid(soslb, 
 
 function soslb2lb(s::AbstractDiscreteSwitchedSystem, sosub, d)
     n = dim(s)
-    η = min(length(s.A), binomial(n+d-1, d))
+    η = min(ρA(s), binomial(n+d-1, d))
     sosub / η^(1/(2*d))
 end
 soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
@@ -158,7 +169,7 @@ function best_dynamic(s::AbstractSwitchedSystem, μs, p::Polynomial, l, curstate
     ncandidates = 0
     for dyn in candidates(s, l, curstate)
         ncandidates = ncandidates + 1
-        soslf = soslyapforward(s, p, dynamicfor(s, dyn))
+        soslf = soslyapforward(s, p, dyn)
         μ = measurefor(μs, dyn)
         cur = dot(μ, soslf)
         if cur > best
@@ -238,7 +249,7 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
     lyap = getlyap(s, d; solver=solver, tol=tol)
     @show lyap
     if p_0 == :Primal
-        p_0 = lyap.primal
+        p_0 = lyap.primal[1]
     elseif p_0 == :Random
         x = vars(lyap.primal)
         Z = monomials(x, d)

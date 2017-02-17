@@ -1,6 +1,7 @@
 module SwitchedSystems
 
 using MultivariatePolynomials
+using LightGraphs
 
 import Base.==
 
@@ -18,28 +19,23 @@ type Lyapunov
     soslb::Float64
     dual::Vector{Measure{true, Float64}}
     sosub::Float64
-    primal::Polynomial{true, Float64}
+    primal::Vector{Polynomial{true, Float64}}
 end
 
-function dim(s::AbstractSwitchedSystem)
-    size(s.A[1], 1)
-end
+nnodes(s::AbstractSwitchedSystem) = 1
+dim(s::AbstractSwitchedSystem) = dim(s, 1)
+dim(s::AbstractSwitchedSystem, i::Int) = s.n[i]
+MultivariatePolynomials.vars(s::AbstractSwitchedSystem, i::Int) = s.x
+startnode(i::Int) = 1
+endnode(i::Int) = 1
 
-function nlabels(s::AbstractSwitchedSystem, mode)
-    1
-end
+nlabels(s::AbstractSwitchedSystem, edge::Int) = 1
 
-function modes(s::AbstractSwitchedSystem, v, forward=true)
-    1:length(s.A)
-end
+modes(s::AbstractSwitchedSystem, v::Int, forward=true) = 1:length(s.A)
 
-function dynamicfor(s::AbstractSwitchedSystem, mode::Int)
-    s.A[mode]
-end
+dynamicfor(s::AbstractSwitchedSystem, mode::Int) = s.A[mode]
 
-function state(s::AbstractSwitchedSystem, mode, forward=true)
-    1
-end
+state(s::AbstractSwitchedSystem, edge::Int, forward=true) = 1
 
 function updatelb!(s::AbstractSwitchedSystem, lb, smp=nothing)
     s.lb = max(s.lb, lb)
@@ -61,9 +57,11 @@ end
 
 include("periodic.jl")
 include("discrete.jl")
+include("constrained.jl")
 include("continuous.jl")
 include("switchings.jl")
 include("veronese.jl")
+include("kronecker.jl")
 include("pradius.jl")
 include("sos.jl")
 

@@ -2,13 +2,14 @@ abstract AbstractPeriodicSwitching
 
 adaptgrowthrate(g, len::Int) = g^(1/len)
 adaptgrowthrate(g, Δt::Float64) = log(g)/Δt
-adaptgrowthrate(g, period::AbstractVector{Int}) = adaptgrowthrate(g, duration(period))
+# Vector{Int} for unconstrained, Vector{Edge} for constrained
+adaptgrowthrate(g, period::AbstractVector) = adaptgrowthrate(g, duration(period))
 adaptgrowthrate(g, period::AbstractVector{Tuple{Int,Float64}}) = adaptgrowthrate(g, duration(period))
 
 function (::Type{T}){T<:AbstractPeriodicSwitching}(s::AbstractSwitchedSystem, period::Vector)
-    A = speye(dim(s))
-    for mode in period
-        A = integratorfor(s, mode) * A
+    A = speye(dim(s, state(s, first(period), false)))
+    for edge in period
+        A = integratorfor(s, edge) * A
     end
     lambda = ρ(A)
     growthrate = adaptgrowthrate(abs(lambda), period)
@@ -66,7 +67,7 @@ end
 
 function getsmp(s::AbstractSwitchedSystem)
     if isnull(s.smp)
-        throw(InvalidStateException("No smp found"))
+        error("No smp found")
     end
     get(s.smp)
 end
