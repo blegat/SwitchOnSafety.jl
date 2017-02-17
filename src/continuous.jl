@@ -11,7 +11,6 @@ type ContinuousPeriodicSwitching <: AbstractPeriodicSwitching
 end
 integratorfor(s::AbstractContinuousSwitchedSystem, mode::Tuple{Int,Float64}) = expm(dynamicfor(s, mode[1]) * mode[2])
 
-
 function bestperiod(s::AbstractContinuousSwitchedSystem, seq::Vector{Tuple{Int,Float64}}, I, P::AbstractMatrix, ::AbstractMatrix)
     mode, Δt = seq[last(I)]
     T = duration(@view seq[I]) - Δt
@@ -24,6 +23,8 @@ end
 
 type ContinuousSwitchedSystem <: AbstractContinuousSwitchedSystem
     A::Vector
+    n::Int
+    x::Vector{PolyVar{true}}
     lb::Float64
     ub::Float64
     # There will typically only be lyapunov for small d so a dictionary would be overkill
@@ -34,6 +35,7 @@ type ContinuousSwitchedSystem <: AbstractContinuousSwitchedSystem
             error("Needs at least one matrix in the system")
         end
         n = size(A[1], 1)
+        @polyvar x[1:n]
         for M in A
             if !isa(M, AbstractMatrix)
                 error("One of the matrices is of invalid type: $(typeof(M))")
@@ -42,6 +44,6 @@ type ContinuousSwitchedSystem <: AbstractContinuousSwitchedSystem
                 error("The matrices should all have the same dimensions")
             end
         end
-        new(A, -Inf, Inf, Nullable{Lyapunov}[], nothing)
+        new(A, n, x, -Inf, Inf, Nullable{Lyapunov}[], nothing)
     end
 end

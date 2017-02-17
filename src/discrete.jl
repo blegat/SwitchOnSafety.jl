@@ -3,11 +3,12 @@ export DiscreteSwitchedSystem, DiscretePeriodicSwitching, getsmp
 abstract AbstractDiscreteSwitchedSystem <: AbstractSwitchedSystem
 
 type DiscretePeriodicSwitching <: AbstractPeriodicSwitching
-    s::AbstractDiscreteSwitchedSystem
+    s::AbstractDiscreteSwitchedSystem # Cannot say DiscreteSwitchedSystem as it would be a circular type declaration https://github.com/JuliaLang/julia/issues/269
     period::Vector{Int}
     growthrate::Float64
 end
-integratorfor(s::AbstractDiscreteSwitchedSystem, mode::Int) = dynamicfor(s, mode)
+
+integratorfor(s::AbstractDiscreteSwitchedSystem, edge) = dynamicfor(s, edge)
 
 function bestperiod(s::AbstractDiscreteSwitchedSystem, seq::Vector{Int}, I, ::AbstractMatrix, Q::AbstractMatrix)
     adaptgrowthrate(abs(ρ(Q)), @view seq[I]), 1
@@ -15,6 +16,8 @@ end
 
 type DiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
     A::Vector
+    n::Int
+    x::Vector{PolyVar{true}}
     lb::Float64
     ub::Float64
     # There will typically only be lyapunov for small d so a dictionary would be overkill
@@ -25,6 +28,7 @@ type DiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
             error("Needs at least one matrix in the system")
         end
         n = size(A[1], 1)
+        @polyvar x[1:n]
         for M in A
             if !isa(M, AbstractMatrix)
                 error("One of the matrices is of invalid type: $(typeof(M))")
@@ -33,16 +37,20 @@ type DiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
                 error("The matrices should all have the same dimensions")
             end
         end
-        new(A, 0, Inf, Nullable{Lyapunov}[], nothing)
+        new(A, n, x, 0, Inf, Nullable{Lyapunov}[], nothing)
     end
 end
+
+ρA(s::DiscreteSwitchedSystem) = length(s.A)
 
 function quicklb(s::DiscreteSwitchedSystem)
     qlb = maximum(map(ρ, s.A))
     updatelb!(s, qlb)
 end
 
-function quickub(s::DiscreteSwitchedSystem)
-    qub = minimum(map(p -> maximum(map(A->norm(A,p), s.A)), [1, 2, Inf]))
+function quickub(s::AbstractDiscreteSwitchedSystem)
+    qub = minimum(map(p -> maximum(map(A->norm(A, p), s.A)), [1, 2, Inf]))
     updateub!(s, qub)
 end
+
+include("constrained.jl")

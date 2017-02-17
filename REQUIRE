@@ -4,3 +4,4 @@ MathProgBase
 JuMP
 SumOfSquares
 Optim
+LightGraphs
