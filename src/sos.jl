@@ -121,7 +121,17 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
     while soschecktol(s, soslb, sosub) > tol
         mid = sosmid(s, soslb, sosub, step)
         status, curprimal, curdual = soslyap(s, d, mid, solver=solver)
-        @show mid, status
+        if !(status in [:Optimal, :Unbounded, :Infeasible])
+            midlb = sosmid(s, soslb, mid, step)
+            status, curprimal, curdual = soslyap(s, d, midlb, solver=solver)
+            if !(status in [:Optimal, :Unbounded, :Infeasible])
+                midub = sosmid(s, mid, sosub, step)
+                status, curprimal, curdual = soslyap(s, d, midub, solver=solver)
+                mid = midub
+            else
+                mid = midlb
+            end
+        end
         if status == :Optimal || status == :Unbounded # FIXME Unbounded is for a Mosek bug
             if !(curprimal === nothing) # FIXME remove
                 primal = curprimal

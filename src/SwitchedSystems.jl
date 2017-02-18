@@ -8,6 +8,8 @@ import Base.==
 export AbstractSwitchedSystem
 export dim, ρ, quicklb, quickub, quickb
 
+# eigvals is not defined for SparseMatrixCSC
+ρ(A::AbstractSparseMatrix) = ρ(full(A))
 function ρ(A::AbstractMatrix)
     maximum(abs.(eigvals(A)))
 end

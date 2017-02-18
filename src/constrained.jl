@@ -14,13 +14,14 @@ type ConstrainedDiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
     σ::Dict{Edge, Int}
     # Dimension of the nodes : n[i] is the dimension of the `i`th node
     n::Vector{Int}
+    x::Vector{Vector{PolyVar{true}}}
     lb::Float64
     ub::Float64
     # There will typically only be lyapunov for small d so a dictionary would be overkill
-    lyaps::Vector{Nullable{Vector{Lyapunov}}}
+    lyaps::Vector{Nullable{Lyapunov}}
     smp::Nullable{DiscretePeriodicSwitching}
     function ConstrainedDiscreteSwitchedSystem(A::Vector, G::DiGraph, σ::Dict{Edge, Int})
-        @assert isempty(A) "Needs at least one matrix in the system"
+        @assert !isempty(A) "Needs at least one matrix in the system"
         @assert length(σ) == ne(G) "Number of labels different that number of edges"
         @assert 1 <= maximum(values(σ)) <= length(A) "Invalid labels for the edges"
         n = zeros(nv(G))
@@ -40,7 +41,7 @@ type ConstrainedDiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
             @polyvar x[1:n[v]]
             y[v] = x
         end
-        new(A, G, σ, n, x, 0, Inf, Nullable{Vector{Lyapunov}}[], nothing)
+        new(A, G, σ, n, y, 0, Inf, Nullable{Vector{Lyapunov}}[], nothing)
     end
 end
 
