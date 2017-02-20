@@ -31,7 +31,7 @@ MultivariatePolynomials.vars(s::AbstractSwitchedSystem, i::Int) = s.x
 startnode(i::Int) = 1
 endnode(i::Int) = 1
 
-nlabels(s::AbstractSwitchedSystem, edge::Int) = 1
+nlabels(s::AbstractSwitchedSystem, edge) = 1
 
 modes(s::AbstractSwitchedSystem, v::Int, forward=true) = 1:length(s.A)
 
@@ -59,7 +59,6 @@ end
 
 include("periodic.jl")
 include("discrete.jl")
-include("constrained.jl")
 include("continuous.jl")
 include("switchings.jl")
 include("veronese.jl")

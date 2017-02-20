@@ -1,4 +1,4 @@
-export ConstrainedDiscreteSwitchedSystem
+export ConstrainedDiscretePeriodicSwitching, ConstrainedDiscreteSwitchedSystem
 
 type ConstrainedDiscretePeriodicSwitching <: AbstractPeriodicSwitching
     s::AbstractDiscreteSwitchedSystem # Cannot say DiscreteSwitchedSystem as it would be a circular type declaration https://github.com/JuliaLang/julia/issues/269
@@ -12,6 +12,7 @@ type ConstrainedDiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
     G::DiGraph
     # matrix corresponding to edge is A[σ[edge]]
     σ::Dict{Edge, Int}
+    eid::Dict{Edge, Int}
     # Dimension of the nodes : n[i] is the dimension of the `i`th node
     n::Vector{Int}
     x::Vector{Vector{PolyVar{true}}}
@@ -19,13 +20,17 @@ type ConstrainedDiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
     ub::Float64
     # There will typically only be lyapunov for small d so a dictionary would be overkill
     lyaps::Vector{Nullable{Lyapunov}}
-    smp::Nullable{DiscretePeriodicSwitching}
+    smp::Nullable{ConstrainedDiscretePeriodicSwitching}
     function ConstrainedDiscreteSwitchedSystem(A::Vector, G::DiGraph, σ::Dict{Edge, Int})
         @assert !isempty(A) "Needs at least one matrix in the system"
         @assert length(σ) == ne(G) "Number of labels different that number of edges"
         @assert 1 <= maximum(values(σ)) <= length(A) "Invalid labels for the edges"
-        n = zeros(nv(G))
+        n = zeros(Int, nv(G))
+        eid = Dict{Edge, Int}()
+        neid = 0
         for e in edges(G)
+            neid += 1
+            eid[e] = neid
             M = A[σ[e]]
             @assert isa(M, AbstractMatrix) "One of the matrices is of invalid type: $(typeof(M))"
             for (u, nu) in ((e.first, size(M, 2)), (e.second, size(M, 1)))
@@ -41,7 +46,7 @@ type ConstrainedDiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
             @polyvar x[1:n[v]]
             y[v] = x
         end
-        new(A, G, σ, n, y, 0, Inf, Nullable{Vector{Lyapunov}}[], nothing)
+        new(A, G, σ, eid, n, y, 0, Inf, Nullable{Vector{Lyapunov}}[], nothing)
     end
 end
 
@@ -61,8 +66,8 @@ end
 
 function modes(s::ConstrainedDiscreteSwitchedSystem, v::Int, forward=true)
     if forward
-        out_neighbors(s.G, v)
+        out_edges(s.G, v)
     else
-        in_neighbors(s.G, v)
+        in_edges(s.G, v)
     end
 end

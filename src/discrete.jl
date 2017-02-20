@@ -10,7 +10,7 @@ end
 
 integratorfor(s::AbstractDiscreteSwitchedSystem, edge) = dynamicfor(s, edge)
 
-function bestperiod(s::AbstractDiscreteSwitchedSystem, seq::Vector{Int}, I, ::AbstractMatrix, Q::AbstractMatrix)
+function bestperiod(s::AbstractDiscreteSwitchedSystem, seq::Vector, I, ::AbstractMatrix, Q::AbstractMatrix)
     adaptgrowthrate(abs(ρ(Q)), @view seq[I]), 1
 end
 

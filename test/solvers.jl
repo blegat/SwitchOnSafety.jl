@@ -16,7 +16,7 @@ scs = false # try_import(:SCS) # It does not work
 # Semidefinite solvers
 sdp_solvers = Any[]
 mos && push!(sdp_solvers, Mosek.MosekSolver(LOG=0))
-ismosek(solver) = contains(string(typeof(solver)),"SCSSolver")
+ismosek(solver) = contains(string(typeof(solver)),"MosekSolver")
 csd && push!(sdp_solvers, CSDP.CSDPSolver(printlevel=0))
 iscsdp(solver) = contains(string(typeof(solver)),"CSDP")
 scs && push!(sdp_solvers, SCS.SCSSolver(verbose=0))

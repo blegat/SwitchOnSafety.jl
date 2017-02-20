@@ -5,7 +5,7 @@
 # The JSR is 1
 
 @testset "[AP12] Example 2.1" begin
-    s = DiscreteSwitchedSystem([0 1; 0 0], [0 0; 1 0])
+    s = DiscreteSwitchedSystem([[0 1; 0 0], [0 0; 1 0]])
     for solver in sdp_solvers
         tol = 1e-5
         println("  > With solver $(typeof(solver))")

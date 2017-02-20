@@ -5,7 +5,7 @@ using MathProgBase
 # getdual of JuMP and MathProgBase.SolverInterface conflict
 using MathProgBase.SolverInterface.AbstractMathProgSolver
 
-export soslyap, soslyapb, sosbuildsequence
+export getlyap, soslyap, soslyapb, sosbuildsequence
 
 # Storing the Lyapunov
 function setlyap!(s, lyap::Lyapunov)
@@ -38,6 +38,7 @@ end
 soslyapscaling(s::AbstractDiscreteSwitchedSystem, γ, d) = γ^(2*d)
 soslyapscaling(s::AbstractContinuousSwitchedSystem, γ, d) = 2*d*γ
 function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, edge, d, γ)
+    getid(x) = x.id
     @polyconstraint model soslyapforward(s, lyapforout(p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(p, edge)
 end
 function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
@@ -91,6 +92,9 @@ soschecktol(soslb, sosub) = sosub - soslb
 soschecktol(s::AbstractDiscreteSwitchedSystem, soslb, sosub) = soschecktol(log(soslb), log(sosub))
 soschecktol(s::AbstractContinuousSwitchedSystem, soslb, sosub) = soschecktol(soslb, sosub)
 
+sosshift(s::AbstractDiscreteSwitchedSystem, b, shift) = exp(log(b) + shift)
+sosshift(s::AbstractContinuousSwitchedSystem, b, shift) = b + shift
+
 function sosmid(soslb, sosub, step)
     if isfinite(soslb) && isfinite(sosub)
         mid = (soslb + sosub) / 2
@@ -123,13 +127,21 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
         status, curprimal, curdual = soslyap(s, d, mid, solver=solver)
         if !(status in [:Optimal, :Unbounded, :Infeasible])
             midlb = sosmid(s, soslb, mid, step)
-            status, curprimal, curdual = soslyap(s, d, midlb, solver=solver)
-            if !(status in [:Optimal, :Unbounded, :Infeasible])
-                midub = sosmid(s, mid, sosub, step)
-                status, curprimal, curdual = soslyap(s, d, midub, solver=solver)
-                mid = midub
-            else
+            statuslb, curprimallb, curduallb = soslyap(s, d, midlb, solver=solver)
+            if statuslb in [:Optimal, :Unbounded, :Infeasible]
                 mid = midlb
+                status = statuslb
+                curprimal = curprimallb
+                curdual = curduallb
+            else
+                midub = sosmid(s, mid, sosub, step)
+                statusub, curprimalub, curdualub = soslyap(s, d, midub, solver=solver)
+                if statusub in [:Optimal, :Unbounded, :Infeasible]
+                    mid = midub
+                    status = statusub
+                    curprimal = curprimalub
+                    curdual = curdualub
+                end
             end
         end
         if status == :Optimal || status == :Unbounded # FIXME Unbounded is for a Mosek bug
@@ -141,7 +153,7 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
             dual = curdual
             soslb = mid
         else
-            warn("Solver returned with status : $status for γ=$mid. Stopping bisection with $(soschecktol(s, soslb, sosub)) > $tol (= tol)")
+            warn("Solver returned with status : $statuslb for γ=$midlb, $status for γ=$mid and $statusub for γ=$midub. Stopping bisection with $(soschecktol(s, soslb, sosub)) > $tol (= tol)")
             break
         end
     end
@@ -152,11 +164,13 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
             @assert !(primal === nothing)
         end
         if dual === nothing
-            @show soslb
-            @show status
             status, _, dual = soslyap(s, d, soslb, solver=solver)
-            @assert status == :Infeasible
-            @assert !(dual === nothing)
+            if status != :Infeasible
+                soslb = sosshift(s, sosub, -0.99 * tol)
+                status, _, dual = soslyap(s, d, soslb, solver=solver)
+                @assert status == :Infeasible
+                @assert !(dual === nothing)
+            end
         end
         setlyap!(s, Lyapunov(d, soslb, dual, sosub, primal))
     end
@@ -201,10 +215,9 @@ function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, seq, μs, p_k, l, 
     best_dyn = best_dynamic(s, μs, p_k, l, curstate)
 
     curstate = state(s, best_dyn.seq[1], false)
-    append!(seq, best_dyn) # FIXME this should be backward !!
+    prepend!(seq, best_dyn)
     x = vars(p_k)
-    p_k = p_k(best_dyn.A * x, x) # FIXME this is doen twice it seems
-    iter+l, curstate, p_k(best_dyn.A * x, x)
+    iter+l, curstate, soslyapforward(s, p_k, best_dyn)
 end
 
 function sosbuilditeration(s::AbstractContinuousSwitchedSystem, seq, μs, p_prev, l, Δt, curstate, iter)
@@ -238,14 +251,20 @@ function sosbuilditeration(s::AbstractContinuousSwitchedSystem, seq, μs, p_prev
     iter, curstate, p_cur
 end
 
-function nullsmp(s::AbstractDiscreteSwitchedSystem)
+function nullsmp(s::DiscreteSwitchedSystem)
     Nullable{DiscretePeriodicSwitching}()
+end
+function nullsmp(s::ConstrainedDiscreteSwitchedSystem)
+    Nullable{ConstrainedDiscretePeriodicSwitching}()
 end
 function nullsmp(s::AbstractContinuousSwitchedSystem)
     Nullable{ContinuousPeriodicSwitching}()
 end
-function buildsmp(s::AbstractDiscreteSwitchedSystem, seq, growthrate, dt)
+function buildsmp(s::DiscreteSwitchedSystem, seq, growthrate, dt)
     Nullable{DiscretePeriodicSwitching}(DiscretePeriodicSwitching(s, seq, growthrate))
+end
+function buildsmp(s::ConstrainedDiscreteSwitchedSystem, seq, growthrate, dt)
+    Nullable{ConstrainedDiscretePeriodicSwitching}(ConstrainedDiscretePeriodicSwitching(s, seq, growthrate))
 end
 function buildsmp(s::AbstractContinuousSwitchedSystem, seq, growthrate, dt)
     # seq is a copy since it has been obtained with seq.seq[i:j]
@@ -257,15 +276,7 @@ end
 # Extracting trajectory from Lyapunov
 function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), v_0=:Random, p_0=:Random, l::Integer=1, Δt::Float64=1., niter::Integer=42, tol=1e-5)
     lyap = getlyap(s, d; solver=solver, tol=tol)
-    @show lyap
-    if p_0 == :Primal
-        p_0 = lyap.primal[1]
-    elseif p_0 == :Random
-        x = vars(lyap.primal)
-        Z = monomials(x, d)
-        p_0 = randsos(Z, monotype=:Gram, r=1)
-    end # otherwise p_0 is assumed to be an sos polynomial given by the user
-    p_0 = Polynomial(p_0)
+
     if v_0 == :Random
         curstate = rand(1:1)
     else
@@ -275,9 +286,17 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
         curstate = v_0
     end
 
+    if p_0 == :Primal
+        p_0 = lyap.primal[curstate]
+    elseif p_0 == :Random
+        Z = monomials(vars(s, curstate), d)
+        p_0 = randsos(Z, monotype=:Gram, r=1)
+    end # otherwise p_0 is assumed to be an sos polynomial given by the user
+    p_0 = Polynomial(p_0)
+
     p_k = p_0
     n = dim(s)
-    seq = SwitchingSequence(s, niter)
+    seq = SwitchingSequence(s, niter, curstate)
 
     iter = 1
     while iter <= niter
@@ -286,7 +305,6 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
         p_k /= p_k(ones(Int, nvars(p_k)), vars(p_k))
     end
     @assert seq.len == length(seq.seq)
-    @show seq.seq
 
     smp = nullsmp(s)
     for i = 1:seq.len
