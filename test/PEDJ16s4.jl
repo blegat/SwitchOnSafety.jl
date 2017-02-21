@@ -4,20 +4,18 @@
 # Automatica, 72:242-250, 2016
 # The JSR is 0.9748171979372074
 
-
-
-const expected_lb = [0.7095710926294403,
-                     0.7494157844421803,
+const expected_lb = [0.7096115688862492,
+                     0.749432937404542,
                      0.803983520107364,
-                     0.8425272470527568,
+                     0.8425634051754579,
                      0.8674767989157529,
-                     0.8844424764780325]
-const expected_ub = [1.0035769386715274,
-                     0.9863468387970061,
+                     0.8844616629378517]
+const expected_ub = [1.0035568400762171,
+                     0.9863261446338583,
                      0.9769402921375085,
-                     0.9749894352866788,
-                     0.9749745582420508,
-                     0.9749150523335434]
+                     0.9749706065652288,
+                     0.9749659545861287,
+                     0.9749138871770363]
 
 @testset "[PEDJ] Section 4" begin
     A = [0.94 0.56; 0.14 0.46]
@@ -43,7 +41,9 @@ const expected_ub = [1.0035769386715274,
     add_edge_labeled!(G, 4, 3, 1)
     s = ConstrainedDiscreteSwitchedSystem(As, G, σ)
     snp = ConstrainedDiscretePeriodicSwitching(s, [3=>1, 1=>3, 3=>1, 1=>3, 3=>3, 3=>3, 3=>3, 3=>3])
+    @test snp.growthrate == 0.9728940109399586
     smp = ConstrainedDiscretePeriodicSwitching(s, [3=>1, 1=>3, 3=>1, 1=>2, 2=>3, 3=>3, 3=>3, 3=>3])
+    @test smp.growthrate == 0.9748171979372074
     for solver in sdp_solvers
         println("  > With solver $(typeof(solver))")
         for d in 1:6

@@ -8,6 +8,11 @@ julia:
   - nightly
 notifications:
   email: false
+# CSDP needs lapack and blas
+before_install:
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        sudo apt-get install liblapack-dev libblas-dev;
+    fi
 before_script:
   - julia -e 'Pkg.clone("git://github.com/blegat/MultivariatePolynomials.jl.git")'
   - julia -e 'Pkg.clone("git://github.com/JuliaOpt/PolyJuMP.jl.git")'
