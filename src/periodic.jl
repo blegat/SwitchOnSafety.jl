@@ -1,3 +1,4 @@
+export findsmp
 abstract AbstractPeriodicSwitching
 
 adaptgrowthrate(g, len::Int) = g^(1/len)
@@ -70,4 +71,31 @@ function getsmp(s::AbstractSwitchedSystem)
         error("No smp found")
     end
     get(s.smp)
+end
+
+function findsmp(seq)
+    s = seq.s
+    smp = nullsmp(s)
+    for i in 1:seq.len
+        startNode = state(s, seq.seq[i], false)
+        P = speye(dim(s, startNode))
+        k = 0
+        for j in i:seq.len
+            mode = seq.seq[j]
+            k = k + nlabels(s, mode)
+            Q = integratorfor(s, mode) * P
+            if state(s, mode, true) == startNode
+                growthrate, dt = bestperiod(s, seq.seq, i:j, P, Q)
+                if isnull(smp) || isbetter(growthrate, length(i:j), get(smp))
+                    smp = buildsmp(s, seq.seq[i:j], growthrate, dt)
+                end
+            end
+            P = Q
+        end
+    end
+
+    if !isnull(smp)
+        updatesmp!(s, get(smp))
+    end
+    smp
 end

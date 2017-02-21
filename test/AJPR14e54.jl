@@ -36,11 +36,13 @@
         lb, ub = soslyapb(s, 2, solver=solver, tol=tol)
         @test isapprox(log(lb), log(3.299750624), rtol=tol)
         @test isapprox(log(ub), log(3.924086919), rtol=tol)
-        psw = sosbuildsequence(s, 1, p_0=:Primal)
-        @test isnull(psw) == false
+        seq = sosbuildsequence(s, 1, p_0=:Primal)
+        psw = findsmp(seq)
+        @test !isnull(psw)
         @test get(psw) == smp
-        psw = sosbuildsequence(s, 2, p_0=:Primal)
-        @test isnull(psw) == false
+        seq = sosbuildsequence(s, 2, p_0=:Primal)
+        psw = findsmp(seq)
+        @test !isnull(psw)
         @test get(psw) == smp
     end
     if isempty(sdp_solvers)

@@ -53,4 +53,12 @@ function quickub(s::AbstractDiscreteSwitchedSystem)
     updateub!(s, qub)
 end
 
+function nullsmp(s::DiscreteSwitchedSystem)
+    Nullable{DiscretePeriodicSwitching}()
+end
+function buildsmp(s::DiscreteSwitchedSystem, seq, growthrate, dt)
+    Nullable{DiscretePeriodicSwitching}(DiscretePeriodicSwitching(s, seq, growthrate))
+end
+
+
 include("constrained.jl")

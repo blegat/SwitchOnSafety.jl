@@ -51,7 +51,8 @@ const expected_ub = [1.0035568400762171,
             lb, ub = soslyapb(s, d, solver=solver, tol=tol)
             @test abs(log(lb) - log(expected_lb[d])) <= tol
             @test abs(log(ub) - log(expected_ub[d])) <= tol
-            psw = sosbuildsequence(s, d, p_0=:Primal)
+            seq = sosbuildsequence(s, d, p_0=:Primal)
+            psw = findsmp(seq)
             @test isnull(psw) == false
             @test get(psw) == (d <= 3 ? snp : smp)
         end
