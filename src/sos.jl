@@ -167,6 +167,8 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
             status, _, dual = soslyap(s, d, soslb, solver=solver)
             if status != :Infeasible
                 soslb = sosshift(s, sosub, -0.99 * tol)
+                # This is a bit stupid since sosub might be soslb + tol so this might be soslb + 0.01 * tol which will not work better than with soslb
+                # We should restart some kind of binary search from here
                 status, _, dual = soslyap(s, d, soslb, solver=solver)
                 @assert status == :Infeasible
                 @assert !(dual === nothing)

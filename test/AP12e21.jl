@@ -7,6 +7,7 @@
 @testset "[AP12] Example 2.1" begin
     s = DiscreteSwitchedSystem([[0 1; 0 0], [0 0; 1 0]])
     for solver in sdp_solvers
+        s.lb = 0
         println("  > With solver $(typeof(solver))")
         tol = ismosek(solver) ? 1e-5 : 1e-4
         lb, ub = soslyapb(s, 1, solver=solver, tol=tol)

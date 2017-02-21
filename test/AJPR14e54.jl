@@ -28,6 +28,7 @@
     @test_approx_eq(ub, 4.0760789246858735)
     smp = DiscretePeriodicSwitching(s, [1, 2])
     for solver in sdp_solvers
+        s.lb = 0
         tol = ismosek(solver) ? 1e-5 : 5e-4
         println("  > With solver $(typeof(solver))")
         lb, ub = soslyapb(s, 1, solver=solver, tol=tol)

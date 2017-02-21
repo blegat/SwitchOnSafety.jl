@@ -13,6 +13,7 @@
     expected_ub = [√2, 1]
     s = DiscreteSwitchedSystem([[1 0; 1 0], [0 1; 0 -1]])
     for solver in sdp_solvers
+        s.lb = 0
         println("  > With solver $(typeof(solver))")
         tol = ismosek(solver) ? 2e-4 : 1e-3
         for d in 1:2
