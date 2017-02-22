@@ -118,16 +118,20 @@ soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
 
 # Binary Search
 function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1)
-    primal = dual = nothing
     while soschecktol(s, soslb, sosub) > tol
-        @show soslb, sosub
         mid = sosmid(s, soslb, sosub, step)
         status, curprimal, curdual = soslyap(s, d, mid, solver=solver)
         if !(status in [:Optimal, :Unbounded, :Infeasible])
-            # If sosmid-tol/2 and sosmid+tol/2 also Stall, there would be an interval of length tol of Stall -> impossible to satisfy requirements
-            # the distance between soslb and sosmid is at least tol/2. However, if it is exactly tol/2, we would not make progress by taking sosmid - tol/2 !
-            # So we ensure we make a progress of at least tol/8
-            midlb = max(sosshift(s, mid, -tol/2), sosshift(s, soslb, tol/8))
+            # If mid-tol/2 and mid+tol/2 also Stall, there would be an interval of length tol of Stall -> impossible to satisfy requirements
+            # the distance between soslb and mid is at least tol/2.
+            # Sometimes, mid is far from soslb and is at a point where the solver Stall even if it is far from the optimum point.
+            # In that case, it is better to take (mid + soslb)/2
+            midlb = min(sosmid(s, soslb, mid, step), sosshift(s, mid, -tol/2))
+            # If mid-tol/2 is too close to soslb, we would not make progress!
+            # So we ensure we make a progress of at least tol/8. If dual is nothing, then that would still be progress to find a dual
+            if dual !== nothing
+                midlb = max(midlb, sosshift(s, soslb, tol/8))
+            end
             statuslb, curprimallb, curduallb = soslyap(s, d, midlb, solver=solver)
             if statuslb in [:Optimal, :Unbounded, :Infeasible]
                 mid = midlb
@@ -135,7 +139,10 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
                 curprimal = curprimallb
                 curdual = curduallb
             else
-                midub = min(sosshift(s, mid, tol/2), sosshift(s, sosub, -tol/8))
+                midub = max(sosmid(s, mid, sosub, step), sosshift(s, mid, tol/2))
+                if primal !== nothing
+                    midub = min(midub, sosshift(s, sosub, -tol/8))
+                end
                 statusub, curprimalub, curdualub = soslyap(s, d, midub, solver=solver)
                 if statusub in [:Optimal, :Unbounded, :Infeasible]
                     mid = midub
@@ -169,18 +176,27 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
     soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, nothing, sosub, nothing; solver=solver, tol=tol, step=step)
     if cached
         if primal === nothing
-            status, primal, _ = soslyap(s, d, sosub, solver=solver)
-            @assert status == :Optimal
-            @assert !(primal === nothing)
+            if isfinite(sosub)
+                status, primal, _ = soslyap(s, d, sosub, solver=solver)
+                @assert status == :Optimal
+                @assert primal !== nothing
+            else
+                error("Bisection ended with infinite sosub=$sosub")
+            end
         end
         if dual === nothing
-            status, _, dual = soslyap(s, d, soslb, solver=solver)
-            if status != :Infeasible
-                soslb = sosshift(s, soslb, -tol)
+            if isfinite(soslb)
                 status, _, dual = soslyap(s, d, soslb, solver=solver)
-                @assert status == :Infeasible
-                @assert !(dual === nothing)
-                soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver=solver, tol=tol, step=step)
+                if status != :Infeasible
+                    soslb = sosshift(s, soslb, -tol)
+                    status, _, dual = soslyap(s, d, soslb, solver=solver)
+                    @assert status == :Infeasible
+                    @assert dual !== nothing
+                    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver=solver, tol=tol, step=step)
+                    @assert dual !== nothing
+                end
+            else
+                error("Bisection ended with infinite soslb=$soslb")
             end
         end
         setlyap!(s, Lyapunov(d, soslb, dual, sosub, primal))
