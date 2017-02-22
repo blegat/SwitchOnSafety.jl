@@ -45,13 +45,15 @@ const expected_ub = [1.0035568400762171,
     smp = ConstrainedDiscretePeriodicSwitching(s, [3=>1, 1=>3, 3=>1, 1=>2, 2=>3, 3=>3, 3=>3, 3=>3])
     @test smp.growthrate == 0.9748171979372074
     for solver in sdp_solvers
+        s.lb = 0
         println("  > With solver $(typeof(solver))")
         for d in 1:6
             tol = ismosek(solver) ? 3e-4 : 1e-3
             lb, ub = soslyapb(s, d, solver=solver, tol=tol)
             @test abs(log(lb) - log(expected_lb[d])) <= tol
             @test abs(log(ub) - log(expected_ub[d])) <= tol
-            psw = sosbuildsequence(s, d, p_0=:Primal)
+            seq = sosbuildsequence(s, d, p_0=:Primal)
+            psw = findsmp(seq)
             @test isnull(psw) == false
             @test get(psw) == (d <= 3 ? snp : smp)
         end

@@ -71,3 +71,10 @@ function modes(s::ConstrainedDiscreteSwitchedSystem, v::Int, forward=true)
         in_edges(s.G, v)
     end
 end
+
+function nullsmp(s::ConstrainedDiscreteSwitchedSystem)
+    Nullable{ConstrainedDiscretePeriodicSwitching}()
+end
+function buildsmp(s::ConstrainedDiscreteSwitchedSystem, seq, growthrate, dt)
+    Nullable{ConstrainedDiscretePeriodicSwitching}(ConstrainedDiscretePeriodicSwitching(s, seq, growthrate))
+end

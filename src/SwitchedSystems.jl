@@ -65,5 +65,6 @@ include("veronese.jl")
 include("kronecker.jl")
 include("pradius.jl")
 include("sos.jl")
+include("sosseq.jl")
 
 end # module
