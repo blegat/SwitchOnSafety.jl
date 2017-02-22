@@ -116,17 +116,18 @@ function soslb2lb(s::AbstractDiscreteSwitchedSystem, sosub, d)
 end
 soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
 
-# Obtaining bounds with Lyapunov
-function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1, cached=true)
-    # The SOS ub is greater than the JSR hence also greater than any of its lower bound
-    soslb = s.lb
-    sosub = getsoslyapinitub(s, d)
+# Binary Search
+function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1)
     primal = dual = nothing
     while soschecktol(s, soslb, sosub) > tol
+        @show soslb, sosub
         mid = sosmid(s, soslb, sosub, step)
         status, curprimal, curdual = soslyap(s, d, mid, solver=solver)
         if !(status in [:Optimal, :Unbounded, :Infeasible])
-            midlb = sosmid(s, soslb, mid, step)
+            # If sosmid-tol/2 and sosmid+tol/2 also Stall, there would be an interval of length tol of Stall -> impossible to satisfy requirements
+            # the distance between soslb and sosmid is at least tol/2. However, if it is exactly tol/2, we would not make progress by taking sosmid - tol/2 !
+            # So we ensure we make a progress of at least tol/8
+            midlb = max(sosshift(s, mid, -tol/2), sosshift(s, soslb, tol/8))
             statuslb, curprimallb, curduallb = soslyap(s, d, midlb, solver=solver)
             if statuslb in [:Optimal, :Unbounded, :Infeasible]
                 mid = midlb
@@ -134,7 +135,7 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
                 curprimal = curprimallb
                 curdual = curduallb
             else
-                midub = sosmid(s, mid, sosub, step)
+                midub = min(sosshift(s, mid, tol/2), sosshift(s, sosub, -tol/8))
                 statusub, curprimalub, curdualub = soslyap(s, d, midub, solver=solver)
                 if statusub in [:Optimal, :Unbounded, :Infeasible]
                     mid = midub
@@ -157,6 +158,15 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
             break
         end
     end
+    soslb, dual, sosub, primal
+end
+
+# Obtaining bounds with Lyapunov
+function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1, cached=true)
+    # The SOS ub is greater than the JSR hence also greater than any of its lower bound
+    soslb = s.lb
+    sosub = getsoslyapinitub(s, d)
+    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, nothing, sosub, nothing; solver=solver, tol=tol, step=step)
     if cached
         if primal === nothing
             status, primal, _ = soslyap(s, d, sosub, solver=solver)
@@ -166,10 +176,11 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
         if dual === nothing
             status, _, dual = soslyap(s, d, soslb, solver=solver)
             if status != :Infeasible
-                soslb = sosshift(s, sosub, -0.99 * tol)
+                soslb = sosshift(s, soslb, -tol)
                 status, _, dual = soslyap(s, d, soslb, solver=solver)
                 @assert status == :Infeasible
                 @assert !(dual === nothing)
+                soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver=solver, tol=tol, step=step)
             end
         end
         setlyap!(s, Lyapunov(d, soslb, dual, sosub, primal))
