@@ -61,7 +61,7 @@ lyapforout(p::Vector, edge::Edge) = p[edge.second]
 
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ; solver::AbstractMathProgSolver=JuMP.UnsetSolver())
-    model = JuMP.Model(solver=solver)
+    model = SOSModel(solver=solver)
     p = [buildlyap(model, vars(s, v), d) for v in 1:nnodes(s)]
     cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
