@@ -15,6 +15,7 @@
                                  -1 -1  1  1;
                                  -1  0  0  0
                                  -1 -1  0 -1]])
+    smp = DiscretePeriodicSwitching(s, [2])
     for solver in sdp_solvers
         s.lb = 0
         println("  > With solver $(typeof(solver))")
@@ -26,8 +27,7 @@
             seq = sosbuildsequence(s, 1, p_0=:Primal)
             psw = findsmp(seq)
             @test !isnull(psw)
-            @test get(psw).period == [2]
-            @test isapprox(get(psw).growthrate, 1.7779191220330814)
+            @test get(psw) == smp
         end
     end
 end
