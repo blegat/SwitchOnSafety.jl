@@ -11,8 +11,8 @@ function kronpow{MatType}(A::MatType, p)::MatType
         if (bitmap & p) != 0
             B = kron(B, C)
         end
-        C = kron(C, A)
+        C = kron(C, C)
         bitmap <<= 1
     end
-    C
+    B
 end

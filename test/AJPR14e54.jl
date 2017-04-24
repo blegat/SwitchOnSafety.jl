@@ -20,12 +20,17 @@
     @test_throws MethodError pradius(s, 2, :MagicAlgo)
     @test_approx_eq_eps(pradius(s, 2), 3.234535151244, 1e-9)
     @test_approx_eq(pradius(s, 2, :BruteForce, pnorm=2), 3.632097274822649)
-    lb, ub = pradiusb(s, 2)
-    @test_approx_eq_eps(lb, 3.23453515151244, 1e-9)
-    @test_approx_eq(ub, 4.574323478862314)
-    lb, ub = pradiusb(s, 4)
-    @test_approx_eq(lb, 3.4275601560595668)
-    @test_approx_eq(ub, 4.0760789246858735)
+
+    pρlb = [3.23453515151244, 3.4275601560595668, 3.543749287036915]
+    pρub = [4.574323478862314, 4.0760789246858735, 3.977724083422336]
+    for d in 1:3
+        for algo in [:VeroneseLift, :KroneckerLift]
+            lb, ub = pradiusb(s, 2*d)
+            @test isapprox(lb, pρlb[d])
+            @test isapprox(ub, pρub[d])
+        end
+    end
+
     smp = DiscretePeriodicSwitching(s, [1, 2])
     for solver in sdp_solvers
         s.lb = 0

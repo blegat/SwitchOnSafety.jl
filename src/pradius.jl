@@ -36,9 +36,10 @@ function pradius(s::AbstractDiscreteSwitchedSystem, p, algo::Type{Val{:VeroneseL
     checkeven(p, algo)
     pradius(s, p, veroneselift, pnorm=pnorm, ɛ=ɛ, forceub=forceub)
 end
+kroneckerlift(A::AbstractMatrix, p::Integer) = kronpow(veroneselift(A, 2), div(p, 2))
 function pradius(s::AbstractDiscreteSwitchedSystem, p, algo::Type{Val{:KroneckerLift}}; pnorm=Inf, ɛ=1e-2, forceub=false)
     checkeven(p, algo)
-    pradius(s, p, kronpow, pnorm=pnorm, ɛ=ɛ, forceub=forceub)
+    pradius(s, p, kroneckerlift, pnorm=pnorm, ɛ=ɛ, forceub=forceub)
 end
 
 function pradius(s::DiscreteSwitchedSystem, p, algo::Type{Val{:BruteForce}}; pnorm=Inf, ɛ=1e-2, forceub=false)
