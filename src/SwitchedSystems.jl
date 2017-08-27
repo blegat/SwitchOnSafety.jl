@@ -1,4 +1,4 @@
-module SwitchedSystems
+module SwitchOnSafety
 
 using MultivariatePolynomials
 using LightGraphs
@@ -14,7 +14,7 @@ function ρ(A::AbstractMatrix)
     maximum(abs.(eigvals(A)))
 end
 
-abstract AbstractSwitchedSystem
+abstract type AbstractSwitchedSystem end
 
 type Lyapunov
     d::Int
