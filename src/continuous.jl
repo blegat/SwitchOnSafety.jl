@@ -2,9 +2,9 @@ using Optim
 
 export ContinuousSwitchedSystem, ContinuousPeriodicSwitching, getsmp
 
-abstract AbstractContinuousSwitchedSystem <: AbstractSwitchedSystem
+abstract type AbstractContinuousSwitchedSystem <: AbstractSwitchedSystem end
 
-type ContinuousPeriodicSwitching <: AbstractPeriodicSwitching
+mutable struct ContinuousPeriodicSwitching <: AbstractPeriodicSwitching
     s::AbstractContinuousSwitchedSystem
     period::Vector{Tuple{Int, Float64}}
     growthrate::Float64
@@ -30,7 +30,7 @@ function bestperiod(s::AbstractContinuousSwitchedSystem, seq::Vector{Tuple{Int,F
     -Optim.minimum(res), Optim.minimizer(res)
 end
 
-type ContinuousSwitchedSystem <: AbstractContinuousSwitchedSystem
+mutable struct ContinuousSwitchedSystem <: AbstractContinuousSwitchedSystem
     A::Vector
     n::Int
     x::Vector{PolyVar{true}}

@@ -1,12 +1,12 @@
 export ConstrainedDiscretePeriodicSwitching, ConstrainedDiscreteSwitchedSystem
 
-type ConstrainedDiscretePeriodicSwitching <: AbstractPeriodicSwitching
+mutable struct ConstrainedDiscretePeriodicSwitching <: AbstractPeriodicSwitching
     s::AbstractDiscreteSwitchedSystem # Cannot say DiscreteSwitchedSystem as it would be a circular type declaration https://github.com/JuliaLang/julia/issues/269
     period::Vector{Edge}
     growthrate::Float64
 end
 
-type ConstrainedDiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
+mutable struct ConstrainedDiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
     A::Vector
     # Automaton with constrains
     G::DiGraph
