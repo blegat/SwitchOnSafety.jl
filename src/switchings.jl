@@ -116,7 +116,7 @@ function dynamicfor(s::AbstractDiscreteSwitchedSystem, sw::AbstractDiscreteSwitc
     sw.A
 end
 
-mutable struct SwitchingIterator
+struct SwitchingIterator
     s::AbstractDiscreteSwitchedSystem
     k::Int
     v0::Int

@@ -26,7 +26,7 @@
         iscsdp(solver) && continue
         println("  > With solver $(typeof(solver))")
         for d in 1:3
-            tol = ismosek(solver) ? (d <= 2 ? 4e-4 : 3e-2) : 1e-3
+            tol = ismosek(solver) ? (d <= 2 ? 4e-4 : 4e-2) : 1e-3
             lb, ub = soslyapb(s, d, solver=solver, tol=tol)
             @test abs(log(expected_lb[d]) - log(lb)) <= tol
             @test abs(log(expected_ub[d]) - log(ub)) <= tol

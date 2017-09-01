@@ -4,7 +4,7 @@ export ContinuousSwitchedSystem, ContinuousPeriodicSwitching, getsmp
 
 abstract type AbstractContinuousSwitchedSystem <: AbstractSwitchedSystem end
 
-mutable struct ContinuousPeriodicSwitching <: AbstractPeriodicSwitching
+struct ContinuousPeriodicSwitching <: AbstractPeriodicSwitching
     s::AbstractContinuousSwitchedSystem
     period::Vector{Tuple{Int, Float64}}
     growthrate::Float64

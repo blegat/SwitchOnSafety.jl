@@ -2,7 +2,7 @@ export DiscreteSwitchedSystem, DiscretePeriodicSwitching, getsmp
 
 abstract type AbstractDiscreteSwitchedSystem <: AbstractSwitchedSystem end
 
-mutable struct DiscretePeriodicSwitching <: AbstractPeriodicSwitching
+struct DiscretePeriodicSwitching <: AbstractPeriodicSwitching
     s::AbstractDiscreteSwitchedSystem # Cannot say DiscreteSwitchedSystem as it would be a circular type declaration https://github.com/JuliaLang/julia/issues/269
     period::Vector{Int}
     growthrate::Float64
