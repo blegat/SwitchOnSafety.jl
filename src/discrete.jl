@@ -1,8 +1,8 @@
 export DiscreteSwitchedSystem, DiscretePeriodicSwitching, getsmp
 
-abstract AbstractDiscreteSwitchedSystem <: AbstractSwitchedSystem
+abstract type AbstractDiscreteSwitchedSystem <: AbstractSwitchedSystem end
 
-type DiscretePeriodicSwitching <: AbstractPeriodicSwitching
+mutable struct DiscretePeriodicSwitching <: AbstractPeriodicSwitching
     s::AbstractDiscreteSwitchedSystem # Cannot say DiscreteSwitchedSystem as it would be a circular type declaration https://github.com/JuliaLang/julia/issues/269
     period::Vector{Int}
     growthrate::Float64
@@ -14,7 +14,7 @@ function bestperiod(s::AbstractDiscreteSwitchedSystem, seq::Vector, I, ::Abstrac
     adaptgrowthrate(abs(ρ(Q)), @view seq[I]), 1
 end
 
-type DiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
+mutable struct DiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
     A::Vector
     n::Int
     x::Vector{PolyVar{true}}

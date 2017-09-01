@@ -1,5 +1,5 @@
 export findsmp
-abstract AbstractPeriodicSwitching
+abstract type AbstractPeriodicSwitching end
 
 adaptgrowthrate(g, len::Int) = g^(1/len)
 adaptgrowthrate(g, Δt::Float64) = log(g)/Δt
@@ -7,7 +7,7 @@ adaptgrowthrate(g, Δt::Float64) = log(g)/Δt
 adaptgrowthrate(g, period::AbstractVector) = adaptgrowthrate(g, duration(period))
 adaptgrowthrate(g, period::AbstractVector{Tuple{Int,Float64}}) = adaptgrowthrate(g, duration(period))
 
-function (::Type{T}){T<:AbstractPeriodicSwitching}(s::AbstractSwitchedSystem, period::Vector)
+function (::Type{T})(s::AbstractSwitchedSystem, period::Vector) where T<:AbstractPeriodicSwitching
     A = speye(dim(s, state(s, first(period), false)))
     for edge in period
         A = integratorfor(s, edge) * A

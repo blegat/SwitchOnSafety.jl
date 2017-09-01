@@ -1,20 +1,20 @@
 import Base.start, Base.done, Base.next, Base.append!, Base.push!
 
-abstract AbstractSwitchingSequence
-abstract AbstractDiscreteSwitchingSequence <: AbstractSwitchingSequence
+abstract type AbstractSwitchingSequence end
+abstract type AbstractDiscreteSwitchingSequence <: AbstractSwitchingSequence end
 
 # Vector{Int} for unconstrained, Vector{Edge} for constrained
 duration(seq::AbstractVector) = length(seq)
 duration(seq::AbstractVector{Tuple{Int, Float64}}) = sum(map(p->p[2], seq))
 
-type DiscreteSwitchingSequence <: AbstractDiscreteSwitchingSequence
+mutable struct DiscreteSwitchingSequence <: AbstractDiscreteSwitchingSequence
     s::DiscreteSwitchedSystem
     A::AbstractMatrix # /!\ could be dynamic or integrator
     seq::Vector{Int}
     len::Int
 end
 
-type ConstrainedDiscreteSwitchingSequence <: AbstractDiscreteSwitchingSequence
+mutable struct ConstrainedDiscreteSwitchingSequence <: AbstractDiscreteSwitchingSequence
     s::ConstrainedDiscreteSwitchedSystem
     A::AbstractMatrix # /!\ could be dynamic or integrator
     seq::Vector{Edge}
@@ -27,7 +27,7 @@ endnode(::DiscreteSwitchingSequence) = 1
 startnode(seq::ConstrainedDiscreteSwitchingSequence) = startnode(seq.seq[1])
 endnode(seq::ConstrainedDiscreteSwitchingSequence) = endnode(seq.seq[end])
 
-type ContinuousSwitchingSequence <: AbstractSwitchingSequence
+mutable struct ContinuousSwitchingSequence <: AbstractSwitchingSequence
     s::ContinuousSwitchedSystem
     A::AbstractMatrix # /!\ could be dynamic or integrator
     seq::Vector{Tuple{Int, Float64}}
@@ -116,7 +116,7 @@ function dynamicfor(s::AbstractDiscreteSwitchedSystem, sw::AbstractDiscreteSwitc
     sw.A
 end
 
-type SwitchingIterator
+mutable struct SwitchingIterator
     s::AbstractDiscreteSwitchedSystem
     k::Int
     v0::Int
