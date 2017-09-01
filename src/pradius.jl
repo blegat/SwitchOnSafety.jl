@@ -20,7 +20,7 @@ function pradius(s::DiscreteSwitchedSystem, p, lift::Function; pnorm=Inf, ɛ=1e-
 end
 
 function kozyakinlift(A, edge::Edge)
-    kron(sparse([edge.first], [edge.second], [1]), A)
+    kron(sparse([edge.src], [edge.dst], [1]), A)
 end
 function pradius(s::ConstrainedDiscreteSwitchedSystem, p, lift::Function; pnorm=Inf, ɛ=1e-2, forceub=false)
     Alifted = (A -> lift(A, p)).(s.A)

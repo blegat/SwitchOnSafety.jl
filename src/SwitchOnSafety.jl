@@ -1,6 +1,8 @@
-module SwitchedSystems
+module SwitchOnSafety
 
+using DynamicPolynomials
 using MultivariatePolynomials
+
 using LightGraphs
 
 import Base.==
@@ -19,15 +21,15 @@ abstract AbstractSwitchedSystem
 type Lyapunov
     d::Int
     soslb::Float64
-    dual::Vector{Measure{true, Float64}}
+    dual::Vector # TODO measure type
     sosub::Float64
-    primal::Vector{Polynomial{true, Float64}}
+    primal::Vector # TODO polynomial type
 end
 
 nnodes(s::AbstractSwitchedSystem) = 1
 dim(s::AbstractSwitchedSystem) = dim(s, 1)
 dim(s::AbstractSwitchedSystem, i::Int) = s.n[i]
-MultivariatePolynomials.vars(s::AbstractSwitchedSystem, i::Int) = s.x
+MultivariatePolynomials.variables(s::AbstractSwitchedSystem, i::Int) = s.x
 startnode(i::Int) = 1
 endnode(i::Int) = 1
 

@@ -27,19 +27,19 @@ end
 
 # Building the Lyapunov constraints
 function soslyapforward(s::AbstractDiscreteSwitchedSystem, p::Polynomial, path)
-    xin = vars(s, startnode(path))
-    xout = vars(s, endnode(path))
-    p(dynamicfor(s, path) * xin, xout)
+    xin = variables(s, startnode(path))
+    xout = variables(s, endnode(path))
+    p(xout => dynamicfor(s, path) * vec(xin))
 end
 function soslyapforward(s::AbstractContinuousSwitchedSystem, p::Polynomial, mode::Int)
-    x = vars(p)
+    x = variables(p)
     dot(differentiate(p, x), dynamicfor(s, mode) * x)
 end
 soslyapscaling(s::AbstractDiscreteSwitchedSystem, γ, d) = γ^(2*d)
 soslyapscaling(s::AbstractContinuousSwitchedSystem, γ, d) = 2*d*γ
 function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, edge, d, γ)
     getid(x) = x.id
-    @polyconstraint model soslyapforward(s, lyapforout(p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(p, edge)
+    @constraint model soslyapforward(s, lyapforout(p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(p, edge)
 end
 function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
     [soslyapconstraint(s, model, p, mode, d, γ) for mode in modes(s, 1)]
@@ -50,19 +50,19 @@ end
 
 function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     Z = monomials(x, 2*d)
-    @polyvariable model p Z
-    @polyconstraint model p >= sum(x.^(2*d))
+    @variable model p Poly(Z)
+    @constraint model p >= sum(x.^(2*d))
     p
 end
 lyapforin(p::Vector, mode::Int) = p[1]
 lyapforout(p::Vector, mode::Int) = p[1]
-lyapforin(p::Vector, edge::Edge) = p[edge.first]
-lyapforout(p::Vector, edge::Edge) = p[edge.second]
+lyapforin(p::Vector, edge::Edge) = p[edge.src]
+lyapforout(p::Vector, edge::Edge) = p[edge.dst]
 
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ; solver::AbstractMathProgSolver=JuMP.UnsetSolver())
     model = SOSModel(solver=solver)
-    p = [buildlyap(model, vars(s, v), d) for v in 1:nnodes(s)]
+    p = [buildlyap(model, variables(s, v), d) for v in 1:nnodes(s)]
     cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     status = solve(model, suppress_warnings=true)
