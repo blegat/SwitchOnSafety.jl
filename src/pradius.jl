@@ -4,7 +4,7 @@ function pradiusk(As, p, k, pnorm)
     mean(map(A->norm(A, pnorm)^p, As))^(1/(p*k))
 end
 
-function checkeven{A}(p, algo::Type{Val{A}})
+function checkeven(p, algo::Type{Val{A}}) where A
     if !iseven(p)
         throw(ArgumentError("Odd p is not supported yet for pradius computation with $A algorithm"))
     end

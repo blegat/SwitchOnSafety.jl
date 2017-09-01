@@ -16,9 +16,9 @@ function ρ(A::AbstractMatrix)
     maximum(abs.(eigvals(A)))
 end
 
-abstract AbstractSwitchedSystem
+abstract type AbstractSwitchedSystem end
 
-type Lyapunov
+mutable struct Lyapunov
     d::Int
     soslb::Float64
     dual::Vector # TODO measure type
