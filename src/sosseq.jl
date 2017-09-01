@@ -6,7 +6,7 @@ function candidates(s::AbstractContinuousSwitchedSystem, l, curstate)
 end
 measurefor(μs, dyn::Int) = μs[dyn]
 
-function best_dynamic(s::AbstractSwitchedSystem, μs, p::Polynomial, l, curstate)
+function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, curstate)
     best = -Inf
     best_dyn = nothing
     ncandidates = 0
@@ -89,7 +89,7 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
         Z = monomials(variables(s, curstate), d)
         p_0 = randsos(Z, monotype=:Gram, r=1)
     end # otherwise p_0 is assumed to be an sos polynomial given by the user
-    p_0 = Polynomial(p_0)
+    p_0 = polynomial(p_0)
 
     p_k = p_0
     n = dim(s)
