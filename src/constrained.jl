@@ -33,7 +33,7 @@ type ConstrainedDiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
             eid[e] = neid
             M = A[σ[e]]
             @assert isa(M, AbstractMatrix) "One of the matrices is of invalid type: $(typeof(M))"
-            for (u, nu) in ((e.first, size(M, 2)), (e.second, size(M, 1)))
+            for (u, nu) in ((e.src, size(M, 2)), (e.dst, size(M, 1)))
                 if n[u] == 0
                     n[u] = nu
                 else
@@ -51,24 +51,24 @@ type ConstrainedDiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
 end
 
 nnodes(s::ConstrainedDiscreteSwitchedSystem) = nv(s.G)
-MultivariatePolynomials.vars(s::ConstrainedDiscreteSwitchedSystem, i::Int) = s.x[i]
+MultivariatePolynomials.variables(s::ConstrainedDiscreteSwitchedSystem, i::Int) = s.x[i]
 
 ρA(s::ConstrainedDiscreteSwitchedSystem) = ρ(adjacency_matrix(s.G))
 
-startnode(edge::Edge) = edge.first
-endnode(edge::Edge) = edge.second
+startnode(edge::Edge) = edge.src
+endnode(edge::Edge) = edge.dst
 
 dynamicfor(s::AbstractSwitchedSystem, edge::Edge) = dynamicfor(s, s.σ[edge])
 
 function state(s::ConstrainedDiscreteSwitchedSystem, edge::Edge, forward=true)
-    forward ? edge.second : edge.first
+    forward ? edge.dst : edge.src
 end
 
 function modes(s::ConstrainedDiscreteSwitchedSystem, v::Int, forward=true)
     if forward
-        out_edges(s.G, v)
+        Edge.(v, out_neighbors(s.G, v))
     else
-        in_edges(s.G, v)
+        Edge.(in_neighbors(s.G, v), v)
     end
 end
 

@@ -1,4 +1,4 @@
-using SwitchedSystems
+using SwitchOnSafety
 using LightGraphs
 using Base.Test
 

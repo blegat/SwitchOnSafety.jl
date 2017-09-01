@@ -6,7 +6,7 @@ function candidates(s::AbstractContinuousSwitchedSystem, l, curstate)
 end
 measurefor(μs, dyn::Int) = μs[dyn]
 
-function best_dynamic(s::AbstractSwitchedSystem, μs, p::Polynomial, l, curstate)
+function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, curstate)
     best = -Inf
     best_dyn = nothing
     ncandidates = 0
@@ -35,14 +35,14 @@ function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, seq, μs, p_k, l, 
 
     curstate = state(s, best_dyn.seq[1], false)
     prepend!(seq, best_dyn)
-    x = vars(p_k)
+    x = variables(p_k)
     iter+l, curstate, soslyapforward(s, p_k, best_dyn)
 end
 
 function sosbuilditeration(s::AbstractContinuousSwitchedSystem, seq, μs, p_prev, l, Δt, curstate, iter)
     dyn = best_dynamic(s, μs, p_prev, l, curstate)
     ub = Δt
-    x = vars(p_prev)
+    x = variables(p_prev)
     p_cur = p_prev(integratorfor(s, (dyn, ub)) * x, x)
     best_dyn = best_dynamic(s, μs, p_cur, l, curstate)
     if best_dyn != dyn
@@ -86,10 +86,10 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
     if p_0 == :Primal
         p_0 = lyap.primal[curstate]
     elseif p_0 == :Random
-        Z = monomials(vars(s, curstate), d)
+        Z = monomials(variables(s, curstate), d)
         p_0 = randsos(Z, monotype=:Gram, r=1)
     end # otherwise p_0 is assumed to be an sos polynomial given by the user
-    p_0 = Polynomial(p_0)
+    p_0 = polynomial(p_0)
 
     p_k = p_0
     n = dim(s)
@@ -99,7 +99,7 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
     while iter <= niter
         iter, curstate, p_k = sosbuilditeration(s, seq, lyap.dual, p_k, l, Δt, curstate, iter)
         # Avoid having it go to zero
-        p_k /= p_k(ones(Int, nvars(p_k)), vars(p_k))
+        p_k /= p_k(variables(p_k) => ones(Int, nvariables(p_k)))
     end
     @assert seq.len == length(seq.seq)
     seq
