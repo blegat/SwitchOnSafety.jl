@@ -75,9 +75,9 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
     lyap = getlyap(s, d; solver=solver, tol=tol)
 
     if v_0 == :Random
-        curstate = rand(1:1)
+        curstate = rand(1:nnodes(s))
     else
-        if !isa(v_0, Integer) || v_0 < 1 || v_0 > 1
+        if !isa(v_0, Integer) || v_0 < 1 || v_0 > nnodes(s)
             throw(ArgumentError("Invalid v_0=$v_0"))
         end
         curstate = v_0

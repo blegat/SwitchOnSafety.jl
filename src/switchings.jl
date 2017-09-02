@@ -137,6 +137,13 @@ end
 edgetype(::DiscreteSwitchedSystem) = Int
 edgetype(::ConstrainedDiscreteSwitchedSystem) = Edge
 
+function _next!(it, seq, modeit, modest, As, i, A)
+    seq[i], modest[i] = next(modeit[i], modest[i])
+    B = dynamicfor(it.s, seq[i])
+    As[i] = it.forward ? B * A : A * B
+    As[i], state(it.s, seq[i], it.forward)
+end
+
 function start(it::SwitchingIterator)
     k = it.k
     ET = edgetype(it.s)
@@ -145,7 +152,7 @@ function start(it::SwitchingIterator)
     v = it.v0
     A = speye(dim(it.s, v))
     As = Vector{eltype(it.s.A)}(k)
-    # modeit[i] is a list of all the possible ith mode
+    # modeit[i] is a list of all the possible ith mode for the (i-1)th state
     modeit = Vector{Vector{ET}}(k)
     # modest[i] is the ith state of iterator modeit[i]
     modest = Vector{Int}(k)
@@ -155,10 +162,7 @@ function start(it::SwitchingIterator)
         if done(modeit[i], modest[i])
             v = -1
         elseif i != last(I)
-            seq[i], modest[i] = next(modeit[i], modest[i])
-            As[i] = dynamicfor(it.s, seq[i]) * A
-            A = As[i]
-            v = state(it.s, seq[i], it.forward)
+            A, v = _next!(it, seq, modeit, modest, As, i, A)
         end
     end
     (modeit, modest, As, seq)
@@ -183,17 +187,16 @@ function next(it::SwitchingIterator, st)
             break
         end
     end
+    @assert i != -1
     inc = it.forward ? 1 : -1
     prev = i - inc
     A = (prev >= 1 && prev <= it.k) ? As[prev] : speye(dim(it.s))
-    while i > 0 && i <= it.k
-        seq[i], modest[i] = next(modeit[i], modest[i])
-        As[i] = dynamicfor(it.s, seq[i]) * A
-        A = As[i]
-        v = state(it.s, seq[i], it.forward)
+    while 1 <= i <= it.k
+        A, v = _next!(it, seq, modeit, modest, As, i, A)
         i += inc
-        if i > 0 && i <= it.k
-            modeit[i], modest[i] = modes(it.s, v, it.forward)
+        if 1 <= i <= it.k
+            modeit[i] = modes(it.s, v, it.forward)
+            modest[i] = start(modeit[i])
         end
     end
     (SwitchingSequence(it.s, A, copy(seq)), (modeit, modest, As, seq))

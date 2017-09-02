@@ -25,7 +25,7 @@ const expected_lb = expected_ub ./ ratio
     G = DiGraph(4)
     σ = Dict{Edge, Int}()
     function add_edge_labeled!(G, u, v, σuv)
-        e = Edge(u, v)
+        e = Edge(u => v)
         σ[e] = σuv
         add_edge!(G, e)
     end
@@ -39,9 +39,11 @@ const expected_lb = expected_ub ./ ratio
     add_edge_labeled!(G, 3, 4, 4)
     add_edge_labeled!(G, 4, 3, 1)
     s = ConstrainedDiscreteSwitchedSystem(As, G, σ)
-    snp = ConstrainedDiscretePeriodicSwitching(s, [Edge(3, 1), Edge(1, 3), Edge(3, 1), Edge(1, 3), Edge(3, 3), Edge(3, 3), Edge(3, 3), Edge(3, 3)])
+    sbp = ConstrainedDiscretePeriodicSwitching(s, Edge.([3 => 3]))
+    @test sbp.growthrate == 0.9392550239418472
+    snp = ConstrainedDiscretePeriodicSwitching(s, Edge.([3 => 1, 1 => 3, 3 => 1, 1 => 3, 3 => 3, 3 => 3, 3 => 3, 3 => 3]))
     @test snp.growthrate == 0.9728940109399586
-    smp = ConstrainedDiscretePeriodicSwitching(s, [Edge(3, 1), Edge(1, 3), Edge(3, 1), Edge(1, 2), Edge(2, 3), Edge(3, 3), Edge(3, 3), Edge(3, 3)])
+    smp = ConstrainedDiscretePeriodicSwitching(s, Edge.([3 => 1, 1 => 3, 3 => 1, 1 => 2, 2 => 3, 3 => 3, 3 => 3, 3 => 3]))
     @test smp.growthrate == 0.9748171979372074
     for solver in sdp_solvers
         s.lb = 0
@@ -51,10 +53,22 @@ const expected_lb = expected_ub ./ ratio
             lb, ub = soslyapb(s, d, solver=solver, tol=tol)
             @test log(lb) ≈ log(expected_lb[d]) atol=tol
             @test log(ub) ≈ log(expected_ub[d]) atol=tol
-            seq = sosbuildsequence(s, d, p_0=:Primal)
-            psw = findsmp(seq)
-            @test isnull(psw) == false
-            @test get(psw) == (d <= 3 ? snp : smp)
+            for l in 1:2
+                for v_0 in 1:4
+                    seq = sosbuildsequence(s, d, p_0=:Primal, v_0=v_0)
+                    psw = findsmp(seq)
+                    @test !isnull(psw)
+                    if d <= 3
+                        if 2 <= d && v_0 == 3
+                            @test get(psw) == sbp
+                        else
+                            @test get(psw) == snp
+                        end
+                    else
+                        @test get(psw) == smp
+                    end
+                end
+            end
         end
     end
 end
