@@ -50,7 +50,7 @@ end
 
 function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     Z = monomials(x, 2*d)
-    @variable model p Poly(Z)
+    p = (@variable model [1] Poly(Z))[1]
     @constraint model p >= sum(x.^(2*d))
     p
 end

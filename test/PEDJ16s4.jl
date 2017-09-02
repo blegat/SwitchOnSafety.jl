@@ -6,18 +6,15 @@
 
 using LightGraphs
 
-const expected_lb = [0.7096115688862492,
-                     0.749432937404542,
-                     0.803983520107364,
-                     0.8425634051754579,
-                     0.8674767989157529,
-                     0.8844616629378517]
 const expected_ub = [1.0035568400762171,
                      0.9863261446338583,
                      0.9769402921375085,
                      0.9749706065652288,
                      0.9749659545861287,
                      0.9749138871770363]
+const ρAs = 2.618033988749896
+const ratio = [2, ρAs, ρAs, ρAs, ρAs, ρAs].^(1./(2:2:12))
+const expected_lb = expected_ub ./ ratio
 
 @testset "[PEDJ] Section 4" begin
     A = [0.94 0.56; 0.14 0.46]
@@ -52,8 +49,8 @@ const expected_ub = [1.0035568400762171,
         for d in 1:6
             tol = ismosek(solver) ? 3e-4 : 1e-3
             lb, ub = soslyapb(s, d, solver=solver, tol=tol)
-            #@test abs(log(lb) - log(expected_lb[d])) <= tol # FIXME
-            @test abs(log(ub) - log(expected_ub[d])) <= tol
+            @test log(lb) ≈ log(expected_lb[d]) atol=tol
+            @test log(ub) ≈ log(expected_ub[d]) atol=tol
             seq = sosbuildsequence(s, d, p_0=:Primal)
             psw = findsmp(seq)
             @test isnull(psw) == false

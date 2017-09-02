@@ -50,6 +50,10 @@ mutable struct ConstrainedDiscreteSwitchedSystem <: AbstractDiscreteSwitchedSyst
     end
 end
 
+function Base.show(io::IO, s::ConstrainedDiscreteSwitchedSystem)
+    print(io, "Constrained Discrete Switched System with $(length(s.A)) modes and constraints given by a $(s.G)")
+end
+
 nnodes(s::ConstrainedDiscreteSwitchedSystem) = nv(s.G)
 MultivariatePolynomials.variables(s::ConstrainedDiscreteSwitchedSystem, i::Int) = s.x[i]
 
