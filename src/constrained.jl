@@ -76,9 +76,11 @@ function modes(s::ConstrainedDiscreteSwitchedSystem, v::Int, forward=true)
     end
 end
 
-function nullsmp(s::ConstrainedDiscreteSwitchedSystem)
-    Nullable{ConstrainedDiscretePeriodicSwitching}()
+periodicswitchingtype(s::ConstrainedDiscreteSwitchedSystem) = ConstrainedDiscretePeriodicSwitching
+function periodicswitching(s::ConstrainedDiscreteSwitchedSystem, period::Vector{Edge{Int}})
+    gr = adaptgrowthrate(ρ(prod(reverse(map(edge -> s.A[s.σ[edge]], period)))), period)
+    periodicswitching(s, period, gr)
 end
-function buildsmp(s::ConstrainedDiscreteSwitchedSystem, seq, growthrate, dt)
-    Nullable{ConstrainedDiscretePeriodicSwitching}(ConstrainedDiscretePeriodicSwitching(s, seq, growthrate))
+function periodicswitching(s::ConstrainedDiscreteSwitchedSystem, period, growthrate, args...)
+    ConstrainedDiscretePeriodicSwitching(s, period, growthrate)
 end

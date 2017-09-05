@@ -4,7 +4,6 @@ end
 function candidates(s::AbstractContinuousSwitchedSystem, l, curstate)
     modes(s, curstate, false)
 end
-measurefor(μs, dyn::Int) = μs[dyn]
 
 function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, curstate)
     best = -Inf

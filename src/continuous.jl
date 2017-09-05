@@ -11,14 +11,12 @@ struct ContinuousPeriodicSwitching <: AbstractPeriodicSwitching
 end
 integratorfor(s::AbstractContinuousSwitchedSystem, mode::Tuple{Int,Float64}) = expm(dynamicfor(s, mode[1]) * mode[2])
 
-function nullsmp(s::AbstractContinuousSwitchedSystem)
-    Nullable{ContinuousPeriodicSwitching}()
-end
-function buildsmp(s::AbstractContinuousSwitchedSystem, seq, growthrate, dt)
+periodicswitchingtype(s::AbstractContinuousSwitchedSystem) = ContinuousPeriodicSwitching
+function periodicswitching(s::AbstractContinuousSwitchedSystem, seq, growthrate, dt)
     # seq is a copy since it has been obtained with seq.seq[i:j]
     mode, Δt = seq[end]
     seq[end] = mode, dt
-    Nullable{ContinuousPeriodicSwitching}(ContinuousPeriodicSwitching(s, seq, growthrate))
+    ContinuousPeriodicSwitching(s, seq, growthrate)
 end
 function bestperiod(s::AbstractContinuousSwitchedSystem, seq::Vector{Tuple{Int,Float64}}, I, P::AbstractMatrix, ::AbstractMatrix)
     mode, Δt = seq[last(I)]

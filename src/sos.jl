@@ -47,6 +47,8 @@ end
 function soslyapconstraints(s::ConstrainedDiscreteSwitchedSystem, model::JuMP.Model, p, d, γ)
     [soslyapconstraint(s, model, p, edge, d, γ) for edge in edges(s.G)]
 end
+measurefor(μs, s, dyn::Int) = μs[dyn]
+measurefor(μs, s, edge::Edge) = measurefor(μs, s, s.eid[edge])
 
 function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     Z = monomials(x, 2*d)
@@ -117,7 +119,7 @@ end
 soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
 
 # Binary Search
-function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1)
+function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1, extractcycle=true, ranktol=1e-4)
     while soschecktol(s, soslb, sosub) > tol
         mid = sosmid(s, soslb, sosub, step)
         status, curprimal, curdual = soslyap(s, d, mid, solver=solver)
@@ -159,6 +161,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
             sosub = mid
         elseif status == :Infeasible
             dual = curdual
+            sosextractcycle(s, dual, d)
             soslb = mid
         else
             warn("Solver returned with status : $statuslb for γ=$midlb, $status for γ=$mid and $statusub for γ=$midub. Stopping bisection with $(soschecktol(s, soslb, sosub)) > $tol (= tol)")
@@ -169,11 +172,11 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
 end
 
 # Obtaining bounds with Lyapunov
-function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1, cached=true)
+function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1, cached=true, kws...)
     # The SOS ub is greater than the JSR hence also greater than any of its lower bound
     soslb = s.lb
     sosub = getsoslyapinitub(s, d)
-    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, nothing, sosub, nothing; solver=solver, tol=tol, step=step)
+    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, nothing, sosub, nothing; solver=solver, tol=tol, kws...)
     if cached
         if primal === nothing
             if isfinite(sosub)
@@ -192,7 +195,7 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
                     status, _, dual = soslyap(s, d, soslb, solver=solver)
                     @assert status == :Infeasible
                     @assert dual !== nothing
-                    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver=solver, tol=tol, step=step)
+                    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver=solver, tol=tol, kws...)
                     @assert dual !== nothing
                 end
             else

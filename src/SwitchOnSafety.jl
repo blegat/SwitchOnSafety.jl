@@ -2,6 +2,7 @@ module SwitchOnSafety
 
 using DynamicPolynomials
 using MultivariatePolynomials
+using MultivariateMoments
 
 using LightGraphs
 
@@ -68,5 +69,6 @@ include("kronecker.jl")
 include("pradius.jl")
 include("sos.jl")
 include("sosseq.jl")
+include("sosext.jl")
 
 end # module

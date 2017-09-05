@@ -75,7 +75,8 @@ end
 
 function findsmp(seq)
     s = seq.s
-    smp = nullsmp(s)
+    PS = periodicswitchingtype(s)
+    smp = Nullable{PS}()
     for i in 1:seq.len
         startNode = state(s, seq.seq[i], false)
         P = speye(dim(s, startNode))
@@ -87,7 +88,7 @@ function findsmp(seq)
             if state(s, mode, true) == startNode
                 growthrate, dt = bestperiod(s, seq.seq, i:j, P, Q)
                 if isnull(smp) || isbetter(growthrate, length(i:j), get(smp))
-                    smp = buildsmp(s, seq.seq[i:j], growthrate, dt)
+                    smp = Nullable{PS}(periodicswitching(s, seq.seq[i:j], growthrate, dt))
                 end
             end
             P = Q

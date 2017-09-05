@@ -53,12 +53,14 @@ function quickub(s::AbstractDiscreteSwitchedSystem)
     updateub!(s, qub)
 end
 
-function nullsmp(s::DiscreteSwitchedSystem)
-    Nullable{DiscretePeriodicSwitching}()
-end
-function buildsmp(s::DiscreteSwitchedSystem, seq, growthrate, dt)
-    Nullable{DiscretePeriodicSwitching}(DiscretePeriodicSwitching(s, seq, growthrate))
-end
+periodicswitchingtype(s::DiscreteSwitchedSystem) = DiscretePeriodicSwitching
 
+function periodicswitching(s::DiscreteSwitchedSystem, seq::Vector{Int})
+    gr = adaptgrowthrate(ρ(prod(reverse(s.A[seq]))), seq)
+    periodicswitching(s, seq, gr)
+end
+function periodicswitching(s::DiscreteSwitchedSystem, seq::Vector{Int}, growthrate, args...)
+    DiscretePeriodicSwitching(s, seq, growthrate)
+end
 
 include("constrained.jl")

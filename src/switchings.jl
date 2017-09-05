@@ -105,10 +105,10 @@ function append!(s::AbstractSwitchingSequence, other::AbstractSwitchingSequence)
 end
 
 function measurefor(μ, s::DiscreteSwitchingSequence)
-    μ[first(s.seq)]
+    measurefor(μ, s.s, first(s.seq))
 end
 function measurefor(μ, s::ConstrainedDiscreteSwitchingSequence)
-  μ[s.s.eid[first(s.seq)]]
+    measurefor(μ, s.s, first(s.seq))
 end
 
 # Only makes sense for discrete
