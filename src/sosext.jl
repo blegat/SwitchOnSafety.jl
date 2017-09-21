@@ -62,52 +62,60 @@ function startstates(s::AbstractDiscreteSwitchedSystem, edgestates, G, B, distto
 end
 
 # Atom extraction
-function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ranktol=4e-4, disttol=5e-2)::Nullable{periodicswitchingtype(s)}
-    edgestates = map(u -> map(edge -> (edge, extractstates(s, d, edge, dual, ranktol)), modes(s, u)), 1:nnodes(s))
+function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ranktols=1e-5, disttols=1e-5)
+    smp = Nullable{periodicswitchingtype(s)}(nothing)
+    for ranktol in ranktols
+        # This part is the more costly since it does atom extraction
+        # It is run only once for each disttols which is nice
+        edgestates = map(u -> map(edge -> (edge, extractstates(s, d, edge, dual, ranktol)), modes(s, u)), 1:nnodes(s))
 
-    G = Vector{Tuple{Int, edgetype(s)}}[] # G[u] = list of edges (σ, v) going out of u
-    B = Vector{Float64}[] # B[u] = values of the state at node u
-    GB = map(u -> startstates(s, edgestates[u], G, B, disttol), 1:nnodes(s))
+        for disttol in disttols
+            G = Vector{Tuple{Int, edgetype(s)}}[] # G[u] = list of edges (σ, v) going out of u
+            B = Vector{Float64}[] # B[u] = values of the state at node u
+            GB = map(u -> startstates(s, edgestates[u], G, B, disttol), 1:nnodes(s))
 
-    # Try grouping weith different distances
+            # Try grouping with different distances
 
-    g = DiGraph(length(G))
-    w = fill(Inf, nv(g), nv(g))
-    ij2edge = Dict{NTuple{2, Int}, edgetype(s)}()
-    for u in eachindex(G)
-        x = B[u]
-        for (σ, edge) in G[u]
-            y = s.A[σ] * x
-            λ = norm(y)
-            y /= λ
-            j = findapprox(GB[endnode(edge)], y, disttol)
-            if !iszero(j)
-                v = GB[endnode(edge)][j][2]
-                add_edge!(g, u, v)
-                # we use a minimum cycle arithmetic mean algo but we need the maximum cycle geometric mean
-                w[u, v] = -log(λ)
-                ij2edge[(u, v)] = edge
+            g = DiGraph(length(G))
+            w = fill(Inf, nv(g), nv(g))
+            ij2edge = Dict{NTuple{2, Int}, edgetype(s)}()
+            for u in eachindex(G)
+                x = B[u]
+                for (σ, edge) in G[u]
+                    y = s.A[σ] * x
+                    λ = norm(y)
+                    y /= λ
+                    j = findapprox(GB[endnode(edge)], y, disttol)
+                    if !iszero(j)
+                        v = GB[endnode(edge)][j][2]
+                        add_edge!(g, u, v)
+                        # we use a minimum cycle arithmetic mean algo but we need the maximum cycle geometric mean
+                        w[u, v] = -log(λ)
+                        ij2edge[(u, v)] = edge
+                    end
+                end
+            end
+
+            c, λmin = karp_minimum_cycle_mean(g, w)
+
+            if !isempty(c)
+                period = map(i -> ij2edge[(c[i], c[(i % length(c)) + 1])], eachindex(c))
+
+                newsmp = periodicswitching(s, period)
+                if isnull(smp) || isbetter(newsmp, get(smp))
+                    smp = Nullable{periodicswitchingtype(s)}(newsmp)
+                end
             end
         end
     end
 
-    c, λmin = karp_minimum_cycle_mean(g, w)
-
-    if isempty(c)
-        return nothing
+    if !isnull(smp)
+        updatesmp!(s, get(smp))
     end
 
-    period = map(i -> ij2edge[(c[i], c[(i % length(c)) + 1])], eachindex(c))
-
-    smp = periodicswitching(s, period)
-    println("=========================================")
-    @show smp.period
-    @show smp.growthrate
-    println("=========================================")
-    updatesmp!(s, smp)
     smp
 end
-function sosextractcycle(s::AbstractDiscreteSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, ranktol=4e-4)::Nullable{periodicswitchingtype(s)}
+function sosextractcycle(s::AbstractDiscreteSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, ranktols=tol, disttols=tol)::Nullable{periodicswitchingtype(s)}
     lyap = getlyap(s, d; solver=solver, tol=tol)
-    sosextractcycle(s, lyap.dual, d; ranktol=ranktol)
+    sosextractcycle(s, lyap.dual, d; ranktols=ranktols, disttols=disttols)
 end

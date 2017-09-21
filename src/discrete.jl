@@ -8,6 +8,10 @@ struct DiscretePeriodicSwitching <: AbstractPeriodicSwitching
     growthrate::Float64
 end
 
+function Base.show(io::IO, s::AbstractPeriodicSwitching)
+    println(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(s.period).")
+end
+
 integratorfor(s::AbstractDiscreteSwitchedSystem, edge) = dynamicfor(s, edge)
 
 function bestperiod(s::AbstractDiscreteSwitchedSystem, seq::Vector, I, ::AbstractMatrix, Q::AbstractMatrix)

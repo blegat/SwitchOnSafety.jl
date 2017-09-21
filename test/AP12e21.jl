@@ -22,7 +22,7 @@
             @test !isnull(s.smp)
             @test get(s.smp) == smp
 
-            cyc = sosextractcycle(s, d)
+            cyc = sosextractcycle(s, d, tol=tol)
             @test !isnull(cyc)
             @test get(cyc) == smp
 

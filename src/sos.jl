@@ -119,7 +119,7 @@ end
 soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
 
 # Binary Search
-function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1, extractcycle=true, ranktol=1e-4)
+function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1, ranktols=tol, disttols=tol)
     while soschecktol(s, soslb, sosub) > tol
         mid = sosmid(s, soslb, sosub, step)
         status, curprimal, curdual = soslyap(s, d, mid, solver=solver)
@@ -161,7 +161,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
             sosub = mid
         elseif status == :Infeasible
             dual = curdual
-            sosextractcycle(s, dual, d)
+            sosextractcycle(s, dual, d, ranktols=ranktols, disttols=disttols)
             soslb = mid
         else
             warn("Solver returned with status : $statuslb for γ=$midlb, $status for γ=$mid and $statusub for γ=$midub. Stopping bisection with $(soschecktol(s, soslb, sosub)) > $tol (= tol)")

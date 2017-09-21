@@ -14,6 +14,11 @@ mutable struct DiscreteSwitchingSequence <: AbstractDiscreteSwitchingSequence
     len::Int
 end
 
+function Base.show(io::IO, s::DiscreteSwitchingSequence)
+    println(io, "Discrete switching sequence of length $(s.len):")
+    println(io, s.seq)
+end
+
 mutable struct ConstrainedDiscreteSwitchingSequence <: AbstractDiscreteSwitchingSequence
     s::ConstrainedDiscreteSwitchedSystem
     A::AbstractMatrix # /!\ could be dynamic or integrator
