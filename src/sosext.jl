@@ -31,8 +31,7 @@ end
 
 function extractstates(s::AbstractDiscreteSwitchedSystem, d, edge, dual, ranktol)
     σ = σfor(s, edge)
-    measurefor(dual, s, edge)
-    μ = dual[σ]
+    μ = measurefor(dual, s, edge)
     X = monomials(variables(μ), d)
     ν = matmeasure(μ, X)
     atoms = extractatoms(ν, ranktol)
