@@ -2,7 +2,7 @@
 # Guglielmi, Protasov,
 # "Computing Lyapunov exponents of switching systems."
 # The Lyapunov Exponent was unknown
-# fournd by SOS-24
+# found by SOS-24
 # It is between
 # (-0.7163555099121912 given by [(2,1.0786514),(1,2.467595)])
 # -0.7157393916973624 given by [(2,1.0576859),(1,2.492785)] found by SOS-24

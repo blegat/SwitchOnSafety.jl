@@ -64,7 +64,7 @@ lyapforout(p::Vector, edge::Edge) = p[edge.dst]
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ; solver::AbstractMathProgSolver=JuMP.UnsetSolver())
     model = SOSModel(solver=solver)
-    p = [buildlyap(model, variables(s, v), d) for v in 1:nnodes(s)]
+    p = [buildlyap(model, variables(s, v), d) for v in states(s)]
     cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     status = solve(model, suppress_warnings=true)
@@ -112,7 +112,7 @@ sosmid(s::AbstractDiscreteSwitchedSystem, soslb, sosub, step) = exp(sosmid(log(s
 sosmid(s::AbstractContinuousSwitchedSystem, soslb, sosub, step) = sosmid(soslb, sosub, step)
 
 function soslb2lb(s::AbstractDiscreteSwitchedSystem, sosub, d)
-    n = dim(s)
+    n = maximum(statedim.(s, states(s)))
     η = min(ρA(s), binomial(n+d-1, d))
     sosub / η^(1/(2*d))
 end

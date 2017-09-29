@@ -74,9 +74,9 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
     lyap = getlyap(s, d; solver=solver, tol=tol)
 
     if v_0 == :Random
-        curstate = rand(1:nnodes(s))
+        curstate = rand(states(s))
     else
-        if !isa(v_0, Integer) || v_0 < 1 || v_0 > nnodes(s)
+        if !(v_0 in states(s))
             throw(ArgumentError("Invalid v_0=$v_0"))
         end
         curstate = v_0
@@ -91,7 +91,6 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
     p_0 = polynomial(p_0)
 
     p_k = p_0
-    n = dim(s)
     seq = SwitchingSequence(s, niter, curstate)
 
     iter = 1

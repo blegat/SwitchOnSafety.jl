@@ -57,16 +57,16 @@ function ConstrainedDiscreteSwitchingSequence(s::ConstrainedDiscreteSwitchedSyst
 end
 SwitchingSequence(s::ConstrainedDiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector{Edge}) = ConstrainedDiscreteSwitchingSequence(s, A, seq)
 function SwitchingSequence(s::DiscreteSwitchedSystem, len::Int=0, v::Int=1)
-    DiscreteSwitchingSequence(s, speye(dim(s)), Vector{Int}(len), 0)
+    DiscreteSwitchingSequence(s, speye(statedim(s, v)), Vector{Int}(len), 0)
 end
 function SwitchingSequence(s::ConstrainedDiscreteSwitchedSystem, len::Int=0, v::Int=1)
-    ConstrainedDiscreteSwitchingSequence(s, speye(dim(s, v)), Vector{Edge}(len), 0)
+    ConstrainedDiscreteSwitchingSequence(s, speye(statedim(s, v)), Vector{Edge}(len), 0)
 end
 function ConstrainedDiscreteSwitchingSequence(s::ConstrainedDiscreteSwitchedSystem, u::Int, len=0)
-    ConstrainedDiscreteSwitchingSequence(s, speye(dim(s, u)), Vector{Edge}(len), 0)
+    ConstrainedDiscreteSwitchingSequence(s, speye(statedim(s, u)), Vector{Edge}(len), 0)
 end
 function SwitchingSequence(s::ContinuousSwitchedSystem, len=0, v=1)
-    ContinuousSwitchingSequence(s, speye(dim(s)), Vector{Tuple{Int,Float64}}(len), 0)
+    ContinuousSwitchingSequence(s, speye(statedim(s, v)), Vector{Tuple{Int,Float64}}(len), 0)
 end
 
 function prepend!(s::AbstractSwitchingSequence, other::AbstractSwitchingSequence)
@@ -155,7 +155,7 @@ function start(it::SwitchingIterator)
     seq = Vector{ET}(k)
     I = it.forward ? (1:k) : (k:-1:1)
     v = it.v0
-    A = speye(dim(it.s, v))
+    A = speye(statedim(it.s, v))
     As = Vector{eltype(it.s.A)}(k)
     # modeit[i] is a list of all the possible ith mode for the (i-1)th state
     modeit = Vector{Vector{ET}}(k)
@@ -195,7 +195,7 @@ function next(it::SwitchingIterator, st)
     @assert i != -1
     inc = it.forward ? 1 : -1
     prev = i - inc
-    A = (prev >= 1 && prev <= it.k) ? As[prev] : speye(dim(it.s))
+    A = (prev >= 1 && prev <= it.k) ? As[prev] : speye(statedim(it.s, 1)) # FIXME, fix statedim, we should find the right state, not put 1
     while 1 <= i <= it.k
         A, v = _next!(it, seq, modeit, modest, As, i, A)
         i += inc

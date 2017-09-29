@@ -66,12 +66,12 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
     for ranktol in ranktols
         # This part is the more costly since it does atom extraction
         # It is run only once for each disttols which is nice
-        edgestates = map(u -> map(edge -> (edge, extractstates(s, d, edge, dual, ranktol)), modes(s, u)), 1:nnodes(s))
+        edgestates = map(u -> map(edge -> (edge, extractstates(s, d, edge, dual, ranktol)), modes(s, u)), states(s))
 
         for disttol in disttols
             G = Vector{Tuple{Int, edgetype(s)}}[] # G[u] = list of edges (σ, v) going out of u
             B = Vector{Float64}[] # B[u] = values of the state at node u
-            GB = map(u -> startstates(s, edgestates[u], G, B, disttol), 1:nnodes(s))
+            GB = map(u -> startstates(s, edgestates[u], G, B, disttol), states(s))
 
             # Try grouping with different distances
 

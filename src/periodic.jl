@@ -8,7 +8,7 @@ adaptgrowthrate(g, period::AbstractVector) = adaptgrowthrate(g, duration(period)
 adaptgrowthrate(g, period::AbstractVector{Tuple{Int,Float64}}) = adaptgrowthrate(g, duration(period))
 
 function (::Type{T})(s::AbstractSwitchedSystem, period::Vector) where T<:AbstractPeriodicSwitching
-    A = speye(dim(s, state(s, first(period), false)))
+    A = speye(statedim(s, state(s, first(period), false)))
     for edge in period
         A = integratorfor(s, edge) * A
     end
@@ -79,7 +79,7 @@ function findsmp(seq)
     smp = Nullable{PS}()
     for i in 1:seq.len
         startNode = state(s, seq.seq[i], false)
-        P = speye(dim(s, startNode))
+        P = speye(statedim(s, startNode))
         k = 0
         for j in i:seq.len
             mode = seq.seq[j]

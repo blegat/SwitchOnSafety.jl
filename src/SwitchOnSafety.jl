@@ -9,7 +9,7 @@ using LightGraphs
 import Base.==
 
 export AbstractSwitchedSystem
-export dim, ρ, quicklb, quickub, quickb
+export statedim, ρ, quicklb, quickub, quickb
 
 # eigvals is not defined for SparseMatrixCSC
 ρ(A::AbstractSparseMatrix) = ρ(full(A))
@@ -27,9 +27,9 @@ mutable struct Lyapunov
     primal::Vector # TODO polynomial type
 end
 
-nnodes(s::AbstractSwitchedSystem) = 1
-dim(s::AbstractSwitchedSystem) = dim(s, 1)
-dim(s::AbstractSwitchedSystem, i::Int) = s.n[i]
+states(s::AbstractSwitchedSystem) = 1:1
+nstates(s::AbstractSwitchedSystem) = 1
+statedim(s::AbstractSwitchedSystem, i::Int) = s.n[i]
 MultivariatePolynomials.variables(s::AbstractSwitchedSystem, i::Int) = s.x
 startnode(i::Int) = 1
 endnode(i::Int) = 1
