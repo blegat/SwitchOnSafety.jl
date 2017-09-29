@@ -84,9 +84,9 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
                     y = s.A[σ] * x
                     λ = norm(y)
                     y /= λ
-                    j = findapprox(GB[endnode(edge)], y, disttol)
+                    j = findapprox(GB[target(edge)], y, disttol)
                     if !iszero(j)
-                        v = GB[endnode(edge)][j][2]
+                        v = GB[target(edge)][j][2]
                         add_edge!(g, u, v)
                         # we use a minimum cycle arithmetic mean algo but we need the maximum cycle geometric mean
                         w[u, v] = -log(λ)

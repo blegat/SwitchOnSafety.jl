@@ -60,14 +60,13 @@ MultivariatePolynomials.variables(s::ConstrainedDiscreteSwitchedSystem, i::Int) 
 
 ρA(s::ConstrainedDiscreteSwitchedSystem) = ρ(adjacency_matrix(s.G))
 
-startnode(edge::Edge) = edge.src
-endnode(edge::Edge) = edge.dst
-
-dynamicfor(s::AbstractSwitchedSystem, edge::Edge) = dynamicfor(s, s.σ[edge])
-
+source(edge::Edge) = edge.src
+target(edge::Edge) = edge.dst
 function state(s::ConstrainedDiscreteSwitchedSystem, edge::Edge, forward=true)
     forward ? edge.dst : edge.src
 end
+
+dynamicfor(s::AbstractSwitchedSystem, edge::Edge) = dynamicfor(s, s.σ[edge])
 
 function modes(s::ConstrainedDiscreteSwitchedSystem, v::Int, forward=true)
     if forward

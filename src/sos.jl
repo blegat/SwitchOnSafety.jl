@@ -27,8 +27,8 @@ end
 
 # Building the Lyapunov constraints
 function soslyapforward(s::AbstractDiscreteSwitchedSystem, p::Polynomial, path)
-    xin = variables(s, startnode(path))
-    xout = variables(s, endnode(path))
+    xin = variables(s, source(path))
+    xout = variables(s, target(path))
     p(xout => dynamicfor(s, path) * vec(xin))
 end
 function soslyapforward(s::AbstractContinuousSwitchedSystem, p::Polynomial, mode::Int)

@@ -31,8 +31,10 @@ states(s::AbstractSwitchedSystem) = 1:1
 nstates(s::AbstractSwitchedSystem) = 1
 statedim(s::AbstractSwitchedSystem, i::Int) = s.n[i]
 MultivariatePolynomials.variables(s::AbstractSwitchedSystem, i::Int) = s.x
-startnode(i::Int) = 1
-endnode(i::Int) = 1
+
+source(i::Int) = 1
+target(i::Int) = 1
+state(s::AbstractSwitchedSystem, edge::Int, forward=true) = 1
 
 nlabels(s::AbstractSwitchedSystem, edge) = 1
 
@@ -40,7 +42,6 @@ modes(s::AbstractSwitchedSystem, v::Int, forward=true) = 1:length(s.A)
 
 dynamicfor(s::AbstractSwitchedSystem, mode::Int) = s.A[mode]
 
-state(s::AbstractSwitchedSystem, edge::Int, forward=true) = 1
 
 function updatelb!(s::AbstractSwitchedSystem, lb, smp=nothing)
     s.lb = max(s.lb, lb)

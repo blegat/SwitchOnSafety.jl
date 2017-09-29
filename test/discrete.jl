@@ -1,5 +1,5 @@
 @testset "Unconstrained" begin
-#    include("AJPR14e54.jl")
+    include("AJPR14e54.jl")
     include("AP12e21.jl")
     include("JCG14e61.jl")
     include("JCG14e63.jl")

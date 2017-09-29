@@ -26,11 +26,11 @@ mutable struct ConstrainedDiscreteSwitchingSequence <: AbstractDiscreteSwitching
     len::Int
 end
 
-startnode(::DiscreteSwitchingSequence) = 1
-endnode(::DiscreteSwitchingSequence) = 1
+source(::DiscreteSwitchingSequence) = 1
+target(::DiscreteSwitchingSequence) = 1
 
-startnode(seq::ConstrainedDiscreteSwitchingSequence) = startnode(seq.seq[1])
-endnode(seq::ConstrainedDiscreteSwitchingSequence) = endnode(seq.seq[end])
+source(seq::ConstrainedDiscreteSwitchingSequence) = source(seq.seq[1])
+target(seq::ConstrainedDiscreteSwitchingSequence) = target(seq.seq[end])
 
 mutable struct ContinuousSwitchingSequence <: AbstractSwitchingSequence
     s::ContinuousSwitchedSystem
