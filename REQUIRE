@@ -3,5 +3,9 @@ Combinatorics
 MathProgBase
 JuMP
 SumOfSquares
+MultivariatePolynomials
+MultivariateMoments
+DynamicPolynomials
+HybridSystems
 Optim
 LightGraphs
