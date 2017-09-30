@@ -10,8 +10,8 @@ function checkeven(p, algo::Type{Val{A}}) where A
     end
 end
 
-function pradius(s::DiscreteSwitchedSystem, p, lift::Function; pnorm=Inf, ɛ=1e-2, forceub=false)
-    ρpmpp = ρ(sum((A -> lift(A, p)).(s.A)))
+function pradius(s::DiscreteSwitchedLinearSystem, p, lift::Function; pnorm=Inf, ɛ=1e-2, forceub=false)
+    ρpmpp = ρ(sum((rm -> lift(rm.A, p)).(s.resetmaps)))
     if forceub
         ρpmpp^(1/p)
     else
@@ -19,12 +19,12 @@ function pradius(s::DiscreteSwitchedSystem, p, lift::Function; pnorm=Inf, ɛ=1e-
     end
 end
 
-function kozyakinlift(A, edge::Edge)
-    kron(sparse([edge.src], [edge.dst], [1]), A)
+function kozyakinlift(s, t, A)
+    kron(sparse([source(s, t)], [target(s, t)], [1]), A[symbol(s, t)])
 end
-function pradius(s::ConstrainedDiscreteSwitchedSystem, p, lift::Function; pnorm=Inf, ɛ=1e-2, forceub=false)
-    Alifted = (A -> lift(A, p)).(s.A)
-    ρpmpp = ρ(sum(kozyakinlift(Alifted[s.σ[edge]], edge) for edge in edges(s.G)))
+function pradius(s::ConstrainedDiscreteSwitchedLinearSystem, p, lift::Function; pnorm=Inf, ɛ=1e-2, forceub=false)
+    Alifted = (A -> lift(A, p)).(s.resetmaps)
+    ρpmpp = ρ(sum(kozyakinlift(s, t, Alifted) for t in transitions(s)))
     if forceub
         ρpmpp^(1/p)
     else
@@ -42,25 +42,26 @@ function pradius(s::AbstractDiscreteSwitchedSystem, p, algo::Type{Val{:Kronecker
     pradius(s, p, kroneckerlift, pnorm=pnorm, ɛ=ɛ, forceub=forceub)
 end
 
-function pradius(s::DiscreteSwitchedSystem, p, algo::Type{Val{:BruteForce}}; pnorm=Inf, ɛ=1e-2, forceub=false)
-    As = s.A
+function pradius(s::DiscreteSwitchedLinearSystem, p, algo::Type{Val{:BruteForce}}; pnorm=Inf, ɛ=1e-2, forceub=false)
+    As = map(rm -> rm.A, s.resetmaps)
+    Ascur = As
     ρp = Float64[]
+    m = ntransitions(s)
     k = 0
     while k < 2 || !isapprox(ρp[end-1], ρp[end], rtol=ɛ)
         k += 1
-        m = length(s.A)
-        l = length(As)
-        Asnew = similar(As, l * m)
-        for (i,A) in enumerate(s.A)
-            for (j,B) in enumerate(As)
+        l = length(Ascur)
+        Asnew = similar(Ascur, l * m)
+        for (i,A) in enumerate(As)
+            for (j,B) in enumerate(Ascur)
                 Asnew[(i-1)*l+j] = A*B
             end
         end
-        As = Asnew
-        push!(ρp, pradiusk(As, p, k, pnorm))
+        Ascur = Asnew
+        push!(ρp, pradiusk(Ascur, p, k, pnorm))
     end
     if forceub
-        ρp[end] * length(s.A)^(1/p)
+        ρp[end] * length(As)^(1/p)
     else
         ρp[end]
     end
@@ -71,7 +72,7 @@ function pradius(s::AbstractDiscreteSwitchedSystem, p, algo::Symbol=:VeroneseLif
     pradius(s, p, Val{algo}, pnorm=pnorm, ɛ=ɛ, forceub=forceub)
 end
 
-function pradiusb(s::DiscreteSwitchedSystem, p, algo::Symbol=:VeroneseLift)
+function pradiusb(s::DiscreteSwitchedLinearSystem, p, algo::Symbol=:VeroneseLift)
     @assert algo in [:VeroneseLift, :KroneckerLift] "p-radius algo needs to be exact to compute bounds on JSR"
     ρpmp = pradius(s, p, algo, forceub=true)
     ρp = ρpmp / ρA(s)^(1/p)

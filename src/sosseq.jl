@@ -1,9 +1,9 @@
 function candidates(s::AbstractDiscreteSwitchedSystem, l, curstate)
     switchings(s, l, curstate, false)
 end
-function candidates(s::AbstractContinuousSwitchedSystem, l, curstate)
-    modes(s, curstate, false)
-end
+#function candidates(s::AbstractContinuousSwitchedSystem, l, curstate)
+#    modes(s, curstate, false)
+#end
 
 function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, curstate)
     best = -Inf
@@ -38,36 +38,36 @@ function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, seq, μs, p_k, l, 
     iter+l, curstate, soslyapforward(s, p_k, best_dyn)
 end
 
-function sosbuilditeration(s::AbstractContinuousSwitchedSystem, seq, μs, p_prev, l, Δt, curstate, iter)
-    dyn = best_dynamic(s, μs, p_prev, l, curstate)
-    ub = Δt
-    x = variables(p_prev)
-    p_cur = p_prev(integratorfor(s, (dyn, ub)) * x, x)
-    best_dyn = best_dynamic(s, μs, p_cur, l, curstate)
-    if best_dyn != dyn
-        lb = 0
-        while ub-lb > 1e-5
-            mid = (lb+ub)/2
-            p_cur = p_prev(integratorfor(s, (dyn, mid)) * x, x)
-            best_dyn = best_dynamic(s, μs, p_cur, l, curstate)
-            if best_dyn == dyn
-                lb = mid
-            else
-                ub = mid
-            end
-        end
-    end
-
-    p_cur = p_prev(integratorfor(s, (dyn, ub)) * x, x)
-    if iter > 1 && dyn == seq.seq[iter-1][1] && duration(@view seq.seq[1:(iter-1)]) < 1000# && ub < 1e-3
-        seq.seq[iter-1] = (dyn, seq.seq[iter-1][2]+ub)
-    else
-        push!(seq, (dyn, ub))
-        curstate = state(s, dyn, false)
-        iter += 1
-    end
-    iter, curstate, p_cur
-end
+#function sosbuilditeration(s::AbstractContinuousSwitchedSystem, seq, μs, p_prev, l, Δt, curstate, iter)
+#    dyn = best_dynamic(s, μs, p_prev, l, curstate)
+#    ub = Δt
+#    x = variables(p_prev)
+#    p_cur = p_prev(integratorfor(s, (dyn, ub)) * x, x)
+#    best_dyn = best_dynamic(s, μs, p_cur, l, curstate)
+#    if best_dyn != dyn
+#        lb = 0
+#        while ub-lb > 1e-5
+#            mid = (lb+ub)/2
+#            p_cur = p_prev(integratorfor(s, (dyn, mid)) * x, x)
+#            best_dyn = best_dynamic(s, μs, p_cur, l, curstate)
+#            if best_dyn == dyn
+#                lb = mid
+#            else
+#                ub = mid
+#            end
+#        end
+#    end
+#
+#    p_cur = p_prev(integratorfor(s, (dyn, ub)) * x, x)
+#    if iter > 1 && dyn == seq.seq[iter-1][1] && duration(@view seq.seq[1:(iter-1)]) < 1000# && ub < 1e-3
+#        seq.seq[iter-1] = (dyn, seq.seq[iter-1][2]+ub)
+#    else
+#        push!(seq, (dyn, ub))
+#        curstate = state(s, dyn, false)
+#        iter += 1
+#    end
+#    iter, curstate, p_cur
+#end
 
 # Extracting trajectory from Lyapunov
 function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), v_0=:Random, p_0=:Random, l::Integer=1, Δt::Float64=1., niter::Integer=42, tol=1e-5)
@@ -91,7 +91,7 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
     p_0 = polynomial(p_0)
 
     p_k = p_0
-    seq = SwitchingSequence(s, niter, curstate)
+    seq = switchingsequence(s, niter, curstate)
 
     iter = 1
     while iter <= niter

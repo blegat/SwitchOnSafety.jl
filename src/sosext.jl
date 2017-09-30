@@ -26,12 +26,10 @@ function pushapprox!(a, x, id, tol)
     end
 end
 
-σfor(s, edge::Int) = edge
-σfor(s, edge::Edge) = s.σ[edge]
 
-function extractstates(s::AbstractDiscreteSwitchedSystem, d, edge, dual, ranktol)
-    σ = σfor(s, edge)
-    μ = measurefor(dual, s, edge)
+function extractstates(s::AbstractDiscreteSwitchedSystem, d, t, dual, ranktol)
+    σ = symbol(s, t)
+    μ = measurefor(dual, s, t)
     X = monomials(variables(μ), d)
     ν = matmeasure(μ, X)
     atoms = extractatoms(ν, ranktol)
@@ -44,16 +42,16 @@ end
 
 function startstates(s::AbstractDiscreteSwitchedSystem, edgestates, G, B, disttol)
     a = Tuple{Vector{Float64}, Int}[]
-    for (edge, states) in edgestates
+    for (t, states) in edgestates
         for x in states
             x /= norm(x)
             i = pushapprox!(a, x, length(G)+1, disttol)
-            σ = σfor(s, edge)
+            σ = symbol(s, t)
             if i == length(G)+1
-                push!(G, [(σ, edge)])
+                push!(G, [(σ, t)])
                 push!(B, x)
             else
-                push!(G[i], (σ, edge))
+                push!(G[i], (σ, t))
             end
         end
     end
@@ -66,10 +64,10 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
     for ranktol in ranktols
         # This part is the more costly since it does atom extraction
         # It is run only once for each disttols which is nice
-        edgestates = map(u -> map(edge -> (edge, extractstates(s, d, edge, dual, ranktol)), modes(s, u)), states(s))
+        edgestates = map(u -> map(t -> (t, extractstates(s, d, t, dual, ranktol)), out_transitions(s, u)), states(s))
 
         for disttol in disttols
-            G = Vector{Tuple{Int, edgetype(s)}}[] # G[u] = list of edges (σ, v) going out of u
+            G = Vector{Tuple{Int, transitiontype(s)}}[] # G[u] = list of edges (σ, v) going out of u
             B = Vector{Float64}[] # B[u] = values of the state at node u
             GB = map(u -> startstates(s, edgestates[u], G, B, disttol), states(s))
 
@@ -77,20 +75,20 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
 
             g = DiGraph(length(G))
             w = fill(Inf, nv(g), nv(g))
-            ij2edge = Dict{NTuple{2, Int}, edgetype(s)}()
+            ij2t = Dict{NTuple{2, Int}, transitiontype(s)}()
             for u in eachindex(G)
                 x = B[u]
-                for (σ, edge) in G[u]
-                    y = s.A[σ] * x
+                for (σ, t) in G[u]
+                    y = dynamicforσ(s, σ) * x
                     λ = norm(y)
                     y /= λ
-                    j = findapprox(GB[target(edge)], y, disttol)
+                    j = findapprox(GB[target(s, t)], y, disttol)
                     if !iszero(j)
-                        v = GB[target(edge)][j][2]
+                        v = GB[target(s, t)][j][2]
                         add_edge!(g, u, v)
                         # we use a minimum cycle arithmetic mean algo but we need the maximum cycle geometric mean
                         w[u, v] = -log(λ)
-                        ij2edge[(u, v)] = edge
+                        ij2t[(u, v)] = t
                     end
                 end
             end
@@ -98,7 +96,7 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
             c, λmin = karp_minimum_cycle_mean(g, w)
 
             if !isempty(c)
-                period = map(i -> ij2edge[(c[i], c[(i % length(c)) + 1])], eachindex(c))
+                period = map(i -> ij2t[(c[i], c[(i % length(c)) + 1])], eachindex(c))
 
                 newsmp = periodicswitching(s, period)
                 if isnull(smp) || isbetter(newsmp, get(smp))

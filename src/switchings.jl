@@ -3,14 +3,10 @@ import Base.start, Base.done, Base.next, Base.append!, Base.push!
 abstract type AbstractSwitchingSequence end
 abstract type AbstractDiscreteSwitchingSequence <: AbstractSwitchingSequence end
 
-# Vector{Int} for unconstrained, Vector{Edge} for constrained
-duration(seq::AbstractVector) = length(seq)
-duration(seq::AbstractVector{Tuple{Int, Float64}}) = sum(map(p->p[2], seq))
-
-mutable struct DiscreteSwitchingSequence <: AbstractDiscreteSwitchingSequence
-    s::DiscreteSwitchedSystem
-    A::AbstractMatrix # /!\ could be dynamic or integrator
-    seq::Vector{Int}
+mutable struct DiscreteSwitchingSequence{S <: AbstractDiscreteSwitchedSystem, MT <: AbstractMatrix, TT} <: AbstractDiscreteSwitchingSequence
+    s::S
+    A::MT # /!\ could be dynamic or integrator
+    seq::Vector{TT}
     len::Int
 end
 
@@ -19,25 +15,18 @@ function Base.show(io::IO, s::DiscreteSwitchingSequence)
     println(io, s.seq)
 end
 
-mutable struct ConstrainedDiscreteSwitchingSequence <: AbstractDiscreteSwitchingSequence
-    s::ConstrainedDiscreteSwitchedSystem
-    A::AbstractMatrix # /!\ could be dynamic or integrator
-    seq::Vector{Edge}
-    len::Int
-end
+HybridSystems.source(s::HybridSystem, seq::DiscreteSwitchingSequence) = source(s, seq.seq[1])
+HybridSystems.target(s::HybridSystem, seq::DiscreteSwitchingSequence) = target(s, seq.seq[end])
+# Short circuit for unconstrained system
+HybridSystems.source(s::HybridSystem{OneStateAutomaton}, ::DiscreteSwitchingSequence) = 1
+HybridSystems.target(s::HybridSystem{OneStateAutomaton}, ::DiscreteSwitchingSequence) = 1
 
-source(::DiscreteSwitchingSequence) = 1
-target(::DiscreteSwitchingSequence) = 1
-
-source(seq::ConstrainedDiscreteSwitchingSequence) = source(seq.seq[1])
-target(seq::ConstrainedDiscreteSwitchingSequence) = target(seq.seq[end])
-
-mutable struct ContinuousSwitchingSequence <: AbstractSwitchingSequence
-    s::ContinuousSwitchedSystem
-    A::AbstractMatrix # /!\ could be dynamic or integrator
-    seq::Vector{Tuple{Int, Float64}}
-    len::Int
-end
+#mutable struct ContinuousSwitchingSequence <: AbstractSwitchingSequence
+#    s::ContinuousSwitchedSystem
+#    A::AbstractMatrix # /!\ could be dynamic or integrator
+#    seq::Vector{Tuple{Int, Float64}}
+#    len::Int
+#end
 
 function push!(s::AbstractSwitchingSequence, el)
     if s.len < length(s.seq)
@@ -48,26 +37,21 @@ function push!(s::AbstractSwitchingSequence, el)
     s.len += 1
 end
 
-function DiscreteSwitchingSequence(s::DiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector{Int})
+function DiscreteSwitchingSequence(s::AbstractDiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector)
     DiscreteSwitchingSequence(s, A, seq, length(seq))
 end
-SwitchingSequence(s::DiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector{Int}) = DiscreteSwitchingSequence(s, A, seq)
-function ConstrainedDiscreteSwitchingSequence(s::ConstrainedDiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector{Edge})
-    ConstrainedDiscreteSwitchingSequence(s, A, seq, length(seq))
+switchingsequence(s::AbstractDiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector) = DiscreteSwitchingSequence(s, A, seq)
+function switchingsequence(s::AbstractDiscreteSwitchedSystem, len::Int=0, v::Int=1)
+    DiscreteSwitchingSequence(s, speye(statedim(s, v)), Vector{transitiontype(s)}(len), 0)
 end
-SwitchingSequence(s::ConstrainedDiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector{Edge}) = ConstrainedDiscreteSwitchingSequence(s, A, seq)
-function SwitchingSequence(s::DiscreteSwitchedSystem, len::Int=0, v::Int=1)
-    DiscreteSwitchingSequence(s, speye(statedim(s, v)), Vector{Int}(len), 0)
-end
-function SwitchingSequence(s::ConstrainedDiscreteSwitchedSystem, len::Int=0, v::Int=1)
-    ConstrainedDiscreteSwitchingSequence(s, speye(statedim(s, v)), Vector{Edge}(len), 0)
-end
-function ConstrainedDiscreteSwitchingSequence(s::ConstrainedDiscreteSwitchedSystem, u::Int, len=0)
-    ConstrainedDiscreteSwitchingSequence(s, speye(statedim(s, u)), Vector{Edge}(len), 0)
-end
-function SwitchingSequence(s::ContinuousSwitchedSystem, len=0, v=1)
-    ContinuousSwitchingSequence(s, speye(statedim(s, v)), Vector{Tuple{Int,Float64}}(len), 0)
-end
+
+#function ConstrainedDiscreteSwitchingSequence(s::ConstrainedDiscreteSwitchedSystem, u::Int, len=0) # TODO delete this
+#    ConstrainedDiscreteSwitchingSequence(s, speye(statedim(s, u)), Vector{Edge}(len), 0)
+#end
+
+#function SwitchingSequence(s::ContinuousSwitchedSystem, len=0, v=1)
+#    ContinuousSwitchingSequence(s, speye(statedim(s, v)), Vector{Tuple{Int,Float64}}(len), 0)
+#end
 
 function prepend!(s::AbstractSwitchingSequence, other::AbstractSwitchingSequence)
     s.A = s.A * other.A
@@ -112,17 +96,14 @@ end
 function measurefor(μ, s::DiscreteSwitchingSequence)
     measurefor(μ, s.s, first(s.seq))
 end
-function measurefor(μ, s::ConstrainedDiscreteSwitchingSequence)
-    measurefor(μ, s.s, first(s.seq))
-end
 
 # Only makes sense for discrete
-function dynamicfor(s::AbstractDiscreteSwitchedSystem, sw::AbstractDiscreteSwitchingSequence)
+function dynamicfort(s::AbstractDiscreteSwitchedSystem, sw::AbstractDiscreteSwitchingSequence)
     sw.A
 end
 
-struct SwitchingIterator
-    s::AbstractDiscreteSwitchedSystem
+struct SwitchingIterator{S<:AbstractDiscreteSwitchedSystem}
+    s::S
     k::Int
     v0::Int
     forward::Bool
@@ -139,30 +120,32 @@ end
 # doneoutnode(s, v, u) = u >= length(s.A)
 
 # TODO use inference instead
-edgetype(::DiscreteSwitchedSystem) = Int
-edgetype(::ConstrainedDiscreteSwitchedSystem) = Edge
+transitiontype(::DiscreteSwitchedLinearSystem) = Int
+transitiontype(::ConstrainedDiscreteSwitchedLinearSystem) = Edge
 
 function _next!(it, seq, modeit, modest, As, i, A)
     seq[i], modest[i] = next(modeit[i], modest[i])
-    B = dynamicfor(it.s, seq[i])
+    B = dynamicfort(it.s, seq[i])
     As[i] = it.forward ? B * A : A * B
     As[i], state(it.s, seq[i], it.forward)
 end
 
+io_transitions(s, st, forward::Bool) = forward ? out_transitions(s, st) : in_transitions(s, st)
+
 function start(it::SwitchingIterator)
     k = it.k
-    ET = edgetype(it.s)
+    ET = transitiontype(it.s)
     seq = Vector{ET}(k)
     I = it.forward ? (1:k) : (k:-1:1)
     v = it.v0
     A = speye(statedim(it.s, v))
-    As = Vector{eltype(it.s.A)}(k)
+    As = Vector{typeof(dynamicfort(it.s, first(transitions(it.s))))}(k)
     # modeit[i] is a list of all the possible ith mode for the (i-1)th state
     modeit = Vector{Vector{ET}}(k)
     # modest[i] is the ith state of iterator modeit[i]
     modest = Vector{Int}(k)
     for i in I
-        modeit[i] = v == -1 ? ET[] : modes(it.s, v, it.forward)
+        modeit[i] = v == -1 ? ET[] : io_transitions(it.s, v, it.forward)
         modest[i] = start(modeit[i])
         if done(modeit[i], modest[i])
             v = -1
@@ -204,5 +187,5 @@ function next(it::SwitchingIterator, st)
             modest[i] = start(modeit[i])
         end
     end
-    (SwitchingSequence(it.s, A, copy(seq)), (modeit, modest, As, seq))
+    (switchingsequence(it.s, A, copy(seq)), (modeit, modest, As, seq))
 end

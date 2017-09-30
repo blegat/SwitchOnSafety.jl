@@ -1,5 +1,9 @@
-export findsmp
+export periodicswitching, findsmp
 abstract type AbstractPeriodicSwitching end
+
+# Vector{Int} for unconstrained, Vector{Edge} for constrained
+duration(seq::AbstractVector) = length(seq)
+duration(seq::AbstractVector{Tuple{Int, Float64}}) = sum(map(p->p[2], seq))
 
 adaptgrowthrate(g, len::Int) = g^(1/len)
 adaptgrowthrate(g, Δt::Float64) = log(g)/Δt
@@ -7,15 +11,42 @@ adaptgrowthrate(g, Δt::Float64) = log(g)/Δt
 adaptgrowthrate(g, period::AbstractVector) = adaptgrowthrate(g, duration(period))
 adaptgrowthrate(g, period::AbstractVector{Tuple{Int,Float64}}) = adaptgrowthrate(g, duration(period))
 
-function (::Type{T})(s::AbstractSwitchedSystem, period::Vector) where T<:AbstractPeriodicSwitching
-    A = speye(statedim(s, state(s, first(period), false)))
-    for edge in period
-        A = integratorfor(s, edge) * A
+struct DiscretePeriodicSwitching{S<:AbstractHybridSystem, TT} <: AbstractPeriodicSwitching
+    s::S
+    period::Vector{TT}
+    growthrate::Float64
+end
+
+#struct ContinuousPeriodicSwitching <: AbstractPeriodicSwitching
+#    s::AbstractContinuousSwitchedSystem
+#    period::Vector{Tuple{Int, Float64}}
+#    growthrate::Float64
+#end
+
+function Base.show(io::IO, s::AbstractPeriodicSwitching)
+    println(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(s.period).")
+end
+
+function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, growthrate, args...)
+    DiscretePeriodicSwitching(s, period, growthrate)
+end
+
+function periodicswitching(s::AbstractSwitchedSystem, period::Vector)
+    A = speye(statedim(s, source(s, first(period))))
+    for t in period
+        A = integratorfor(s, t) * A
     end
     lambda = ρ(A)
     growthrate = adaptgrowthrate(abs(lambda), period)
-    T(s, period, growthrate)
+    periodicswitching(s, period, growthrate)
 end
+
+#function periodicswitching(s::AbstractContinuousSwitchedSystem, seq, growthrate, dt)
+#    # seq is a copy since it has been obtained with seq.seq[i:j]
+#    mode, Δt = seq[end]
+#    seq[end] = mode, dt
+#    ContinuousPeriodicSwitching(s, seq, growthrate)
+#end
 
 function (==)(s1::AbstractPeriodicSwitching, s2::AbstractPeriodicSwitching)
     if !(s1.s === s2.s)
@@ -58,20 +89,23 @@ function isbetter(s1::AbstractPeriodicSwitching, s2::AbstractPeriodicSwitching)
     isbetter(g1, k1, s2)
 end
 
-function updatesmp!(s::AbstractSwitchedSystem, smp::AbstractPeriodicSwitching)
-    updatelb!(s, smp.growthrate)
-    if isnull(s.smp) || isbetter(smp, get(s.smp))
-        s.smp = smp
-    end
-    smp
+periodicswitchingtype(s::AbstractDiscreteSwitchedSystem) = DiscretePeriodicSwitching{typeof(s)}
+#periodicswitchingtype(s::AbstractContinuousSwitchedSystem) = ContinuousPeriodicSwitching
+
+function bestperiod(s::AbstractDiscreteSwitchedSystem, seq::Vector, I, ::AbstractMatrix, Q::AbstractMatrix)
+    adaptgrowthrate(abs(ρ(Q)), @view seq[I]), 1
 end
 
-function getsmp(s::AbstractSwitchedSystem)
-    if isnull(s.smp)
-        error("No smp found")
-    end
-    get(s.smp)
-end
+#using Optim
+#function bestperiod(s::AbstractContinuousSwitchedSystem, seq::Vector{Tuple{Int,Float64}}, I, P::AbstractMatrix, ::AbstractMatrix)
+#    mode, Δt = seq[last(I)]
+#    T = duration(@view seq[I]) - Δt
+#    function f(dt)
+#        -adaptgrowthrate(abs(ρ(integratorfor(s, (mode,dt)) * P)), T+dt)
+#    end
+#    res = optimize(f, min(1e-5, Δt/2), Δt, iterations = 10)
+#    -Optim.minimum(res), Optim.minimizer(res)
+#end
 
 function findsmp(seq)
     s = seq.s

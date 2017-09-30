@@ -7,15 +7,15 @@
 @testset "[JCG14] Example 6.3" begin
     expected_lb = [1.1441, 1.3606]
     expected_ub = [1.6181, 1.6181]
-    s = DiscreteSwitchedSystem([[ 0  1  1;
+    s = discreteswitchedsystem([[ 0  1  1;
                                   1  0  0;
                                   0 -1  0],
                                 [ 0  1  0;
                                  -1  0  1;
                                  -1  0  0]])
-    smp = DiscretePeriodicSwitching(s, [1, 2])
+    smp = periodicswitching(s, [1, 2])
     for solver in sdp_solvers
-        s.lb = 0
+        sosdata(s).lb = 0
         println("  > With solver $(typeof(solver))")
         tol = 1e-4
         for d in 1:2

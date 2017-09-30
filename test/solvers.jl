@@ -10,8 +10,8 @@ function try_import(name::Symbol)
 end
 
 mos = try_import(:Mosek)
-csd = false # try_import(:CSDP)
-scs = false # try_import(:SCS) # It does not work
+csd = try_import(:CSDP)
+scs = false && try_import(:SCS) # It does not work
 
 # Semidefinite solvers
 sdp_solvers = Any[]

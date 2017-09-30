@@ -19,10 +19,10 @@
            0  5  1 -4;
            0 -1  4  6;
           -1  5  0  1]
-    s = DiscreteSwitchedSystem([A1, A2, A3])
-    smp = DiscretePeriodicSwitching(s, [1, 3])
+    s = discreteswitchedsystem([A1, A2, A3])
+    smp = periodicswitching(s, [1, 3])
     for solver in sdp_solvers
-        s.lb = 0
+        sosdata(s).lb = 0
         iscsdp(solver) && continue
         println("  > With solver $(typeof(solver))")
         for d in 1:3

@@ -4,12 +4,11 @@ using DynamicPolynomials
 using MultivariatePolynomials
 using MultivariateMoments
 
-using LightGraphs
+using HybridSystems
 
 import Base.==
 
-export AbstractSwitchedSystem
-export statedim, ρ, quicklb, quickub, quickb
+export ρ, quicklb, quickub, quickb
 
 # eigvals is not defined for SparseMatrixCSC
 ρ(A::AbstractSparseMatrix) = ρ(full(A))
@@ -17,7 +16,7 @@ function ρ(A::AbstractMatrix)
     maximum(abs.(eigvals(A)))
 end
 
-abstract type AbstractSwitchedSystem end
+#abstract type AbstractSwitchedSystem end
 
 mutable struct Lyapunov
     d::Int
@@ -27,43 +26,40 @@ mutable struct Lyapunov
     primal::Vector # TODO polynomial type
 end
 
-states(s::AbstractSwitchedSystem) = 1:1
-nstates(s::AbstractSwitchedSystem) = 1
-statedim(s::AbstractSwitchedSystem, i::Int) = s.n[i]
-MultivariatePolynomials.variables(s::AbstractSwitchedSystem, i::Int) = s.x
+const AbstractDiscreteSwitchedSystem = Union{DiscreteSwitchedLinearSystem, ConstrainedDiscreteSwitchedLinearSystem}
+const AbstractSwitchedSystem = AbstractDiscreteSwitchedSystem
+integratorfor(s::AbstractDiscreteSwitchedSystem, t) = dynamicfort(s, t)
+#integratorfor(s::AbstractContinuousSwitchedSystem, mode::Tuple{Int,Float64}) = expm(dynamicfor(s, mode[1]) * mode[2])
 
-source(i::Int) = 1
-target(i::Int) = 1
-state(s::AbstractSwitchedSystem, edge::Int, forward=true) = 1
+ρA(s::ConstrainedDiscreteSwitchedLinearSystem) = ρ(adjacency_matrix(s.automaton.G))
 
-nlabels(s::AbstractSwitchedSystem, edge) = 1
+state(s::AbstractSwitchedSystem, t, forward=true) = forward ? target(s, t) : source(s, t)
 
-modes(s::AbstractSwitchedSystem, v::Int, forward=true) = 1:length(s.A)
+nlabels(s::AbstractSwitchedSystem, t) = 1
 
-dynamicfor(s::AbstractSwitchedSystem, mode::Int) = s.A[mode]
+#modes(s::AbstractSwitchedSystem, v::Int, forward=true) = 1:length(s.A)
 
-
-function updatelb!(s::AbstractSwitchedSystem, lb, smp=nothing)
-    s.lb = max(s.lb, lb)
-    lb
-end
-
-function updateub!(s::AbstractSwitchedSystem, ub)
-    s.ub = min(s.ub, ub)
-    ub
-end
-
-function updateb!(s::AbstractSwitchedSystem, lb, ub)
-    updatelb!(s, lb), updateub!(s, ub)
-end
+dynamicforσ(s::AbstractDiscreteSwitchedSystem, σ) = s.resetmaps[σ].A
+dynamicfort(s::AbstractDiscreteSwitchedSystem, t) = dynamicforσ(s, symbol(s, t))
 
 function quickb(s::AbstractSwitchedSystem)
     (quicklb(s), quickub(s))
 end
 
+ρA(s::DiscreteSwitchedLinearSystem) = ntransitions(s)
+
+function quicklb(s::DiscreteSwitchedLinearSystem)
+    qlb = maximum(ρ.(dynamicfort.(s, transitions(s))))
+    updatelb!(s, qlb)
+end
+
+function quickub(s::AbstractDiscreteSwitchedSystem)
+    qub = minimum(map(p -> maximum(norm.(dynamicfort.(s, transitions(s)), p)), [1, 2, Inf]))
+    updateub!(s, qub)
+end
+
 include("periodic.jl")
-include("discrete.jl")
-include("continuous.jl")
+include("sosdata.jl")
 include("switchings.jl")
 include("veronese.jl")
 include("kronecker.jl")
@@ -71,5 +67,8 @@ include("pradius.jl")
 include("sos.jl")
 include("sosseq.jl")
 include("sosext.jl")
+
+#include("discrete.jl")
+#include("continuous.jl")
 
 end # module

@@ -5,7 +5,7 @@
 # The JSR is 3.917384715148
 
 @testset "[AJPR14] Example 5.4" begin
-    s = DiscreteSwitchedSystem([[-1 -1; -4 0],[3 3; -2 1]])
+    s = discreteswitchedsystem([[-1 -1; -4 0],[3 3; -2 1]])
     qub = 4.31959610746
     @test quicklb(s) ≈ 3
     @test quickub(s) ≈ qub
@@ -31,9 +31,9 @@
         end
     end
 
-    smp = DiscretePeriodicSwitching(s, [1, 2])
+    smp = periodicswitching(s, [1, 2])
     for solver in sdp_solvers
-        s.lb = 0
+        sosdata(s).lb = 0
         tol = ismosek(solver) ? 1e-5 : 5e-4
         println("  > With solver $(typeof(solver))")
         lb, ub = soslyapb(s, 1, solver=solver, tol=tol)
@@ -52,10 +52,10 @@
         @test get(psw) == smp
     end
     if isempty(sdp_solvers)
-        @test s.ub ≈ 4.0760789246858735
+        @test getub(s) ≈ 4.0760789246858735
     else
-        @test log(s.ub) ≈ log(3.924086919) rtol=5e-4
+        @test log(getub(s)) ≈ log(3.924086919) rtol=5e-4
         @test getsmp(s) == smp
-        @test s.lb ≈ 3.917384715148 rtol=1e-12
+        @test getlb(s) ≈ 3.917384715148 rtol=1e-12
     end
 end

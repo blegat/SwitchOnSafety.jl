@@ -1,23 +1,5 @@
 export DiscreteSwitchedSystem, DiscretePeriodicSwitching, getsmp
 
-abstract type AbstractDiscreteSwitchedSystem <: AbstractSwitchedSystem end
-
-struct DiscretePeriodicSwitching <: AbstractPeriodicSwitching
-    s::AbstractDiscreteSwitchedSystem # Cannot say DiscreteSwitchedSystem as it would be a circular type declaration https://github.com/JuliaLang/julia/issues/269
-    period::Vector{Int}
-    growthrate::Float64
-end
-
-function Base.show(io::IO, s::AbstractPeriodicSwitching)
-    println(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(s.period).")
-end
-
-integratorfor(s::AbstractDiscreteSwitchedSystem, edge) = dynamicfor(s, edge)
-
-function bestperiod(s::AbstractDiscreteSwitchedSystem, seq::Vector, I, ::AbstractMatrix, Q::AbstractMatrix)
-    adaptgrowthrate(abs(ρ(Q)), @view seq[I]), 1
-end
-
 mutable struct DiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
     A::Vector
     n::Int
@@ -44,18 +26,7 @@ mutable struct DiscreteSwitchedSystem <: AbstractDiscreteSwitchedSystem
         new(A, n, x, 0, Inf, Nullable{Lyapunov}[], nothing)
     end
 end
-
-ρA(s::DiscreteSwitchedSystem) = length(s.A)
-
-function quicklb(s::DiscreteSwitchedSystem)
-    qlb = maximum(map(ρ, s.A))
-    updatelb!(s, qlb)
-end
-
-function quickub(s::AbstractDiscreteSwitchedSystem)
-    qub = minimum(map(p -> maximum(map(A->norm(A, p), s.A)), [1, 2, Inf]))
-    updateub!(s, qub)
-end
+discreteswitchedsystem(A) = DiscreteSwitchedSystem(A)
 
 periodicswitchingtype(s::DiscreteSwitchedSystem) = DiscretePeriodicSwitching
 

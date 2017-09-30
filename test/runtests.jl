@@ -1,5 +1,5 @@
+using HybridSystems
 using SwitchOnSafety
-using LightGraphs
 using Base.Test
 
 include("veronese.jl")

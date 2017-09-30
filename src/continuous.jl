@@ -1,32 +1,6 @@
-using Optim
-
 export ContinuousSwitchedSystem, ContinuousPeriodicSwitching, getsmp
 
 abstract type AbstractContinuousSwitchedSystem <: AbstractSwitchedSystem end
-
-struct ContinuousPeriodicSwitching <: AbstractPeriodicSwitching
-    s::AbstractContinuousSwitchedSystem
-    period::Vector{Tuple{Int, Float64}}
-    growthrate::Float64
-end
-integratorfor(s::AbstractContinuousSwitchedSystem, mode::Tuple{Int,Float64}) = expm(dynamicfor(s, mode[1]) * mode[2])
-
-periodicswitchingtype(s::AbstractContinuousSwitchedSystem) = ContinuousPeriodicSwitching
-function periodicswitching(s::AbstractContinuousSwitchedSystem, seq, growthrate, dt)
-    # seq is a copy since it has been obtained with seq.seq[i:j]
-    mode, Δt = seq[end]
-    seq[end] = mode, dt
-    ContinuousPeriodicSwitching(s, seq, growthrate)
-end
-function bestperiod(s::AbstractContinuousSwitchedSystem, seq::Vector{Tuple{Int,Float64}}, I, P::AbstractMatrix, ::AbstractMatrix)
-    mode, Δt = seq[last(I)]
-    T = duration(@view seq[I]) - Δt
-    function f(dt)
-        -adaptgrowthrate(abs(ρ(integratorfor(s, (mode,dt)) * P)), T+dt)
-    end
-    res = optimize(f, min(1e-5, Δt/2), Δt, iterations = 10)
-    -Optim.minimum(res), Optim.minimizer(res)
-end
 
 mutable struct ContinuousSwitchedSystem <: AbstractContinuousSwitchedSystem
     A::Vector

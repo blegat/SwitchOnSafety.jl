@@ -12,7 +12,7 @@
     expected_lb = [1, 1/2^(1/4)]
     expected_ub = [√2, 1]
     for solver in sdp_solvers
-        s = DiscreteSwitchedSystem([[1 0; 1 0], [0 1; 0 -1]])
+        s = discreteswitchedsystem([[1 0; 1 0], [0 1; 0 -1]])
         println("  > With solver $(typeof(solver))")
         tol = ismosek(solver) ? 2e-4 : 1e-3
         for d in 1:2
@@ -21,11 +21,11 @@
             @test abs(log(expected_ub[d]) - log(ub)) <= tol
 
             if d == 1
-                @test isnull(s.smp)
+                @test !hassmp(s)
             else
-                @test s.lb ≈ 1
-                @test !isnull(s.smp)
-                @test get(s.smp).growthrate == 1
+                @test getlb(s) ≈ 1
+                @test hassmp(s)
+                @test getsmp(s).growthrate == 1
             end
         end
 

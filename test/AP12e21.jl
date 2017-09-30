@@ -10,17 +10,17 @@
         tol = 1e-4
         for d in 1:3
             # Get a fresh system to discard lyapunovs, smp and sets lb to 0
-            s = DiscreteSwitchedSystem([[0 1; 0 0], [0 0; 1 0]])
-            smp = DiscretePeriodicSwitching(s, [1, 2])
+            s = discreteswitchedsystem([[0 1; 0 0], [0 0; 1 0]])
+            smp = periodicswitching(s, [1, 2])
             @test smp.growthrate == 1
 
             lb, ub = soslyapb(s, d, solver=solver, tol=tol)
             @test lb ≈ 1 / 2^(1/(2*d)) rtol=tol
             @test ub ≈ 1 rtol=tol
 
-            @test s.lb == 1.
-            @test !isnull(s.smp)
-            @test get(s.smp) == smp
+            @test getlb(s) == 1.
+            @test hassmp(s)
+            @test getsmp(s) == smp
 
             cyc = sosextractcycle(s, d, tol=tol)
             @test !isnull(cyc)
