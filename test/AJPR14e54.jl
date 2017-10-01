@@ -25,7 +25,7 @@
     pρub = [4.574323478862314, 4.0760789246858735, 3.977724083422336]
     for d in 1:3
         for algo in [:VeroneseLift, :KroneckerLift]
-            lb, ub = pradiusb(s, 2*d)
+            lb, ub = pradiusb(s, 2*d, algo)
             @test isapprox(lb, pρlb[d])
             @test isapprox(ub, pρub[d])
         end

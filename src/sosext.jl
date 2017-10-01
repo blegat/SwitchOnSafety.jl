@@ -1,9 +1,9 @@
 using LightGraphs
 export sosextractcycle
 
-function dist(X, Y)
-    maximum(x -> abs(x[1] - x[2]) / max(x[1], x[2]), zip(X, Y))
-end
+#function dist(X, Y)
+#    maximum(x -> abs(x[1] - x[2]) / max(x[1], x[2]), zip(X, Y))
+#end
 
 function findapprox(a, x, tol)
     _a(i) = dot(a[i][1], x)
