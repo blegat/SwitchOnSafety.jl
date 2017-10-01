@@ -16,6 +16,8 @@
         println("  > With solver $(typeof(solver))")
         tol = ismosek(solver) ? 2e-4 : 1e-3
         for d in 1:2
+            # We set lb=0 for d=2, otherwise there might be no infeasibile problem and hence no extraction done
+            sosdata(s).lb = 0
             lb, ub = soslyapb(s, d, solver=solver, tol=tol)
             @test abs(log(expected_lb[d]) - log(lb)) <= tol
             @test abs(log(expected_ub[d]) - log(ub)) <= tol
