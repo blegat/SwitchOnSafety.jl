@@ -13,6 +13,7 @@
             s = discreteswitchedsystem([[0 1; 0 0], [0 0; 1 0]])
             smp = periodicswitching(s, [1, 2])
             @test smp.growthrate == 1
+            @test periodicswitching(s, [1, 1]) != periodicswitching(s, [2, 2])
 
             lb, ub = soslyapb(s, d, solver=solver, tol=tol)
             @test lb ≈ 1 / 2^(1/(2*d)) rtol=tol
