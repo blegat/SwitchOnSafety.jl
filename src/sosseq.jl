@@ -6,25 +6,28 @@ end
 #end
 
 function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, curstate)
-    best = -Inf
-    best_dyn = nothing # FIXME fix type instability here
-    ncandidates = 0
-    for dyn in candidates(s, l, curstate)
-        ncandidates = ncandidates + 1
+    function rating(dyn)
         soslf = soslyapforward(s, p, dyn)
         μ = measurefor(μs, dyn)
-        cur = dot(μ, soslf)
-        if cur > best
-            best = cur
-            best_dyn = dyn
-        end
+        dot(μ, soslf)
     end
-
-    if ncandidates == 0
+    dyns = candidates(s, l, curstate)
+    sdyns = start(dyns)
+    if done(dyns, sdyns)
         error("$curstate does not have any incoming path of length $l.")
+    else
+        best_dyn, sdyns = next(dyns, sdyns)
+        best = rating(best_dyn)
+        while !done(dyns, sdyns)
+            dyn, sdyns = next(dyns, sdyns)
+            cur = rating(dyn)
+            if cur > best
+                best = cur
+                best_dyn = dyn
+            end
+        end
+        best_dyn
     end
-    @assert best_dyn !== nothing
-    best_dyn
 end
 
 function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, seq, μs, p_k, l, Δt, curstate, iter)
