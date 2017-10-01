@@ -6,6 +6,7 @@
 
 @testset "[AJPR14] Example 5.4" begin
     s = discreteswitchedsystem([[-1 -1; -4 0],[3 3; -2 1]])
+    @test sprint(show, s) == "Hybrid System with automaton HybridSystems.OneStateAutomaton(2)"
     qub = 4.31959610746
     @test quicklb(s) ≈ 3
     @test quickub(s) ≈ qub
@@ -31,7 +32,15 @@
         end
     end
 
+    tmp = periodicswitching(s, [1, 2])
+    tmp = periodicswitching(tmp.s, tmp.period, round(tmp.growthrate, 4)) # Avoid difference of floating point rounding
+    @test sprint(show, tmp) == "Periodic switching of growth rate 3.9174 and modes: [1, 2]"
     smp = periodicswitching(s, [1, 2])
+    @test smp != tmp
+    @test smp == periodicswitching(s, [2, 1, 2, 1])
+    @test smp == periodicswitching(s, [1, 2, 1, 2])
+    @test smp != periodicswitching(s, [1, 1])
+    @test smp != periodicswitching(discreteswitchedsystem([[-1 -1; -4 0],[3 3; -2 1]]), [1, 2])
     for solver in sdp_solvers
         sosdata(s).lb = 0
         tol = ismosek(solver) ? 1e-5 : 5e-4
@@ -42,14 +51,15 @@
         lb, ub = soslyapb(s, 2, solver=solver, tol=tol)
         @test log(lb) ≈ log(3.299750624) rtol=tol
         @test log(ub) ≈ log(3.924086919) rtol=tol
-        seq = sosbuildsequence(s, 1, p_0=:Primal)
-        psw = findsmp(seq)
-        @test !isnull(psw)
-        @test get(psw) == smp
-        seq = sosbuildsequence(s, 2, p_0=:Primal)
-        psw = findsmp(seq)
-        @test !isnull(psw)
-        @test get(psw) == smp
+        @test_throws ArgumentError sosbuildsequence(s, 1, v_0 = 2)
+        for d in (1, 2)
+            for p_0 in (:Primal, :Random)
+                seq = sosbuildsequence(s, d, p_0=p_0)
+                psw = findsmp(seq)
+                @test !isnull(psw)
+                @test get(psw) == smp
+            end
+        end
     end
     if isempty(sdp_solvers)
         @test getub(s) ≈ 4.0760789246858735

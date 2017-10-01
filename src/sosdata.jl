@@ -77,8 +77,6 @@ updateub!(s::AbstractSwitchedSystem, ub) = updateub!(sosdata(s), ub)
 function updateb!(s::AbstractSwitchedSystem, lb, ub)
     updatelb!(s, lb), updateub!(s, ub)
 end
-updateb!(s::AbstractSOSData, lb, ub) = updateb!(sosdata(s), lb, ub)
-
 
 function updatesmp!(s::AbstractSOSData, smp::AbstractPeriodicSwitching)
     updatelb!(s, smp.growthrate)

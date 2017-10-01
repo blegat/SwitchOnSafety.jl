@@ -7,7 +7,7 @@ end
 
 function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, curstate)
     best = -Inf
-    best_dyn = nothing
+    best_dyn = nothing # FIXME fix type instability here
     ncandidates = 0
     for dyn in candidates(s, l, curstate)
         ncandidates = ncandidates + 1
@@ -23,9 +23,7 @@ function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, 
     if ncandidates == 0
         error("$curstate does not have any incoming path of length $l.")
     end
-    if best_dyn == nothing
-        error("Oops, this should not happen, please report this bug.")
-    end
+    @assert best_dyn !== nothing
     best_dyn
 end
 

@@ -24,9 +24,11 @@
 
             if d == 1
                 @test !hassmp(s)
+                @test_throws ErrorException getsmp(s)
             else
                 @test getlb(s) ≈ 1
                 @test hassmp(s)
+                @test getsmp(s).growthrate == 1
                 @test getsmp(s).growthrate == 1
             end
         end

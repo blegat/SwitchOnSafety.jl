@@ -3,13 +3,13 @@ abstract type AbstractPeriodicSwitching end
 
 # Vector{Int} for unconstrained, Vector{Edge} for constrained
 duration(seq::AbstractVector) = length(seq)
-duration(seq::AbstractVector{Tuple{Int, Float64}}) = sum(map(p->p[2], seq))
+#duration(seq::AbstractVector{Tuple{Int, Float64}}) = sum(map(p->p[2], seq))
 
 adaptgrowthrate(g, len::Int) = g^(1/len)
-adaptgrowthrate(g, Δt::Float64) = log(g)/Δt
+#adaptgrowthrate(g, Δt::Float64) = log(g)/Δt
 # Vector{Int} for unconstrained, Vector{Edge} for constrained
 adaptgrowthrate(g, period::AbstractVector) = adaptgrowthrate(g, duration(period))
-adaptgrowthrate(g, period::AbstractVector{Tuple{Int,Float64}}) = adaptgrowthrate(g, duration(period))
+#adaptgrowthrate(g, period::AbstractVector{Tuple{Int,Float64}}) = adaptgrowthrate(g, duration(period))
 
 struct DiscretePeriodicSwitching{S<:AbstractHybridSystem, TT} <: AbstractPeriodicSwitching
     s::S
@@ -24,7 +24,7 @@ end
 #end
 
 function Base.show(io::IO, s::AbstractPeriodicSwitching)
-    println(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(s.period).")
+    print(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(s.period)")
 end
 
 function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, growthrate, args...)
