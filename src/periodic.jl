@@ -24,7 +24,7 @@ end
 #end
 
 function Base.show(io::IO, s::AbstractPeriodicSwitching)
-    print(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(s.period)")
+    print(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(symbol.(s.s, s.period)) for the transitions $(s.period)")
 end
 
 function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, growthrate, args...)
@@ -32,10 +32,7 @@ function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, gr
 end
 
 function periodicswitching(s::AbstractSwitchedSystem, period::Vector)
-    A = speye(statedim(s, source(s, first(period))))
-    for t in period
-        A = integratorfor(s, t) * A
-    end
+    A = prod(reverse(integratorfor.(s, period)))
     lambda = ρ(A)
     growthrate = adaptgrowthrate(abs(lambda), period)
     periodicswitching(s, period, growthrate)
@@ -113,7 +110,7 @@ function findsmp(seq)
     smp = Nullable{PS}()
     for i in 1:seq.len
         startNode = state(s, seq.seq[i], false)
-        P = speye(statedim(s, startNode))
+        P = _eyet(s, seq.seq[i])
         k = 0
         for j in i:seq.len
             mode = seq.seq[j]

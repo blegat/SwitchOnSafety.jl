@@ -10,11 +10,15 @@ import Base.==
 
 export ρ, quicklb, quickub, quickb
 
-# eigvals is not defined for SparseMatrixCSC
-ρ(A::AbstractSparseMatrix) = ρ(full(A))
-function ρ(A::AbstractMatrix)
+function ρ(A::Matrix)
     maximum(abs.(eigvals(A)))
 end
+# eigvals is not defined for SparseMatrixCSC
+ρ(A::AbstractSparseMatrix) = ρ(full(A))
+# eigvals is not defined for SMatrix in StaticArrays for non-Hermitian
+# I don't want to add StaticArrays to the REQUIRE file though so I
+# define it for AbstractMatrix.
+ρ(A::AbstractMatrix) = ρ(Matrix(A))
 
 #abstract type AbstractSwitchedSystem end
 
@@ -42,6 +46,16 @@ nlabels(s::AbstractSwitchedSystem, t) = 1
 dynamicforσ(s::AbstractDiscreteSwitchedSystem, σ) = s.resetmaps[σ].A
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t) = dynamicforσ(s, symbol(s, t))
 
+io_transitions(s, st, forward::Bool) = forward ? out_transitions(s, st) : in_transitions(s, st)
+
+function _eyet(s, t)
+    # transpose needed for rectangle system
+    eye(integratorfor(s, t)')
+end
+function _eyes(s, st, forward)
+    _eyet(s, first(io_transitions(s, st, forward)))
+end
+
 function quickb(s::AbstractSwitchedSystem)
     (quicklb(s), quickub(s))
 end
@@ -67,6 +81,8 @@ include("pradius.jl")
 include("sos.jl")
 include("sosseq.jl")
 include("sosext.jl")
+
+include("debruijn.jl")
 
 #include("discrete.jl")
 #include("continuous.jl")
