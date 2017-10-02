@@ -42,7 +42,7 @@ function DiscreteSwitchingSequence(s::AbstractDiscreteSwitchedSystem, A::Abstrac
 end
 switchingsequence(s::AbstractDiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector) = DiscreteSwitchingSequence(s, A, seq)
 function switchingsequence(s::AbstractDiscreteSwitchedSystem, len::Int=0, v::Int=1)
-    DiscreteSwitchingSequence(s, speye(statedim(s, v)), Vector{transitiontype(s)}(len), 0)
+    DiscreteSwitchingSequence(s, _eyes(s, v, true), Vector{transitiontype(s)}(len), 0)
 end
 
 #function ConstrainedDiscreteSwitchingSequence(s::ConstrainedDiscreteSwitchedSystem, u::Int, len=0) # TODO delete this
@@ -130,15 +130,13 @@ function _next!(it, seq, modeit, modest, As, i, A)
     As[i], state(it.s, seq[i], it.forward)
 end
 
-io_transitions(s, st, forward::Bool) = forward ? out_transitions(s, st) : in_transitions(s, st)
-
 function start(it::SwitchingIterator)
     k = it.k
     ET = transitiontype(it.s)
     seq = Vector{ET}(k)
     I = it.forward ? (1:k) : (k:-1:1)
     v = it.v0
-    A = speye(statedim(it.s, v))
+    A = _eyes(it.s, v, it.forward)
     As = Vector{typeof(dynamicfort(it.s, first(transitions(it.s))))}(k)
     # modeit[i] is a list of all the possible ith mode for the (i-1)th state
     modeit = Vector{Vector{ET}}(k)
@@ -178,12 +176,12 @@ function next(it::SwitchingIterator, st)
     @assert i != -1
     inc = it.forward ? 1 : -1
     prev = i - inc
-    A = (prev >= 1 && prev <= it.k) ? As[prev] : speye(statedim(it.s, 1)) # FIXME, fix statedim, we should find the right state, not put 1
+    A = (prev >= 1 && prev <= it.k) ? As[prev] : _eyes(it.s, 1, it.forward) # FIXME, fix we should find the right state, not put 1
     while 1 <= i <= it.k
         A, v = _next!(it, seq, modeit, modest, As, i, A)
         i += inc
         if 1 <= i <= it.k
-            modeit[i] = modes(it.s, v, it.forward)
+            modeit[i] = io_transitions(it.s, v, it.forward)
             modest[i] = start(modeit[i])
         end
     end
