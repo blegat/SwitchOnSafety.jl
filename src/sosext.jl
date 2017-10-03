@@ -99,6 +99,7 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
                 period = map(i -> ij2t[(c[i], c[(i % length(c)) + 1])], eachindex(c))
 
                 newsmp = periodicswitching(s, period)
+                notifyperiodic!(s, newsmp)
                 if isnull(smp) || isbetter(newsmp, get(smp))
                     smp = Nullable{periodicswitchingtype(s)}(newsmp)
                 end
