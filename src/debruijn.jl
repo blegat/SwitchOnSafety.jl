@@ -21,12 +21,14 @@ function mdependentlift(s::AbstractDiscreteSwitchedSystem, n::Integer, forward=t
     m = length(s.resetmaps)
     curstid = 0
     idmap = Dict{Int, Int}()
+    statelabels = String[]
     for st in states(s)
         for sw in switchings(s, n, st, forward)
             id = stateid(s, sw.seq, m, 1:n)
             if !haskey(idmap, id)
                 curstid += 1
                 idmap[id] = curstid
+                push!(statelabels, join(string.(sw.seq)))
             end
         end
     end
@@ -40,7 +42,9 @@ function mdependentlift(s::AbstractDiscreteSwitchedSystem, n::Integer, forward=t
             add_transition!(G, idmap[src], idmap[dst], σ)
         end
     end
-    discreteswitchedsystem(map(rm -> rm.A, s.resetmaps), G)
+    s = discreteswitchedsystem(map(rm -> rm.A, s.resetmaps), G)
+    s.ext[:statelabels] = statelabels
+    s
 end
 
 function stateid(s, seq, m, I)

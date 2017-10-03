@@ -84,6 +84,8 @@ include("sosext.jl")
 
 include("debruijn.jl")
 
+include("plot.jl")
+
 #include("discrete.jl")
 #include("continuous.jl")
 
