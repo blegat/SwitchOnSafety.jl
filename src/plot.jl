@@ -1,3 +1,5 @@
+export aplot
+
 function aplot(s, A::LightAutomaton)
     el = map(t -> symbol(s, t), transitions(A))
     if haskey(s.ext, :statelabels)
