@@ -1,3 +1,4 @@
+using GraphPlot
 export aplot
 
 function aplot(s, A::LightAutomaton)
