@@ -56,22 +56,7 @@ function _eyes(s, st, forward)
     _eyet(s, first(io_transitions(s, st, forward)))
 end
 
-function quickb(s::AbstractSwitchedSystem)
-    (quicklb(s), quickub(s))
-end
-
-ρA(s::DiscreteSwitchedLinearSystem) = ntransitions(s)
-
-function quicklb(s::DiscreteSwitchedLinearSystem)
-    qlb = maximum(ρ.(dynamicfort.(s, transitions(s))))
-    updatelb!(s, qlb)
-end
-
-function quickub(s::AbstractDiscreteSwitchedSystem)
-    qub = minimum(map(p -> maximum(norm.(dynamicfort.(s, transitions(s)), p)), [1, 2, Inf]))
-    updateub!(s, qub)
-end
-
+include("quick.jl")
 include("periodic.jl")
 include("sosdata.jl")
 include("switchings.jl")

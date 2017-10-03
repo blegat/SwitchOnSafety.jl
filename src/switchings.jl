@@ -15,6 +15,11 @@ function Base.show(io::IO, s::DiscreteSwitchingSequence)
     println(io, s.seq)
 end
 
+isperiodic(sw::DiscreteSwitchingSequence) = source(sw.s, sw) == target(sw.s, sw)
+function periodicswitching(s::DiscreteSwitchingSequence)
+    periodicswitching(s.s, s.seq, s.A)
+end
+
 HybridSystems.source(s::HybridSystem, seq::DiscreteSwitchingSequence) = source(s, seq.seq[1])
 HybridSystems.target(s::HybridSystem, seq::DiscreteSwitchingSequence) = target(s, seq.seq[end])
 # Short circuit for unconstrained system

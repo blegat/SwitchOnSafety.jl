@@ -7,12 +7,14 @@ mutable struct SOSData{S} <: AbstractSOSData
     ub::Float64
     # There will typically only be lyapunov for small d so a dictionary would be overkill
     lyaps::Vector{Nullable{Lyapunov}}
+    # Unstable periodic switchings
+    upsw::Vector{DiscretePeriodicSwitching{S}}
     smp::Nullable{DiscretePeriodicSwitching{S}}
 end
 function newsosdata(s::DiscreteSwitchedLinearSystem)
     n = statedim(s, 1)
     @polyvar x[1:n]
-    SOSData{typeof(s)}(x, 0, Inf, Nullable{Lyapunov}[], nothing)
+    SOSData{typeof(s)}(x, 0, Inf, Nullable{Lyapunov}[], DiscretePeriodicSwitching{typeof(s)}[], nothing)
 end
 
 import LightGraphs
@@ -22,6 +24,8 @@ mutable struct ConstrainedSOSData{S} <: AbstractSOSData
     lb::Float64
     ub::Float64
     lyaps::Vector{Nullable{Lyapunov}}
+    # Unstable periodic switchings
+    upsw::Vector{DiscretePeriodicSwitching{S}}
     smp::Nullable{DiscretePeriodicSwitching{S}}
 end
 function newsosdata(s::ConstrainedDiscreteSwitchedLinearSystem)
@@ -36,7 +40,7 @@ function newsosdata(s::ConstrainedDiscreteSwitchedLinearSystem)
         @polyvar x[1:statedim(s, st)]
         y[st] = x
     end
-    ConstrainedSOSData{typeof(s)}(y, eid, 0, Inf, Nullable{Vector{Lyapunov}}[], nothing)
+    ConstrainedSOSData{typeof(s)}(y, eid, 0, Inf, Nullable{Vector{Lyapunov}}[], DiscretePeriodicSwitching{typeof(s)}[], nothing)
 end
 
 const sosdatakey = :SwitchOnSafetyData
@@ -87,12 +91,29 @@ function updatesmp!(s::AbstractSOSData, smp::AbstractPeriodicSwitching)
 end
 updatesmp!(s::AbstractSwitchedSystem, smp::AbstractPeriodicSwitching) = updatesmp!(sosdata(s), smp)
 
+function notifyperiodic!(s::AbstractSOSData, psw::AbstractPeriodicSwitching, tol=sqrt(eps(Float64)))
+    if psw.growthrate+tol >= 1
+        for upsw in unstable_periodic_switchings(s)
+            if upsw == psw
+                return
+            end
+        end
+        push!(s.upsw, psw)
+    end
+end
+
+unstable_periodic_switchings(s::AbstractSOSData) = s.upsw
+
 hassmp(s::AbstractSOSData) = !isnull(s.smp)
-hassmp(s::AbstractSwitchedSystem) = hassmp(sosdata(s))
 function getsmp(s::AbstractSOSData)
     if !hassmp(s)
         error("No smp found")
     end
     get(s.smp)
 end
-getsmp(s::AbstractSwitchedSystem) = getsmp(sosdata(s))
+
+for f in (:getsmp, :hassmp, :unstable_periodic_switchings, :notifyperiodic!)
+    @eval begin
+        $f(s::AbstractSwitchedSystem, args...) = $f(sosdata(s), args...)
+    end
+end

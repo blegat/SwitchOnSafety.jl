@@ -31,11 +31,15 @@ function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, gr
     DiscretePeriodicSwitching(s, period, growthrate)
 end
 
-function periodicswitching(s::AbstractSwitchedSystem, period::Vector)
-    A = prod(reverse(integratorfor.(s, period)))
+function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, A::AbstractMatrix)
     lambda = ρ(A)
     growthrate = adaptgrowthrate(abs(lambda), period)
     periodicswitching(s, period, growthrate)
+end
+
+function periodicswitching(s::AbstractSwitchedSystem, period::Vector)
+    A = prod(reverse(integratorfor.(s, period)))
+    periodicswitching(s, period, A)
 end
 
 #function periodicswitching(s::AbstractContinuousSwitchedSystem, seq, growthrate, dt)
@@ -90,7 +94,7 @@ periodicswitchingtype(s::AbstractDiscreteSwitchedSystem) = DiscretePeriodicSwitc
 #periodicswitchingtype(s::AbstractContinuousSwitchedSystem) = ContinuousPeriodicSwitching
 
 function bestperiod(s::AbstractDiscreteSwitchedSystem, seq::Vector, I, ::AbstractMatrix, Q::AbstractMatrix)
-    adaptgrowthrate(abs(ρ(Q)), @view seq[I]), 1
+    periodicswitching(s, seq[I], Q), 1
 end
 
 #using Optim
@@ -117,9 +121,10 @@ function findsmp(seq)
             k = k + nlabels(s, mode)
             Q = integratorfor(s, mode) * P
             if state(s, mode, true) == startNode
-                growthrate, dt = bestperiod(s, seq.seq, i:j, P, Q)
-                if isnull(smp) || isbetter(growthrate, length(i:j), get(smp))
-                    smp = Nullable{PS}(periodicswitching(s, seq.seq[i:j], growthrate, dt))
+                newsmp, dt = bestperiod(s, seq.seq, i:j, P, Q)
+                notifyperiodic!(s, newsmp)
+                if isnull(smp) || isbetter(newsmp, get(smp))
+                    smp = Nullable{PS}(newsmp)
                 end
             end
             P = Q
