@@ -1,4 +1,4 @@
-export getlb, getub, sosdata, getsmp, hassmp
+export getlb, getub, sosdata, getsmp, hassmp, unstable_periodic_switchings
 
 abstract type AbstractSOSData end
 mutable struct SOSData{S} <: AbstractSOSData

@@ -17,7 +17,12 @@ end
 
 isperiodic(sw::DiscreteSwitchingSequence) = source(sw.s, sw) == target(sw.s, sw)
 function periodicswitching(s::DiscreteSwitchingSequence)
-    periodicswitching(s.s, s.seq, s.A)
+    k = repetition(s.seq)
+    if iszero(k)
+        periodicswitching(s.s, s.seq, s.A)
+    else
+        periodicswitching(s.s, s.seq[1:k])
+    end
 end
 
 HybridSystems.source(s::HybridSystem, seq::DiscreteSwitchingSequence) = source(s, seq.seq[1])
