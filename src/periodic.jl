@@ -1,4 +1,4 @@
-export periodicswitching, findsmp
+export periodicswitching, findsmp, hasrepetition
 abstract type AbstractPeriodicSwitching end
 
 # Vector{Int} for unconstrained, Vector{Edge} for constrained
@@ -11,10 +11,16 @@ adaptgrowthrate(g, len::Int) = g^(1/len)
 adaptgrowthrate(g, period::AbstractVector) = adaptgrowthrate(g, duration(period))
 #adaptgrowthrate(g, period::AbstractVector{Tuple{Int,Float64}}) = adaptgrowthrate(g, duration(period))
 
-struct DiscretePeriodicSwitching{S<:AbstractHybridSystem, TT} <: AbstractPeriodicSwitching
+mutable struct DiscretePeriodicSwitching{S<:AbstractHybridSystem, TT} <: AbstractPeriodicSwitching
     s::S
     period::Vector{TT}
     growthrate::Float64
+    hashcomputed::Bool
+    hash::UInt
+end
+
+function DiscretePeriodicSwitching(s, period, growthrate)
+    DiscretePeriodicSwitching(s, period, growthrate, false, zero(UInt))
 end
 
 #struct ContinuousPeriodicSwitching <: AbstractPeriodicSwitching
@@ -49,34 +55,56 @@ end
 #    ContinuousPeriodicSwitching(s, seq, growthrate)
 #end
 
+#hasrepetition(s::AbstractPeriodicSwitching) == !iszero(repetition(s.period))
+
 function (==)(s1::AbstractPeriodicSwitching, s2::AbstractPeriodicSwitching)
-    if !(s1.s === s2.s)
-        false
-    elseif !isapprox(s1.growthrate, s2.growthrate)
-        false
-    else
-        p1 = s1.period
-        p2 = s2.period
-        k1 = length(p1)
-        k2 = length(p2)
-        if k1 != k2
-            k = lcm(k1, k2)
-            if k != k1
-                p1 = repmat(p1, div(k, k1))
-            end
-            if k != k2
-                p2 = repmat(p2, div(k, k2))
-            end
-        else
-            k = k1
-        end
-        for i in 1:k
-            if p1[1:i] == p2[end-i+1:end] && p1[i+1:end] == p2[1:end-i]
-                return true
-            end
-        end
-        false
+    # Shortcut
+    hash(s1) == hash(s2) # assumes norepetition
+#    if !(s1.s === s2.s)
+#        @assert hash(s1) != hash(s2)
+#        false
+#    elseif !isapprox(s1.growthrate, s2.growthrate)
+#        @assert hash(s1) != hash(s2)
+#        false
+#    else
+#        p1 = s1.period
+#        p2 = s2.period
+#        k1 = length(p1)
+#        k2 = length(p2)
+#        if k1 != k2
+#            k = lcm(k1, k2)
+#            if k != k1
+#                p1 = repmat(p1, div(k, k1))
+#            end
+#            if k != k2
+#                p2 = repmat(p2, div(k, k2))
+#            end
+#        else
+#            k = k1
+#        end
+#        for i in 1:k
+#            if p1[1:i] == p2[end-i+1:end] && p1[i+1:end] == p2[1:end-i]
+#                if hash(s1) != hash(s2)
+#                    @show s1
+#                    @show s2
+#                end
+#                return true
+#            end
+#        end
+#        @assert hash(s1) != hash(s2)
+#        false
+#    end
+end
+
+function Base.hash(sw::DiscretePeriodicSwitching, h::UInt)
+    if !sw.hashcomputed
+        p = sw.period
+        k = length(p)
+        hs = map(i -> hash([p[end-i+1:end]; p[1:end-i]]), 1:k)
+        sw.hash = hash(sort(hs))
+        sw.hashcomputed = true
     end
+    hash(sw.hash, h)
 end
 
 function isbetter(g1, k1, s2::AbstractPeriodicSwitching)

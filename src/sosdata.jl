@@ -8,13 +8,13 @@ mutable struct SOSData{S} <: AbstractSOSData
     # There will typically only be lyapunov for small d so a dictionary would be overkill
     lyaps::Vector{Nullable{Lyapunov}}
     # Unstable periodic switchings
-    upsw::Vector{DiscretePeriodicSwitching{S}}
+    upsw::Set{DiscretePeriodicSwitching{S}}
     smp::Nullable{DiscretePeriodicSwitching{S}}
 end
 function newsosdata(s::DiscreteSwitchedLinearSystem)
     n = statedim(s, 1)
     @polyvar x[1:n]
-    SOSData{typeof(s)}(x, 0, Inf, Nullable{Lyapunov}[], DiscretePeriodicSwitching{typeof(s)}[], nothing)
+    SOSData{typeof(s)}(x, 0, Inf, Nullable{Lyapunov}[], Set{DiscretePeriodicSwitching{typeof(s)}}(), nothing)
 end
 
 import LightGraphs
@@ -25,7 +25,7 @@ mutable struct ConstrainedSOSData{S} <: AbstractSOSData
     ub::Float64
     lyaps::Vector{Nullable{Lyapunov}}
     # Unstable periodic switchings
-    upsw::Vector{DiscretePeriodicSwitching{S}}
+    upsw::Set{DiscretePeriodicSwitching{S}}
     smp::Nullable{DiscretePeriodicSwitching{S}}
 end
 function newsosdata(s::ConstrainedDiscreteSwitchedLinearSystem)
@@ -40,7 +40,7 @@ function newsosdata(s::ConstrainedDiscreteSwitchedLinearSystem)
         @polyvar x[1:statedim(s, st)]
         y[st] = x
     end
-    ConstrainedSOSData{typeof(s)}(y, eid, 0, Inf, Nullable{Vector{Lyapunov}}[], DiscretePeriodicSwitching{typeof(s)}[], nothing)
+    ConstrainedSOSData{typeof(s)}(y, eid, 0, Inf, Nullable{Vector{Lyapunov}}[], Set{DiscretePeriodicSwitching{typeof(s)}}(), nothing)
 end
 
 const sosdatakey = :SwitchOnSafetyData
@@ -87,12 +87,9 @@ end
 
 function notifyperiodic!(s::AbstractSOSData, psw::AbstractPeriodicSwitching, tol=sqrt(eps(Float64)))
     if psw.growthrate+tol >= 1
-        for upsw in unstable_periodic_switchings(s)
-            if upsw == psw
-                return
-            end
+        if !(psw in s.upsw)
+            push!(s.upsw, psw)
         end
-        push!(s.upsw, psw)
     end
 end
 
