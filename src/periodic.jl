@@ -108,6 +108,25 @@ end
 #    -Optim.minimum(res), Optim.minimizer(res)
 #end
 
+function repetition(seq)
+    k = length(seq)
+    for i in 1:(k-1)
+        if (k % i) == 0
+            ok = true
+            for j in 2:div(k, i)
+                if (@view seq[i*(j-2)+(1:i)]) != (@view seq[i*(j-1)+(1:i)])
+                    ok = false
+                    break
+                end
+            end
+            if ok
+                return i
+            end
+        end
+    end
+    return 0
+end
+
 function findsmp(seq)
     s = seq.s
     PS = periodicswitchingtype(s)
@@ -121,10 +140,13 @@ function findsmp(seq)
             k = k + nlabels(s, mode)
             Q = integratorfor(s, mode) * P
             if state(s, mode, true) == startNode
-                newsmp, dt = bestperiod(s, seq.seq, i:j, P, Q)
-                notifyperiodic!(s, newsmp)
-                if isnull(smp) || isbetter(newsmp, get(smp))
-                    smp = Nullable{PS}(newsmp)
+                seqij = seq.seq[i:j]
+                if iszero(repetition(symbol.(s, seqij)))
+                    newsmp, dt = bestperiod(s, seq.seq, i:j, P, Q)
+                    notifyperiodic!(s, newsmp)
+                    if isnull(smp) || isbetter(newsmp, get(smp))
+                        smp = Nullable{PS}(newsmp)
+                    end
                 end
             end
             P = Q

@@ -1,4 +1,4 @@
-export getlb, getub, sosdata, getsmp, hassmp
+export getlb, getub, sosdata, getsmp, hassmp, unstable_periodic_switchings
 
 abstract type AbstractSOSData end
 mutable struct SOSData{S} <: AbstractSOSData
@@ -60,23 +60,18 @@ MultivariatePolynomials.variables(s::ConstrainedSOSData, state::Int) = s.x[state
 MultivariatePolynomials.variables(s::AbstractSwitchedSystem, state::Int) = variables(sosdata(s), state)
 
 getlyaps(s::AbstractSOSData) = s.lyaps
-getlyaps(s::AbstractSwitchedSystem) = getlyaps(sosdata(s))
 
 getlb(s::AbstractSOSData) = s.lb
-getlb(s::AbstractSwitchedSystem) = getlb(sosdata(s))
 function updatelb!(s::AbstractSOSData, lb, smp=nothing)
     s.lb = max(s.lb, lb)
     lb
 end
-updatelb!(s::AbstractSwitchedSystem, lb, args...) = updatelb!(sosdata(s), lb, args...)
 
 getub(s::AbstractSOSData) = s.ub
-getub(s::AbstractSwitchedSystem) = getub(sosdata(s))
 function updateub!(s::AbstractSOSData, ub)
     s.ub = min(s.ub, ub)
     ub
 end
-updateub!(s::AbstractSwitchedSystem, ub) = updateub!(sosdata(s), ub)
 
 function updateb!(s::AbstractSwitchedSystem, lb, ub)
     updatelb!(s, lb), updateub!(s, ub)
@@ -89,7 +84,6 @@ function updatesmp!(s::AbstractSOSData, smp::AbstractPeriodicSwitching)
     end
     smp
 end
-updatesmp!(s::AbstractSwitchedSystem, smp::AbstractPeriodicSwitching) = updatesmp!(sosdata(s), smp)
 
 function notifyperiodic!(s::AbstractSOSData, psw::AbstractPeriodicSwitching, tol=sqrt(eps(Float64)))
     if psw.growthrate+tol >= 1
@@ -112,7 +106,7 @@ function getsmp(s::AbstractSOSData)
     get(s.smp)
 end
 
-for f in (:getsmp, :hassmp, :unstable_periodic_switchings, :notifyperiodic!)
+for f in (:getsmp, :hassmp, :unstable_periodic_switchings, :notifyperiodic!, :updatesmp!, :updateub!, :getub, :updatelb!, :getlyaps, :getlb)
     @eval begin
         $f(s::AbstractSwitchedSystem, args...) = $f(sosdata(s), args...)
     end
