@@ -192,8 +192,10 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
                 if status != :Infeasible
                     soslb = sosshift(s, soslb, -tol)
                     status, _, dual = soslyap(s, d, soslb, solver=solver)
-                    @assert status == :Infeasible
-                    @assert dual !== nothing
+                    if status != :Infeasible
+                        # We ignore getlb and start from scratch. tol was probably set too small and soslb is too close to the JSR so soslb-tol is too close to the JSR.
+                        soslb = 0. # FIXME fix for continuous
+                    end
                     soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver=solver, tol=tol, kws...)
                     @assert dual !== nothing
                 end
