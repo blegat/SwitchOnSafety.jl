@@ -22,8 +22,8 @@ function quickb(s::AbstractDiscreteSwitchedSystem, k::Integer=1, clb=true, cub=t
     lb, ub
 end
 
-function quickb(s::AbstractSwitchedSystem, K::AbstractVector)
-    quickb.(s, K)
+function quickb(s::AbstractDiscreteSwitchedSystem, K::AbstractVector)
+    reduce((x, y) -> (max(x[1],y[1]), min(x[2], y[2])), (0., Inf), quickb.(s, K))
 end
 
 ρA(s::DiscreteSwitchedLinearSystem) = ntransitions(s)
