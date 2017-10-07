@@ -107,7 +107,9 @@ function sosmid(soslb, sosub, step)
         mid = 0
     end
 end
+usestep(soslb, sosub) = isfinite(soslb) ⊻ isfinite(sosub)
 sosmid(s::AbstractDiscreteSwitchedSystem, soslb, sosub, step) = exp(sosmid(log(soslb), log(sosub), step))
+usestep(s::AbstractDiscreteSwitchedSystem, soslb, sosub) = usestep(log(soslb), log(sosub))
 #sosmid(s::AbstractContinuousSwitchedSystem, soslb, sosub, step) = sosmid(soslb, sosub, step)
 
 function soslb2lb(s::AbstractDiscreteSwitchedSystem, sosub, d)
@@ -123,6 +125,10 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
         mid = sosmid(s, soslb, sosub, step)
         status, curprimal, curdual = soslyap(s, d, mid, solver=solver)
         if !(status in [:Optimal, :Unbounded, :Infeasible])
+            if usestep(s, soslb, sosub)
+                step *= 2
+                continue
+            end
             # If mid-tol/2 and mid+tol/2 also Stall, there would be an interval of length tol of Stall -> impossible to satisfy requirements
             # the distance between soslb and mid is at least tol/2.
             # Sometimes, mid is far from soslb and is at a point where the solver Stall even if it is far from the optimum point.
@@ -171,7 +177,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
 end
 
 # Obtaining bounds with Lyapunov
-function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1, cached=true, kws...)
+function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, cached=true, kws...)
     # The SOS ub is greater than the JSR hence also greater than any of its lower bound
     soslb = getlb(s)
     sosub = getsoslyapinitub(s, d)
