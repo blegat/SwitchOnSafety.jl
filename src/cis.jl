@@ -74,7 +74,8 @@ function getp(m::Model, c, x, z::AbstractVariable)
     #                 L' diagm([λinv; -1])] ⪰ 0
     #ConeLyap(x' * Q * x, Q, L, λinv)
 end
-function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:HRep, FullSpace, <:DiscreteLinearAlgebraicSystem}, solver, c)
+function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:HRep, FullSpace, <:DiscreteLinearAlgebraicSystem}, solver, c=map(cv->cv[1], chebyshevcenter.(s.invariants)))
+    @show c
     g = s.automaton.G
     n = nv(g)
     m = SOSModel(solver=solver)
