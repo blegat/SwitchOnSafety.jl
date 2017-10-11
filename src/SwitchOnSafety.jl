@@ -71,7 +71,7 @@ include("debruijn.jl")
 
 include("plot.jl")
 
-#include("discrete.jl")
-#include("continuous.jl")
+include("set.jl")
+include("cis.jl")
 
 end # module
