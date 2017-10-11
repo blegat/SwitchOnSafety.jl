@@ -4,7 +4,5 @@ using Base.Test
 
 include("solvers.jl")
 
-include("discrete.jl")
-#include("continuous.jl")
-
-include("veronese.jl")
+#include("jsr.jl")
+include("cis.jl")
