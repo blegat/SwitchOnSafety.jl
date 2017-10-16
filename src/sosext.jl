@@ -1,5 +1,5 @@
 using LightGraphs
-export sosextractcycle
+export sosextractcycle, extractatomic
 
 #function dist(X, Y)
 #    maximum(x -> abs(x[1] - x[2]) / max(x[1], x[2]), zip(X, Y))
@@ -26,13 +26,16 @@ function pushapprox!(a, x, id, tol)
     end
 end
 
-
-function extractstates(s::AbstractDiscreteSwitchedSystem, d, t, dual, ranktol)
+function extractatomic(s::AbstractDiscreteSwitchedSystem, d, t, ranktol, dual=getlyap(s, d).dual)
     σ = symbol(s, t)
     μ = measurefor(dual, s, t)
     X = monomials(variables(μ), d)
     ν = matmeasure(μ, X)
-    atoms = extractatoms(ν, ranktol)
+    extractatoms(ν, ranktol)
+end
+
+function extractstates(args...)
+    atoms = extractatomic(args...)
     if isnull(atoms)
         Vector{Float64}[]
     else
@@ -64,7 +67,7 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
     for ranktol in ranktols
         # This part is the more costly since it does atom extraction
         # It is run only once for each disttols which is nice
-        edgestates = map(u -> map(t -> (t, extractstates(s, d, t, dual, ranktol)), out_transitions(s, u)), states(s))
+        edgestates = map(u -> map(t -> (t, extractstates(s, d, t, ranktol, dual)), out_transitions(s, u)), states(s))
 
         for disttol in disttols
             G = Vector{Tuple{Int, transitiontype(s)}}[] # G[u] = list of edges (σ, v) going out of u
