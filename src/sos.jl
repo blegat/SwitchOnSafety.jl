@@ -120,7 +120,7 @@ end
 #soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
 
 # Binary Search
-function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=1, ranktols=tol, disttols=tol)
+function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=.5, ranktols=tol, disttols=tol)
     while soschecktol(s, soslb, sosub) > tol
         mid = sosmid(s, soslb, sosub, step)
         status, curprimal, curdual = soslyap(s, d, mid, solver=solver)
