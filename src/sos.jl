@@ -29,8 +29,8 @@ end
 
 # Building the Lyapunov constraints
 function soslyapforward(s::AbstractDiscreteSwitchedSystem, p::Polynomial, path)
-    xin = variables(s, source(s, path))
-    xout = variables(s, target(s, path))
+    xin = _variables(s, source(s, path))
+    xout = _variables(s, target(s, path))
     p(xout => dynamicfort(s, path) * vec(xin))
 end
 #function soslyapforward(s::AbstractContinuousSwitchedSystem, p::Polynomial, mode::Int)
@@ -63,7 +63,7 @@ lyapforout(p::Vector, edge::LightGraphs.Edge) = p[edge.dst]
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ; solver::AbstractMathProgSolver=JuMP.UnsetSolver())
     model = SOSModel(solver=solver)
-    p = [buildlyap(model, variables(s, v), d) for v in states(s)]
+    p = [buildlyap(model, _variables(s, v), d) for v in states(s)]
     cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     status = solve(model, suppress_warnings=true)

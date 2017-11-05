@@ -6,6 +6,7 @@ export getis
 function algebraiclift(s::DiscreteLinearControlSystem{T, MT, FullSpace}) where {T, MT}
     n = statedim(s)
     z = find(i -> iszero(sum(abs.(s.B[i,:]))), 1:n)
+    @show z
     # TODO ty - 1//2y^3 + 3//1xy + 2//1yhe affine space may not be parallel to classical axis
     DiscreteLinearAlgebraicSystem(s.A[z, :], (eye(n))[z, :])
 end
