@@ -43,6 +43,24 @@ function newsosdata(s::ConstrainedDiscreteSwitchedLinearSystem)
     ConstrainedSOSData{typeof(s)}(y, eid, 0, Inf, Nullable{Vector{Lyapunov}}[], Set{DiscretePeriodicSwitching{typeof(s)}}(), nothing)
 end
 
+struct StateDepSOSData{S} <: AbstractSOSData
+    x::Vector{Vector{PolyVar{true}}}
+end
+function newsosdata(s::StateDepDiscreteSwitchedLinearSystem)
+    if haskey(s.ext, :variables)
+        y = s.ext[:variables]
+    else
+        y = Vector{Vector{PolyVar{true}}}(nstates(s))
+        for st in states(s)
+            n = statedim(s, st)
+            x = variables(s.invariants[st])
+            @assert length(x) == n "The description of the invariant set of state $st only uses $(length(x)) variables which the dimension of the state is $n. It is therefore not possible to infer the variables of this state. Provide the vector of vector of variables for each state using the field `ext[:variables]` to fix this."
+            y[st] = x
+        end
+    end
+    StateDepSOSData{typeof(s)}(y)
+end
+
 const sosdatakey = :SwitchOnSafetyData
 
 function sosdata(s::AbstractSwitchedSystem)
@@ -56,7 +74,7 @@ end
 #nstates(s::AbstractSwitchedSystem) = 1
 #statedim(s::AbstractSwitchedSystem, i::Int) = s.n[i]
 MultivariatePolynomials.variables(s::SOSData, state::Int) = s.x
-MultivariatePolynomials.variables(s::ConstrainedSOSData, state::Int) = s.x[state]
+MultivariatePolynomials.variables(s::Union{StateDepSOSData, ConstrainedSOSData}, state::Int) = s.x[state]
 MultivariatePolynomials.variables(s::AbstractSwitchedSystem, state::Int) = variables(sosdata(s), state)
 
 getlyaps(s::AbstractSOSData) = s.lyaps

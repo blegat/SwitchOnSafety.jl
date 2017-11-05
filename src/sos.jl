@@ -28,7 +28,7 @@ function getlyap(s::AbstractSwitchedSystem, d::Int; solver::AbstractMathProgSolv
 end
 
 # Building the Lyapunov constraints
-function soslyapforward(s::AbstractDiscreteSwitchedSystem, p::Polynomial, path)
+function soslyapforward(s::AbstractStateDepDiscreteSwitchedSystem, p::Polynomial, path)
     xin = variables(s, source(s, path))
     xout = variables(s, target(s, path))
     p(xout => dynamicfort(s, path) * vec(xin))
@@ -37,11 +37,11 @@ end
 #    x = variables(p)
 #    dot(differentiate(p, x), dynamicfor(s, mode) * x)
 #end
-soslyapscaling(s::AbstractDiscreteSwitchedSystem, γ, d) = γ^(2*d)
+soslyapscaling(s::AbstractStateDepDiscreteSwitchedSystem, γ, d) = γ^(2*d)
 #soslyapscaling(s::AbstractContinuousSwitchedSystem, γ, d) = 2*d*γ
 function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, edge, d, γ)
     getid(x) = x.id
-    @constraint model soslyapforward(s, lyapforout(p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(p, edge)
+    @constraint(model, soslyapforward(s, lyapforout(p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(p, edge), domain=s.guards[symbol(s, edge)])
 end
 function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
     [soslyapconstraint(s, model, p, t, d, γ) for t in transitions(s)]
@@ -61,7 +61,7 @@ lyapforin(p::Vector, edge::LightGraphs.Edge) = p[edge.src]
 lyapforout(p::Vector, edge::LightGraphs.Edge) = p[edge.dst]
 
 # Solving the Lyapunov problem
-function soslyap(s::AbstractSwitchedSystem, d, γ; solver::AbstractMathProgSolver=JuMP.UnsetSolver())
+function soslyap(s::AbstractSwitchedSystem, d, γ=1.; solver::AbstractMathProgSolver=JuMP.UnsetSolver())
     model = SOSModel(solver=solver)
     p = [buildlyap(model, variables(s, v), d) for v in states(s)]
     cons = soslyapconstraints(s, model, p, d, γ)

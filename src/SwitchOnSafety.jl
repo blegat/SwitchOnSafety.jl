@@ -31,7 +31,8 @@ mutable struct Lyapunov
 end
 
 const AbstractDiscreteSwitchedSystem = Union{DiscreteSwitchedLinearSystem, ConstrainedDiscreteSwitchedLinearSystem}
-const AbstractSwitchedSystem = AbstractDiscreteSwitchedSystem
+const AbstractStateDepDiscreteSwitchedSystem = Union{AbstractDiscreteSwitchedSystem, StateDepDiscreteSwitchedLinearSystem}
+const AbstractSwitchedSystem = AbstractStateDepDiscreteSwitchedSystem
 integratorfor(s::AbstractDiscreteSwitchedSystem, t) = dynamicfort(s, t)
 #integratorfor(s::AbstractContinuousSwitchedSystem, mode::Tuple{Int,Float64}) = expm(dynamicfor(s, mode[1]) * mode[2])
 
