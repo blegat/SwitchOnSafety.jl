@@ -30,7 +30,8 @@ end
 #end
 
 function Base.show(io::IO, s::AbstractPeriodicSwitching)
-    print(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(symbol.(s.s, s.period)) for the transitions $(s.period)")
+    #print(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(symbol.(s.s, s.period))")# for the transitions $(s.period)")
+    print(io, "PSW($(round(s.growthrate, 6)), $(symbol.(s.s, s.period)))")# for the transitions $(s.period)")
 end
 
 function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, growthrate, args...)
