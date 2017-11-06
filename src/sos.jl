@@ -27,6 +27,27 @@ function getlyap(s::AbstractSwitchedSystem, d::Int; solver::AbstractMathProgSolv
     get(lyaps[d])
 end
 
+function getsoslyapinitub(s::AbstractDiscreteSwitchedSystem, d::Integer)
+    #_, sosub = pradiusb(s, 2*d)
+    #sosub
+    Inf
+end
+#function getsoslyapinitub(s::AbstractContinuousSwitchedSystem, d::Integer)
+#    Inf
+#end
+
+function getsoslyapinit(s, d)
+    lyaps = getlyaps(s)
+    if d <= length(lyaps) && !isnull(lyaps[d])
+        lyap = get(lyaps[d])
+        lyap.soslb, lyap.dual, lyap.sosub, lyap.primal
+    else
+        # The SOS ub is greater than the JSR hence also greater than any of its lower bound.
+        # Hence getlb(s) can be used as an initial lowerbound
+        getlb(s), nothing, getsoslyapinitub(s, d), nothing
+    end
+end
+
 # Building the Lyapunov constraints
 function soslyapforward(s::AbstractDiscreteSwitchedSystem, p::Polynomial, path)
     xin = variables(s, source(s, path))
@@ -75,15 +96,6 @@ function soslyap(s::AbstractSwitchedSystem, d, γ; solver::AbstractMathProgSolve
         status, nothing, nothing
     end
 end
-
-function getsoslyapinitub(s::AbstractDiscreteSwitchedSystem, d::Integer)
-    #_, sosub = pradiusb(s, 2*d)
-    #sosub
-    Inf
-end
-#function getsoslyapinitub(s::AbstractContinuousSwitchedSystem, d::Integer)
-#    Inf
-#end
 
 function increaselb(s::AbstractDiscreteSwitchedSystem, lb, step)
     lb *= step
@@ -178,10 +190,7 @@ end
 
 # Obtaining bounds with Lyapunov
 function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, cached=true, kws...)
-    # The SOS ub is greater than the JSR hence also greater than any of its lower bound
-    soslb = getlb(s)
-    sosub = getsoslyapinitub(s, d)
-    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, nothing, sosub, nothing; solver=solver, tol=tol, kws...)
+    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, getsoslyapinit(s, d)...; solver=solver, tol=tol, kws...)
     if cached
         if primal === nothing
             if isfinite(sosub)
