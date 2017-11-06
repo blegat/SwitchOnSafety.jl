@@ -112,10 +112,10 @@ sosmid(s::AbstractDiscreteSwitchedSystem, soslb, sosub, step) = exp(sosmid(log(s
 usestep(s::AbstractDiscreteSwitchedSystem, soslb, sosub) = usestep(log(soslb), log(sosub))
 #sosmid(s::AbstractContinuousSwitchedSystem, soslb, sosub, step) = sosmid(soslb, sosub, step)
 
-function soslb2lb(s::AbstractDiscreteSwitchedSystem, sosub, d)
+function soslb2lb(s::AbstractDiscreteSwitchedSystem, soslb, d)
     n = maximum(statedim.(s, states(s)))
     η = min(ρA(s), binomial(n+d-1, d))
-    sosub / η^(1/(2*d))
+    soslb / η^(1/(2*d))
 end
 #soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
 
