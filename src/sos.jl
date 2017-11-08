@@ -49,8 +49,11 @@ end
 measurefor(μs, s::DiscreteSwitchedLinearSystem, t) = μs[t]
 measurefor(μs, s::ConstrainedDiscreteSwitchedLinearSystem, t) = μs[sosdata(s).eid[t]]
 
-function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
-    Z = monomials(x, 2*d)
+ishomogeneous(::AbstractDiscreteSwitchedSystem) = true
+ishomogeneous(::AbstractStateDepDiscreteSwitchedSystem) = false
+
+function buildlyap(s, model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
+    Z = monomials(x, ishomogeneous(s) ? 2*d : 0:(2*d))
     p = (@variable model [1] Poly(Z))[1]
     @constraint model p >= sum(x.^(2*d))
     p
@@ -63,7 +66,7 @@ lyapforout(p::Vector, edge::LightGraphs.Edge) = p[edge.dst]
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ=1.; solver::AbstractMathProgSolver=JuMP.UnsetSolver())
     model = SOSModel(solver=solver)
-    p = [buildlyap(model, variables(s, v), d) for v in states(s)]
+    p = [buildlyap(s, model, variables(s, v), d) for v in states(s)]
     cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     status = solve(model, suppress_warnings=true)
