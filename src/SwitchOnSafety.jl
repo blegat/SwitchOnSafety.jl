@@ -44,8 +44,8 @@ nlabels(s::AbstractSwitchedSystem, t) = 1
 
 #modes(s::AbstractSwitchedSystem, v::Int, forward=true) = 1:length(s.A)
 
-dynamicforσ(s::AbstractDiscreteSwitchedSystem, σ) = s.resetmaps[σ].A
-dynamicfort(s::AbstractDiscreteSwitchedSystem, t) = dynamicforσ(s, symbol(s, t))
+dynamicforσ(s::AbstractStateDepDiscreteSwitchedSystem, σ) = s.resetmaps[σ].A
+dynamicfort(s::AbstractStateDepDiscreteSwitchedSystem, t) = dynamicforσ(s, symbol(s, t))
 
 io_transitions(s, st, forward::Bool) = forward ? out_transitions(s, st) : in_transitions(s, st)
 
