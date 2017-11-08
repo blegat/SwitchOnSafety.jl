@@ -57,14 +57,15 @@ end
 function getp(m::Model, c, x, z::AbstractVariable)
     y = [z; x]
     n = length(x)
-    β = 1.#@variable m lowerbound=0.
+    #β = 1.#@variable m lowerbound=0.
+    β = @variable m
     b = @variable m [1:n]
     #@constraint m b .== 0
     Q = @variable m [1:n, 1:n] Symmetric
-    @constraint m x' * Q * x in DSOSCone()
+    @constraint m y' * [β+1 b'; b Q] * y in DSOSCone()
     H = householder([1; c]) # We add 1, for z
-    P = [-β b'
-         b  Q]
+    P = [β b'
+         b Q]
     HPH = H * P * H
     p = y' * HPH * y
     ConeLyap(p, Q, b, c, H)
@@ -99,12 +100,12 @@ function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:HR
         λouts[u] = λout
         #@constraint m sum(λin) == 1
         Σ = symbol.(s.automaton, Edge.(u, out_neighbors(g, u)))
-        expr = lhs(l[u].p, y, s.resetmaps[Σ])
+        expr = -lhs(l[u].p, y, s.resetmaps[Σ])
         for (j, v) in enumerate(out_neighbors(g, u))
             E = s.resetmaps[Σ[j]].E
             #expr -= λout[j] * p[v](x => r(E)' * x)
             newp = ATrp(l[v].p, y, E)
-            expr -= λout[j] * newp
+            expr += λout[j] * newp
         end
         @constraint m expr in DSOSCone()
         # Constraint 2
