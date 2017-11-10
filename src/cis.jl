@@ -1,7 +1,7 @@
 using SemialgebraicSets
 using Polyhedra
 
-export getis
+export getis, fillis!, algebraiclift
 
 function algebraiclift(s::LinearControlDiscreteSystem)
     n = statedim(s)
@@ -54,24 +54,23 @@ function lhs(p, x, Re::ConstantVector)
     ATrp(p, x, first(Re).A)
 end
 
-function getp(m::Model, c, x, z::AbstractVariable)
-    y = [z; x]
-    n = length(x)
+function getp(m::Model, c, y, cone)
+    n = length(y)-1
     #β = 1.#@variable m lowerbound=0.
     β = @variable m
     b = @variable m [1:n]
     #@constraint m b .== 0
     Q = @variable m [1:n, 1:n] Symmetric
-    @constraint m y' * [β+1 b'; b Q] * y in DSOSCone()
+    @constraint m y' * [β+1 b'; b Q] * y in cone
     H = householder([1; c]) # We add 1, for z
     P = [β b'
          b Q]
     HPH = H * P * H
-    p = y' * HPH * y
+    p = y' * _HPH(Q, b, β, H) * y
     vol = @variable m
     #@constraint m vol <= trace Q
     @constraint m [vol; [Q[i, j] for j in 1:n for i in 1:j]] in MOI.RootDetConeTriangle(n)
-    ConeLyap(p, Q, b, c, H, vol)
+    ConeLyap(p, Q, b, β, c, H, vol)
     #@constraint m sum(Q) == 1 # dehomogenize
     #@variable m L[1:n, 1:n]
     #@variable m λinv[1:(n-1)] >= 0
@@ -79,43 +78,50 @@ function getp(m::Model, c, x, z::AbstractVariable)
     #                 L' diagm([λinv; -1])] ⪰ 0
     #ConeLyap(x' * Q * x, Q, L, λinv)
 end
-function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}, solver, c=map(cv->cv[1], chebyshevcenter.(s.invariants)))
-    @show c
-    g = s.automaton.G
-    n = nv(g)
-    m = SOSModel(solver=solver)
+const DTAHAS = HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}
+function _vars(s::DTAHAS)
     @polyvar x[1:2] z
-    y = [z; x]
-    l = [getp(m, c[u], x, z) for u in 1:n]
-    #X = monomials(x, 2)
-    #@variable m p[1:n] Poly(X)
-    #@variable m vol
-    #@objective m Max vol
+    [z; x]
+end
+function _p(q, N, y, l, is, ps)
+    if q in N
+        l[q].p
+    else
+        if isnull(ps[q])
+            le = LiftedEllipsoid(is[q])
+            ps[q] = Nullable(y' * inv(le.P) * y)
+        end
+        get(ps[q])
+    end
+end
+function fillis!(is, N, s::DTAHAS, solver, c=map(cv->cv[1], chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=DSOSCone())
+    @show c
+    n = nstates(s)
+    m = SOSModel(solver=solver)
+    l = [getp(m, c[u], y, cone) for u in N]
 
     @objective m Max sum(p -> p.vol, l)
 
-    λouts = Vector{Vector{JuMP.Variable}}(n)
-    #λouts = Vector{Vector{Float64}}(n)
-    for u in 1:n
+    λouts = Vector{Vector{JuMP.Variable}}(length(l))
+    for (i, u) in enumerate(N)
         # Constraint 1
-        N = length(out_neighbors(g, u))
-        λout = @variable m [1:N] lowerbound=0
-        λouts[u] = λout
-        #@constraint m sum(λin) == 1
-        Σ = symbol.(s.automaton, Edge.(u, out_neighbors(g, u)))
-        expr = -lhs(l[u].p, y, s.resetmaps[Σ])
-        for (j, v) in enumerate(out_neighbors(g, u))
+        NN = length(out_transitions(s, u))
+        λout = @variable m [1:NN] lowerbound=0
+        λouts[i] = λout
+        Σ = symbol.(s.automaton, out_transitions(s, u))
+        expr = -lhs(l[i].p, y, s.resetmaps[Σ])
+        for (j, t) in enumerate(out_transitions(s, u))
+            v = target(s, t)
             E = s.resetmaps[Σ[j]].E
-            #expr -= λout[j] * p[v](x => r(E)' * x)
-            newp = ATrp(l[v].p, y, E)
+            newp = ATrp(_p(v, N, y, l, is, ps), y, E)
             expr += λout[j] * newp
         end
-        @constraint m expr in DSOSCone()
+        @constraint m expr in cone
         # Constraint 2
         #@SDconstraint m differentiate(p[u], x, 2) >= 0
         # Constraint 3
         for hs in ineqs(s.invariants[u])
-            @constraint m l[u].p(y => [-hs.β; hs.a]) <= 0
+            @constraint m l[i].p(y => [-hs.β; hs.a]) <= 0
         end
     end
 
@@ -127,18 +133,31 @@ function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:Li
 
     @show JuMP.objectivevalue(m)
 
-    for u in 1:n
-        @show JuMP.resultvalue.(λouts[u])
+    for i in 1:length(N)
+        @show JuMP.resultvalue.(λouts[i])
     end
 
-    ellipsoid.(l)
-#    if uc
-#        [Ellipsoid(inv(Q[u].value), c[u] + 2*reshape(C[u].value, d)) for u in vertices(g)]
-#    else
-#        [Ellipsoid(inv(Q[u].value), c[u]) for u in vertices(g)]
-#    end
+    @show status
+    @assert status == :Optimal
+    for (i, q) in enumerate(N)
+        lv = getvalue(l[i])
+        ps[q] = Nullable(lv.p)
+        is[q] = ellipsoid(lv)
+    end
 end
 
-function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearControlDiscreteSystem}, args...)
-    getis(algebraiclift(s), args...)
+function getis(s::DTAHAS, args...; kws...)
+    nmodes = nstates(s)
+    is = Vector{Ellipsoid{Float64}}(nmodes)
+    fillis!(is, 1:nmodes, s, args...; kws...)
+    is
+end
+
+const UnboundedControl = DiscreteLinearControlSystem{<:Any,<:Any,FullSpace}
+
+function fillis!(is, N, s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:HRep, FullSpace, <:UnboundedControl}, args...; kws...)
+    fillis!(is, N, algebraiclift(s), args...; kws...)
+end
+function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearControlDiscreteSystem}, args...; kws...)
+    getis(algebraiclift(s), args...; kws...)
 end
