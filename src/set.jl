@@ -62,14 +62,14 @@ struct ConeLyap{T, P<:AbstractPolynomial{T}, S}
 end
 
 ConeLyap(p::P, Q::Matrix{S}, b::Vector{S}, c, H) where {T, P<:AbstractPolynomial{T}, S} = ConeLyap{T, P, S}(p, Q, b, c, H)
-JuMP.getvalue(p::ConeLyap) = ConeLyap(getvalue(p.p), getvalue(p.Q), getvalue(p.b), p.c, p.H)
+JuMP.resultvalue(p::ConeLyap) = ConeLyap(JuMP.resultvalue(p.p), JuMP.resultvalue(p.Q), JuMP.resultvalue(p.b), p.c, p.H)
 
-ellipsoid(p::ConeLyap{T, P, JuMP.Variable}) where {T, P<:AbstractPolynomial{T}} = ellipsoid(getvalue(p))
+ellipsoid(p::ConeLyap{T, P, JuMP.Variable}) where {T, P<:AbstractPolynomial{T}} = ellipsoid(JuMP.resultvalue(p))
 
 function ellipsoid(p::ConeLyap)
     n = size(p.Q, 1)
     P = [-1. p.b'
-         p.b  p.Q]
+         p.b p.Q]
     HPH = p.H * P * p.H
     LiftedEllipsoid(inv(HPH))
 end

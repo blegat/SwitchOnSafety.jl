@@ -116,16 +116,18 @@ function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:Li
         end
     end
 
-    status = solve(m)
+    JuMP.solve(m)
 
-    @show getobjectivevalue(m)
+    @show JuMP.terminationstatus(m)
+    @show JuMP.primalstatus(m)
+    @show JuMP.dualstatus(m)
+
+    @show JuMP.objectivevalue(m)
 
     for u in 1:n
-        @show getvalue.(λouts[u])
+        @show JuMP.resultvalue.(λouts[u])
     end
 
-    @show status
-    @assert status == :Optimal
     ellipsoid.(l)
 #    if uc
 #        [Ellipsoid(inv(Q[u].value), c[u] + 2*reshape(C[u].value, d)) for u in vertices(g)]
