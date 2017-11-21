@@ -44,7 +44,6 @@
     for solver in sdp_solvers
         sosdata(s).lb = 0
         tol = ismosek(solver) ? 1e-5 : 5e-4
-        println("  > With solver $(typeof(solver))")
         lb, ub = soslyapb(s, 1, solver=solver, tol=tol)
         @test log(lb) ≈ log(2.814640557) rtol=tol
         @test log(ub) ≈ log(3.980502849) rtol=tol

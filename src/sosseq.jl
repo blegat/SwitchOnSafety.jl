@@ -71,7 +71,7 @@ end
 #end
 
 # Extracting trajectory from Lyapunov
-function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), v_0=:Random, p_0=:Random, l::Integer=1, Δt::Float64=1., niter::Integer=42, tol=1e-5)
+function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver=()->nothing, v_0=:Random, p_0=:Random, l::Integer=1, Δt::Float64=1., niter::Integer=42, tol=1e-5)
     lyap = getlyap(s, d; solver=solver, tol=tol)
 
     if v_0 == :Random
@@ -86,7 +86,7 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::Abstrac
     if p_0 == :Primal
         p_0 = lyap.primal[curstate]
     elseif p_0 == :Random
-        Z = monomials(variables(s, curstate), d)
+        Z = monomials(_variables(s, curstate), d)
         p_0 = randsos(Z, monotype=:Gram, r=1)
     end # otherwise p_0 is assumed to be an sos polynomial given by the user
     p_0 = polynomial(p_0)

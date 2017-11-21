@@ -2,8 +2,9 @@ using JuMP
 using PolyJuMP
 using SumOfSquares
 using MathProgBase
-# getdual of JuMP and MathProgBase.SolverInterface conflict
-using MathProgBase.SolverInterface.AbstractMathProgSolver
+
+using MathOptInterface
+const MOI = MathOptInterface
 
 export getlyap, soslyap, soslyapb, sosbuildsequence
 
@@ -19,7 +20,7 @@ function setlyap!(s, lyap::Lyapunov)
     end
     lyaps[d] = lyap
 end
-function getlyap(s::AbstractSwitchedSystem, d::Int; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5)
+function getlyap(s::AbstractSwitchedSystem, d::Int; solver=()->nothing, tol=1e-5)
     lyaps = getlyaps(s)
     if d > length(lyaps) || isnull(lyaps[d])
         soslyapb(s, d, solver=solver, tol=1e-5, cached=true)
@@ -79,18 +80,37 @@ end
 lyapforin(s, p::Vector, t) = p[source(s, t)]
 lyapforout(s, p::Vector, t) = p[target(s, t)]
 
+function isinfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
+    status[3] == MOI.InfeasibilityCertificate
+end
+function isfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
+    status[2] == MOI.FeasiblePoint
+end
+function isdecided(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
+    return isinfeasible(status) || isfeasible(status)
+end
+
 # Solving the Lyapunov problem
-function soslyap(s::AbstractSwitchedSystem, d, γ; solver::AbstractMathProgSolver=JuMP.UnsetSolver())
+function soslyap(s::AbstractSwitchedSystem, d, γ; solver=()->nothing)
     model = SOSModel(solver=solver)
     p = [buildlyap(model, variables(s, v), d) for v in states(s)]
     cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
-    status = solve(model, suppress_warnings=true)
-    if status == :Optimal
-        status, getvalue.(p), nothing
-    elseif status == :Infeasible
-        status, nothing, getdual.(cons)
+    #status = solve(model, suppress_warnings=true)
+    #@constraint(model, sum(sum(coefficients(lyap)) for lyap in p))
+    solve(model)
+    status = (JuMP.terminationstatus(model),
+              JuMP.primalstatus(model),
+              JuMP.dualstatus(model))
+    if isinfeasible(status)
+        #println("Infeasible $γ")
+        @assert !isfeasible(status)
+        status, nothing, JuMP.resultdual.(cons)
+    elseif isfeasible(status)
+        #println("Feasible $γ")
+        status, JuMP.resultvalue.(p), nothing
     else
+        @assert !isdecided(status)
         status, nothing, nothing
     end
 end
@@ -130,11 +150,11 @@ end
 #soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
 
 # Binary Search
-function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, step=.5, ranktols=tol, disttols=tol)
+function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver=()->nothing, tol=1e-5, step=.5, ranktols=tol, disttols=tol)
     while soschecktol(s, soslb, sosub) > tol
         mid = sosmid(s, soslb, sosub, step)
         status, curprimal, curdual = soslyap(s, d, mid, solver=solver)
-        if !(status in [:Optimal, :Unbounded, :Infeasible])
+        if !isdecided(status)
             if usestep(s, soslb, sosub)
                 step *= 2
                 continue
@@ -150,7 +170,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
                 midlb = max(midlb, sosshift(s, soslb, tol/8))
             end
             statuslb, curprimallb, curduallb = soslyap(s, d, midlb, solver=solver)
-            if statuslb in [:Optimal, :Unbounded, :Infeasible]
+            if isdecided(statuslb)
                 mid = midlb
                 status = statuslb
                 curprimal = curprimallb
@@ -161,7 +181,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
                     midub = min(midub, sosshift(s, sosub, -tol/8))
                 end
                 statusub, curprimalub, curdualub = soslyap(s, d, midub, solver=solver)
-                if statusub in [:Optimal, :Unbounded, :Infeasible]
+                if isdecided(statusub)
                     mid = midub
                     status = statusub
                     curprimal = curprimalub
@@ -169,15 +189,15 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
                 end
             end
         end
-        if status == :Optimal || status == :Unbounded # FIXME Unbounded is for a Mosek bug
+        if isinfeasible(status)
+            dual = curdual
+            sosextractcycle(s, dual, d, ranktols=ranktols, disttols=disttols)
+            soslb = mid
+        elseif isfeasible(status)
             if !(curprimal === nothing) # FIXME remove
                 primal = curprimal
             end
             sosub = mid
-        elseif status == :Infeasible
-            dual = curdual
-            sosextractcycle(s, dual, d, ranktols=ranktols, disttols=disttols)
-            soslb = mid
         else
             warn("Solver returned with status : $statuslb for γ=$midlb, $status for γ=$mid and $statusub for γ=$midub. Stopping bisection with $(soschecktol(s, soslb, sosub)) > $tol (= tol)")
             break
@@ -187,13 +207,13 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
 end
 
 # Obtaining bounds with Lyapunov
-function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, cached=true, kws...)
+function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver=()->nothing, tol=1e-5, cached=true, kws...)
     soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, getsoslyapinit(s, d)...; solver=solver, tol=tol, kws...)
     if cached
         if primal === nothing
             if isfinite(sosub)
                 status, primal, _ = soslyap(s, d, sosub, solver=solver)
-                @assert status == :Optimal
+                @assert isfeasible(status)
                 @assert primal !== nothing
             else
                 error("Bisection ended with infinite sosub=$sosub")
@@ -202,10 +222,10 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathPro
         if dual === nothing
             if isfinite(soslb)
                 status, _, dual = soslyap(s, d, soslb, solver=solver)
-                if status != :Infeasible
+                if !isinfeasible(status)
                     soslb = sosshift(s, soslb, -tol)
                     status, _, dual = soslyap(s, d, soslb, solver=solver)
-                    if status != :Infeasible
+                    if !isinfeasible(status)
                         warn("We ignore getlb and start from scratch. tol was probably set too small and soslb is too close to the JSR so soslb-tol is too close to the JSR")
                         soslb = 0. # FIXME fix for continuous
                     end

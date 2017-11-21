@@ -32,7 +32,6 @@ const expected_lb = expected_ub ./ ratio
     msmp = periodicswitching(hsm, Edge.([5 => 3, 3 => 8, 8 => 3, 3 => 7, 7 => 2, 2 => 5, 5 => 5, 5 => 5]))
     @test msmp.growthrate == 0.9748171979372074
     for solver in sdp_solvers
-        println("  > With solver $(typeof(solver))")
         for s in (hs, hsm)
             m = s === hs ? 1 : 2
             for d in 1:(7-m)
@@ -54,8 +53,6 @@ const expected_lb = expected_ub ./ ratio
                                 else
                                     @test get(psw) == msnp
                                 end
-                            elseif d == 2 && v_0 in [3, 5, 8]
-                                @test get(psw) == msbp
                             else
                                 @test get(psw) == msmp
                             end

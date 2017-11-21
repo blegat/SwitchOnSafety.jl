@@ -116,7 +116,7 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
 
     smp
 end
-function sosextractcycle(s::AbstractDiscreteSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), tol=1e-5, ranktols=tol, disttols=tol)::Nullable{periodicswitchingtype(s)}
+function sosextractcycle(s::AbstractDiscreteSwitchedSystem, d::Integer; solver=()->nothing, tol=1e-5, ranktols=tol, disttols=tol)::Nullable{periodicswitchingtype(s)}
     lyap = getlyap(s, d; solver=solver, tol=tol)
     sosextractcycle(s, lyap.dual, d; ranktols=ranktols, disttols=disttols)
 end

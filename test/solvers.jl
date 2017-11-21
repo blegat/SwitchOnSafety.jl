@@ -9,19 +9,37 @@ function try_import(name::Symbol)
     end
 end
 
-mos = try_import(:Mosek)
-ismosek(solver) = contains(string(typeof(solver)),"MosekSolver")
-csd = try_import(:CSDP)
-iscsdp(solver) = contains(string(typeof(solver)),"CSDP")
+mos = false && try_import(:Mosek)
+if mos
+    mossolver = () -> Mosek.MosekInstance(LOG=0)
+else
+    mossolver = () -> nothing
+end
+ismosek(solver) = solver === mossolver
+csd = false && try_import(:CSDP)
+if csd
+    csdsolver = () -> CSDP.CSDPInstance(printlevel=0)
+else
+    csdsolver = () -> nothing
+end
+iscsdp(solver) = solver === csdsolver
+sda = try_import(:SDPA)
+if sda
+    sdasolver = () -> SDPA.SDPAInstance()
+else
+    sdasolver = () -> nothing
+end
+issdpa(solver) = solver === sdasolver
 scs = false && try_import(:SCS) # It does not work
-isscs(solver) = contains(string(typeof(solver)),"SCSSolver")
-ipt = try_import(:Ipopt)
+isscs(solver) = false
+ipt = false && try_import(:Ipopt)
 
 # Semidefinite solvers
 sdp_solvers = Any[]
-mos && push!(sdp_solvers, Mosek.MosekSolver(LOG=0))
-csd && push!(sdp_solvers, CSDP.CSDPSolver(printlevel=0))
-scs && push!(sdp_solvers, SCS.SCSSolver(verbose=0))
+mos && push!(sdp_solvers, mossolver)
+csd && push!(sdp_solvers, csdsolver)
+sda && push!(sdp_solvers, sdasolver)
+scs && push!(sdp_solvers, scssolver)
 
 # Bilinear LP solvers
 blp_solvers = Any[]
