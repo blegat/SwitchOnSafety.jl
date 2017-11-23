@@ -57,12 +57,13 @@ struct ConeLyap{T, P<:AbstractPolynomial{T}, S}
     b::Vector{S}
     c::Vector{Float64}
     H::Matrix{Float64}
+    vol::S
     #L::Matrix{JuMP.Variable}
     #λinv::Vector{JuMP.Variable}
 end
 
-ConeLyap(p::P, Q::Matrix{S}, b::Vector{S}, c, H) where {T, P<:AbstractPolynomial{T}, S} = ConeLyap{T, P, S}(p, Q, b, c, H)
-JuMP.resultvalue(p::ConeLyap) = ConeLyap(JuMP.resultvalue(p.p), JuMP.resultvalue(p.Q), JuMP.resultvalue(p.b), p.c, p.H)
+ConeLyap(p::P, Q::Matrix{S}, b::Vector{S}, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = ConeLyap{T, P, S}(p, Q, b, c, H, vol)
+JuMP.resultvalue(p::ConeLyap) = ConeLyap(JuMP.resultvalue(p.p), JuMP.resultvalue(p.Q), JuMP.resultvalue(p.b), p.c, p.H, JuMP.resultvalue(p.vol))
 
 ellipsoid(p::ConeLyap{T, P, JuMP.Variable}) where {T, P<:AbstractPolynomial{T}} = ellipsoid(JuMP.resultvalue(p))
 

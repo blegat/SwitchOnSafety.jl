@@ -68,7 +68,10 @@ function getp(m::Model, c, x, z::AbstractVariable)
          b Q]
     HPH = H * P * H
     p = y' * HPH * y
-    ConeLyap(p, Q, b, c, H)
+    vol = @variable m
+    #@constraint m vol <= trace Q
+    @constraint m [vol; [Q[i, j] for j in 1:n for i in 1:j]] in MOI.RootDetConeTriangle(n)
+    ConeLyap(p, Q, b, c, H, vol)
     #@constraint m sum(Q) == 1 # dehomogenize
     #@variable m L[1:n, 1:n]
     #@variable m λinv[1:(n-1)] >= 0
@@ -89,7 +92,7 @@ function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:Li
     #@variable m vol
     #@objective m Max vol
 
-    @objective m Max sum(p -> trace(p.Q), l)
+    @objective m Max sum(p -> p.vol, l)
 
     λouts = Vector{Vector{JuMP.Variable}}(n)
     #λouts = Vector{Vector{Float64}}(n)
