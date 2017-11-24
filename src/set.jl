@@ -75,7 +75,7 @@ struct ConeLyap{T, P<:AbstractPolynomial{T}, S}
 end
 
 ConeLyap(p::P, Q::Matrix{S}, b::Vector{S}, β::S, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = ConeLyap{T, P, S}(p, Q, b, β, c, H, vol)
-JuMP.resultvalue(p::ConeLyap) = ConeLyap(JuMP.resultvalue(p.p), JuMP.resultvalue(p.Q), JuMP.resultvalue(p.b), getvalue(p.β), p.c, p.H, JuMP.resultvalue(p.vol))
+JuMP.resultvalue(p::ConeLyap) = ConeLyap(JuMP.resultvalue(p.p), JuMP.resultvalue.(p.Q), JuMP.resultvalue.(p.b), JuMP.resultvalue(p.β), p.c, p.H, JuMP.resultvalue(p.vol))
 
 ellipsoid(p::ConeLyap{T, P, JuMP.Variable}) where {T, P<:AbstractPolynomial{T}} = ellipsoid(JuMP.resultvalue(p))
 

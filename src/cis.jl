@@ -6,7 +6,6 @@ export getis, fillis!, algebraiclift
 function algebraiclift(s::LinearControlDiscreteSystem)
     n = statedim(s)
     z = find(i -> iszero(sum(abs.(s.B[i,:]))), 1:n)
-    @show z
     # TODO ty - 1//2y^3 + 3//1xy + 2//1yhe affine space may not be parallel to classical axis
     LinearAlgebraicDiscreteSystem(s.A[z, :], (eye(n))[z, :])
 end
@@ -49,9 +48,9 @@ function ATrp(p, x, A)
     y = x[1:size(B, 2)]
     p(x => r(A)' * y)
 end
-function lhs(p, x, Re::ConstantVector)
-    # If it is not constant, I would be comparing dummy variables of different meaning
-    ATrp(p, x, first(Re).A)
+# If Re is a vector not constant, I would be comparing dummy variables of different meaning
+function lhs(p, x, Re::DiscreteLinearAlgebraicSystem)
+    ATrp(p, x, Re.A)
 end
 
 function getp(m::Model, c, y, cone)
@@ -80,7 +79,7 @@ function getp(m::Model, c, y, cone)
 end
 const DTAHAS = HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}
 function _vars(s::DTAHAS)
-    @polyvar x[1:2] z
+    @polyvar x[1:statedim(s, 1)] z
     [z; x]
 end
 function _p(q, N, y, l, is, ps)
@@ -94,7 +93,7 @@ function _p(q, N, y, l, is, ps)
         get(ps[q])
     end
 end
-function fillis!(is, N, s::DTAHAS, solver, c=map(cv->cv[1], chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=DSOSCone())
+function fillis!(is, N, s::DTAHAS, solver, c=map(cv->cv[1], chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=DSOSCone(), λ = nothing)
     @show c
     n = nstates(s)
     m = SOSModel(solver=solver)
@@ -102,21 +101,28 @@ function fillis!(is, N, s::DTAHAS, solver, c=map(cv->cv[1], chebyshevcenter.(s.i
 
     @objective m Max sum(p -> p.vol, l)
 
-    λouts = Vector{Vector{JuMP.Variable}}(length(l))
+    if λ === nothing
+        λouts = Vector{Vector{JuMP.Variable}}(length(l))
+    else
+        λouts = λ
+    end
+
     for (i, u) in enumerate(N)
         # Constraint 1
         NN = length(out_transitions(s, u))
-        λout = @variable m [1:NN] lowerbound=0
-        λouts[i] = λout
-        Σ = symbol.(s.automaton, out_transitions(s, u))
-        expr = -lhs(l[i].p, y, s.resetmaps[Σ])
-        for (j, t) in enumerate(out_transitions(s, u))
-            v = target(s, t)
-            E = s.resetmaps[Σ[j]].E
-            newp = ATrp(_p(v, N, y, l, is, ps), y, E)
-            expr += λout[j] * newp
+        if λ === nothing
+            λouts[i] = @variable m [1:NN] lowerbound=0
         end
-        @constraint m expr in cone
+        λout = λouts[i]
+        for (j, t) in enumerate(out_transitions(s, u))
+            σ = symbol(s.automaton, t)
+            startp = lhs(l[i].p, y, s.resetmaps[σ])
+            v = target(s, t)
+            E = s.resetmaps[σ].E
+            newp = ATrp(_p(v, N, y, l, is, ps), y, E)
+            expr = λout[j] * newp - startp
+            @constraint m expr in cone
+        end
         # Constraint 2
         #@SDconstraint m differentiate(p[u], x, 2) >= 0
         # Constraint 3
@@ -133,14 +139,14 @@ function fillis!(is, N, s::DTAHAS, solver, c=map(cv->cv[1], chebyshevcenter.(s.i
 
     @show JuMP.objectivevalue(m)
 
-    for i in 1:length(N)
-        @show JuMP.resultvalue.(λouts[i])
+    if λ === nothing
+        for i in 1:length(N)
+            @show JuMP.resultvalue.(λouts[i])
+        end
     end
 
-    @show status
-    @assert status == :Optimal
     for (i, q) in enumerate(N)
-        lv = getvalue(l[i])
+        lv = JuMP.resultvalue(l[i])
         ps[q] = Nullable(lv.p)
         is[q] = ellipsoid(lv)
     end
