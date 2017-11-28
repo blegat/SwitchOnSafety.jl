@@ -53,30 +53,6 @@ function lhs(p, x, Re::DiscreteLinearAlgebraicSystem)
     ATrp(p, x, Re.A)
 end
 
-function getp(m::Model, c, y, cone)
-    n = length(y)-1
-    #β = 1.#@variable m lowerbound=0.
-    β = @variable m
-    b = @variable m [1:n]
-    #@constraint m b .== 0
-    Q = @variable m [1:n, 1:n] Symmetric
-    @constraint m y' * [β+1 b'; b Q] * y in cone
-    H = householder([1; c]) # We add 1, for z
-    P = [β b'
-         b Q]
-    HPH = H * P * H
-    p = y' * _HPH(Q, b, β, H) * y
-    vol = @variable m
-    #@constraint m vol <= trace Q
-    @constraint m [vol; [Q[i, j] for j in 1:n for i in 1:j]] in MOI.RootDetConeTriangle(n)
-    ConeLyap(p, Q, b, β, c, H, vol)
-    #@constraint m sum(Q) == 1 # dehomogenize
-    #@variable m L[1:n, 1:n]
-    #@variable m λinv[1:(n-1)] >= 0
-    #@SDconstraint m [Q  L
-    #                 L' diagm([λinv; -1])] ⪰ 0
-    #ConeLyap(x' * Q * x, Q, L, λinv)
-end
 const DTAHAS = HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}
 function _vars(s::DTAHAS)
     @polyvar x[1:statedim(s, 1)] z
@@ -93,16 +69,17 @@ function _p(q, N, y, l, is, ps)
         get(ps[q])
     end
 end
-function fillis!(is, N, s::DTAHAS, solver, c=map(cv->cv[1], chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=DSOSCone(), λ = nothing)
-    @show c
+
+function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=DSOSCone(), λ = nothing)
+    @show h
     n = nstates(s)
     m = SOSModel(solver=solver)
-    l = [getp(m, c[u], y, cone) for u in N]
+    l = [getp(m, h[u], y, cone) for u in N]
 
     @objective m Max sum(p -> p.vol, l)
 
     if λ === nothing
-        λouts = Vector{Vector{JuMP.Variable}}(length(l))
+        λouts = Vector{Vector{JuMP.AffExpr}}(length(l))
     else
         λouts = λ
     end
@@ -110,19 +87,7 @@ function fillis!(is, N, s::DTAHAS, solver, c=map(cv->cv[1], chebyshevcenter.(s.i
     for (i, u) in enumerate(N)
         # Constraint 1
         NN = length(out_transitions(s, u))
-        if λ === nothing
-            λouts[i] = @variable m [1:NN] lowerbound=0
-        end
-        λout = λouts[i]
-        for (j, t) in enumerate(out_transitions(s, u))
-            σ = symbol(s.automaton, t)
-            startp = lhs(l[i].p, y, s.resetmaps[σ])
-            v = target(s, t)
-            E = s.resetmaps[σ].E
-            newp = ATrp(_p(v, N, y, l, is, ps), y, E)
-            expr = λout[j] * newp - startp
-            @constraint m expr in cone
-        end
+        λouts[i] = map(jt -> lyapconstraint(is, N, s, ps, i, l, y, jt[2], m, λ === nothing ? nothing : λ[jt[1]]), enumerate(out_transitions(s, u)))
         # Constraint 2
         #@SDconstraint m differentiate(p[u], x, 2) >= 0
         # Constraint 3
