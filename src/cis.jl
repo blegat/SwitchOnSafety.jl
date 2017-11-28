@@ -41,6 +41,8 @@ using DynamicPolynomials
 using MultivariatePolynomials
 using PolyJuMP
 using SumOfSquares
+using MathOptInterface
+const MOI = MathOptInterface
 using JuMP
 using LightGraphs
 function ATrp(p, x, A)
@@ -70,7 +72,7 @@ function _p(q, N, y, l, is, ps)
     end
 end
 
-function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=DSOSCone(), λ = nothing)
+function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ = nothing)
     @show h
     n = nstates(s)
     m = SOSModel(solver=solver)
@@ -87,7 +89,7 @@ function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), cheby
     for (i, u) in enumerate(N)
         # Constraint 1
         NN = length(out_transitions(s, u))
-        λouts[i] = map(jt -> lyapconstraint(is, N, s, ps, i, l, y, jt[2], m, λ === nothing ? nothing : λ[jt[1]]), enumerate(out_transitions(s, u)))
+        λouts[i] = map(jt -> lyapconstraint(is, N, s, ps, i, l, y, jt[2], m, cone, λ === nothing ? nothing : λ[jt[1]]), enumerate(out_transitions(s, u)))
         # Constraint 2
         #@SDconstraint m differentiate(p[u], x, 2) >= 0
         # Constraint 3
@@ -97,6 +99,8 @@ function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), cheby
     end
 
     JuMP.solve(m)
+
+    @show MOI.get(m, MOI.SolveTime())
 
     @show JuMP.terminationstatus(m)
     @show JuMP.primalstatus(m)

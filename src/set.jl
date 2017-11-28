@@ -64,6 +64,7 @@ end
 
 abstract type QuadCone{T, P, S} end
 
+# It will not really be the center and the center for z = 0 is the the same as for <h, x> = 0
 struct CenterPoint{T}
     h::Vector{T}
 end
@@ -76,8 +77,8 @@ struct CenterQuadCone{T, P<:AbstractPolynomial{T}, S} <: QuadCone{T, P, S}
 end
 CenterQuadCone(p::P, Q::Matrix{S}, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = CenterQuadCone{T, P, S}(p, Q, c, H, vol)
 JuMP.resultvalue(p::CenterQuadCone) = CenterQuadCone(JuMP.resultvalue(p.p), JuMP.resultvalue.(p.Q), p.h, p.H, JuMP.resultvalue(p.vol))
-_β(h::CenterPoint{T}) where T = -one(T)
-_b(h::CenterPoint{T}) where T = zeros(T, length(h.h))
+_β(m, h::CenterPoint{T}) where T = -one(T)
+_b(m, h::CenterPoint{T}) where T = zeros(T, length(h.h))
 QuadCone(p, Q, b, β, h::CenterPoint, H, vol) = CenterQuadCone(p, Q, h.h, H, vol)
 
 samecenter(l1::CenterQuadCone, l2::CenterQuadCone) = l1.h == l2.h
@@ -96,8 +97,8 @@ struct InteriorQuadCone{T, P<:AbstractPolynomial{T}, S} <: QuadCone{T, P, S}
 end
 InteriorQuadCone(p::P, Q::Matrix{S}, b::Vector{S}, β::S, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = InteriorQuadCone{T, P, S}(p, Q, b, β, c, H, vol)
 JuMP.resultvalue(p::InteriorQuadCone) = InteriorQuadCone(JuMP.resultvalue(p.p), JuMP.resultvalue.(p.Q), JuMP.resultvalue.(p.b), JuMP.resultvalue(p.β), p.h, p.H, JuMP.resultvalue(p.vol))
-_β(h::InteriorPoint) = @variable m
-_b(h::InteriorPoint) = @variable m [1:length(h.h)]
+_β(m, h::InteriorPoint) = @variable m
+_b(m, h::InteriorPoint) = @variable m [1:length(h.h)]
 QuadCone(p, Q, b, β, h::InteriorPoint, H, vol) = InteriorQuadCone(p, Q, b, β, h.h, H, vol)
 
 samecenter(l1, l2) = false
@@ -105,8 +106,8 @@ samecenter(l1, l2) = false
 function getp(m::Model, h, y, cone)
     n = length(y)-1
     #β = 1.#@variable m lowerbound=0.
-    β = _β(h)
-    b = _b(h)
+    β = _β(m, h)
+    b = _b(m, h)
     #@constraint m b .== 0
     Q = @variable m [1:n, 1:n] Symmetric
     @constraint m y' * [β+1 b'; b Q] * y in cone
@@ -127,7 +128,7 @@ function getp(m::Model, h, y, cone)
     #QuadCone(x' * Q * x, Q, L, λinv)
 end
 
-function lyapconstraint(is, N, s, ps, i, l, y, t, m, λuser)
+function lyapconstraint(is, N, s, ps, i, l, y, t, m, cone, λuser)
     σ = symbol(s.automaton, t)
     startp = lhs(l[i].p, y, s.resetmaps[σ])
     v = target(s, t)
@@ -135,6 +136,7 @@ function lyapconstraint(is, N, s, ps, i, l, y, t, m, λuser)
     newp = ATrp(_p(v, N, y, l, is, ps), y, E)
     if v in N && samecenter(l[i], l[v])
         expr = newp - startp
+        @constraint m expr in cone
         1.
     else
         if λuser === nothing
