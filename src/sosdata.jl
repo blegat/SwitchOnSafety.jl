@@ -56,9 +56,9 @@ end
 #nstates(s::AbstractSwitchedSystem) = 1
 #statedim(s::AbstractSwitchedSystem, i::Int) = s.n[i]
 # using MP.variables triggers the invalid range update Julia v0.6 bug
-_variables(s::SOSData, state::Int) = s.x
-_variables(s::ConstrainedSOSData, state::Int) = s.x[state]
-_variables(s::AbstractSwitchedSystem, state::Int) = _variables(sosdata(s), state)
+MultivariatePolynomials.variables(s::SOSData, state::Int) = s.x
+MultivariatePolynomials.variables(s::ConstrainedSOSData, state::Int) = s.x[state]
+MultivariatePolynomials.variables(s::AbstractSwitchedSystem, state::Int) = variables(sosdata(s), state)
 
 getlyaps(s::AbstractSOSData) = s.lyaps
 
