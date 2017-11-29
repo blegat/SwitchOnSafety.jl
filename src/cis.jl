@@ -89,7 +89,7 @@ function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), cheby
     for (i, u) in enumerate(N)
         # Constraint 1
         NN = length(out_transitions(s, u))
-        λouts[i] = map(jt -> lyapconstraint(is, N, s, ps, i, l, y, jt[2], m, cone, λ === nothing ? nothing : λ[jt[1]]), enumerate(out_transitions(s, u)))
+        λouts[i] = map(jt -> lyapconstraint(is, N, s, ps, i, l, y, jt[2], m, cone, λ === nothing ? nothing : λ[i][jt[1]]), enumerate(out_transitions(s, u)))
         # Constraint 2
         #@SDconstraint m differentiate(p[u], x, 2) >= 0
         # Constraint 3
