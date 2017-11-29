@@ -11,6 +11,9 @@ import Base.==
 export ρ, quicklb, quickub, quickb
 
 function ρ(A::Matrix)
+    if isempty(A)
+        throw(ArgumentError("Cannot compute the spectral radius of 0x0 matrix"))
+    end
     maximum(abs.(eigvals(A)))
 end
 # eigvals is not defined for SparseMatrixCSC

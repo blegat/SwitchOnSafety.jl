@@ -1,3 +1,5 @@
+include("sr.jl")
+
 include("discrete.jl")
 #include("continuous.jl")
 
