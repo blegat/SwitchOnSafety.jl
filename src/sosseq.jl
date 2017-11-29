@@ -86,7 +86,7 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver=()->noth
     if p_0 == :Primal
         p_0 = lyap.primal[curstate]
     elseif p_0 == :Random
-        Z = monomials(_variables(s, curstate), d)
+        Z = monomials(variables(s, curstate), d)
         p_0 = randsos(Z, monotype=:Gram, r=1)
     end # otherwise p_0 is assumed to be an sos polynomial given by the user
     p_0 = polynomial(p_0)
