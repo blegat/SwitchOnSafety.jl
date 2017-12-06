@@ -128,13 +128,14 @@ function getp(m::Model, h, y, cone)
     #QuadCone(x' * Q * x, Q, L, λinv)
 end
 
-function lyapconstraint(is, N, s, ps, i, l, y, t, m, cone, λuser)
-    σ = symbol(s.automaton, t)
-    startp = lhs(l[i].p, y, s.resetmaps[σ])
+function lyapconstraint(_p::Function, N, s, l, y, t, m, cone, λuser)
+    u = source(s, t)
     v = target(s, t)
+    σ = symbol(s.automaton, t)
+    startp = lhs(l[u].p, y, s.resetmaps[σ])
     E = s.resetmaps[σ].E
-    newp = ATrp(_p(v, N, y, l, is, ps), y, E)
-    if v in N && samecenter(l[i], l[v])
+    newp = ATrp(_p(v), y, E)
+    if v in N && samecenter(l[u], l[v])
         expr = newp - startp
         @constraint m expr in cone
         1.

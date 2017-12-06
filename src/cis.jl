@@ -72,28 +72,29 @@ function _p(q, N, y, l, is, ps)
     end
 end
 
-function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}())
-    @show h
+function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s))
     n = nstates(s)
     m = SOSModel(solver=solver)
-    l = [getp(m, h[u], y, cone) for u in N]
+    l = Dict(u => getp(m, h[u], y, cone) for u in N)
 
-    @objective m Max sum(p -> p.vol, l)
+    @objective m Max sum(p -> p.vol, values(l))
 
     λouts = Dict{transitiontype(s), JuMP.AffExpr}()
 
-    for (i, u) in enumerate(N)
+    for q in N
         # Constraint 1
-        NN = length(out_transitions(s, u))
-        for t in out_transitions(s, u)
+        NN = length(out_transitions(s, q))
+        for t in out_transitions(s, q)
             λin = get(λ, t, nothing)
-            λouts[t] = lyapconstraint(is, N, s, ps, i, l, y, t, m, cone, λin)
+            if target(s, t) in enabled
+                λouts[t] = lyapconstraint(v -> _p(v, N, y, l, is, ps), N, s, l, y, t, m, cone, λin)
+            end
         end
         # Constraint 2
-        #@SDconstraint m differentiate(p[u], x, 2) >= 0
+        #@SDconstraint m differentiate(p[q], x, 2) >= 0
         # Constraint 3
-        for hs in ineqs(s.invariants[u])
-            @constraint m l[i].p(y => [-hs.β; hs.a]) <= 0
+        for hs in ineqs(s.invariants[q])
+            @constraint m l[q].p(y => [-hs.β; hs.a]) <= 0
         end
     end
 
@@ -111,8 +112,8 @@ function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), cheby
         println("λ for $t is $(JuMP.resultvalue.(λout))")
     end
 
-    for (i, q) in enumerate(N)
-        lv = JuMP.resultvalue(l[i])
+    for q in N
+        lv = JuMP.resultvalue(l[q])
         ps[q] = Nullable(lv.p)
         is[q] = ellipsoid(lv)
     end
