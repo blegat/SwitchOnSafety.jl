@@ -35,6 +35,17 @@ function LiftedEllipsoid(ell::Ellipsoid)
 end
 
 Base.convert(::Type{Ellipsoid{T}}, ell::LiftedEllipsoid) where T = convert(Ellipsoid{T}, Ellipsoid(ell))
+function Bbβλ(P)
+    n = LinAlg.checksquare(P)-1
+    ix = 1+(1:n)
+    β = P[1, 1]
+    b = P[1, ix]
+    B = P[ix, ix]
+    λ = dot(b, B \ b) - β
+    @show λ
+    @assert λ >= 0
+    B, b, β, λ
+end
 function Ellipsoid(ell::LiftedEllipsoid)
     # P is
     # λ * [c'Qc-1  -c'Q
@@ -47,12 +58,7 @@ function Ellipsoid(ell::LiftedEllipsoid)
     # λ c'Qc = β + λ
     # λ^2 c'Qc = b'Q^{-1}b = λ b'B^{-1}b <=> λ c'Qc = b'B^{-1}b
     # Hence λ = b'B^{-1}b - β
-    n = LinAlg.checksquare(ell.P)-1
-    ix = 1+(1:n)
-    β = ell.P[1, 1]
-    b = ell.P[1, ix]
-    B = ell.P[ix, ix]
-    λ = dot(b, B \ b) - β
+    B, b, β, λ = Bbβλ(ell.P)
     c = -(B \ b)
     Q = B / λ
     Ellipsoid(Q, c)
@@ -103,6 +109,8 @@ QuadCone(p, Q, b, β, h::InteriorPoint, H, vol) = InteriorQuadCone(p, Q, b, β, 
 
 samecenter(l1, l2) = false
 
+_householder(h) = householder([1; h.h]) # We add 1, for z
+
 function getp(m::Model, h, y, cone, detcone)
     n = length(y)-1
     #β = 1.#@variable m lowerbound=0.
@@ -111,10 +119,7 @@ function getp(m::Model, h, y, cone, detcone)
     #@constraint m b .== 0
     Q = @variable m [1:n, 1:n] Symmetric
     @constraint m y' * [β+1 b'; b Q] * y in cone
-    H = householder([1; h.h]) # We add 1, for z
-    P = [β b'
-         b Q]
-    HPH = H * P * H
+    H = _householder(h)
     p = y' * _HPH(Q, b, β, H) * y
     vol = @variable m
     #@constraint m vol <= trace Q

@@ -60,13 +60,20 @@ function _vars(s::DTAHAS)
     @polyvar x[1:statedim(s, 1)] z
     [z; x]
 end
-function _p(q, N, y, l, is, ps)
+function _p(q, N, y, l, is, ps, h)
     if q in N
         l[q].p
     else
         if isnull(ps[q])
             le = LiftedEllipsoid(is[q])
-            ps[q] = Nullable(y' * inv(le.P) * y)
+            Pd = inv(le.P)
+            H = _householder(h[q])
+            HPdH = H * Pd * H
+            # HPdH is not like a solution what would be obtained by solving the program
+            # since the λ computed for unlifting it is maybe not one.
+            # Therefore, the S-procedure's λ for the constraints will be different.
+            B, b, β, λ = Bbβλ(HPdH)
+            ps[q] = Nullable(y' * _HPH(B/λ, b/λ, β/λ, H) * y)
         end
         get(ps[q])
     end
@@ -87,7 +94,7 @@ function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), cheby
         for t in out_transitions(s, q)
             λin = get(λ, t, nothing)
             if target(s, t) in enabled
-                λouts[t] = lyapconstraint(v -> _p(v, N, y, l, is, ps), N, s, l, y, t, m, cone, λin)
+                λouts[t] = lyapconstraint(v -> _p(v, N, y, l, is, ps, h), N, s, l, y, t, m, cone, λin)
             end
         end
         # Constraint 2
