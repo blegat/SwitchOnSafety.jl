@@ -103,7 +103,7 @@ QuadCone(p, Q, b, β, h::InteriorPoint, H, vol) = InteriorQuadCone(p, Q, b, β, 
 
 samecenter(l1, l2) = false
 
-function getp(m::Model, h, y, cone)
+function getp(m::Model, h, y, cone, detcone)
     n = length(y)-1
     #β = 1.#@variable m lowerbound=0.
     β = _β(m, h)
@@ -118,7 +118,7 @@ function getp(m::Model, h, y, cone)
     p = y' * _HPH(Q, b, β, H) * y
     vol = @variable m
     #@constraint m vol <= trace Q
-    @constraint m [vol; [Q[i, j] for j in 1:n for i in 1:j]] in MOI.RootDetConeTriangle(n)
+    @constraint m [vol; [Q[i, j] for j in 1:n for i in 1:j]] in detcone(n)
     QuadCone(p, Q, b, β, h, H, vol)
     #@constraint m sum(Q) == 1 # dehomogenize
     #@variable m L[1:n, 1:n]

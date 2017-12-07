@@ -72,10 +72,10 @@ function _p(q, N, y, l, is, ps)
     end
 end
 
-function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s))
+function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(solver()), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle)
     n = nstates(s)
     m = SOSModel(solver=solver)
-    l = Dict(u => getp(m, h[u], y, cone) for u in N)
+    l = Dict(u => getp(m, h[u], y, cone, detcone) for u in N)
 
     @objective m Max sum(p -> p.vol, values(l))
 
@@ -100,7 +100,9 @@ function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), cheby
 
     JuMP.solve(m)
 
-    @show MOI.get(m, MOI.SolveTime())
+    if MOI.canget(m, MOI.SolveTime())
+        @show MOI.get(m, MOI.SolveTime())
+    end
 
     @show JuMP.terminationstatus(m)
     @show JuMP.primalstatus(m)
