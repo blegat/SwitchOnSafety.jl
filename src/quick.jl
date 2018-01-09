@@ -9,7 +9,7 @@ function quickb(s::AbstractDiscreteSwitchedSystem, k::Integer=1, clb=true, cub=t
                 psw = periodicswitching(sw)
                 lb = max(lb, psw.growthrate)
                 notifyperiodic!(s, psw)
-				updatesmp!(s, psw)
+                updatesmp!(s, psw)
             end
             if cub
                 ub1 = max(ub1, norm(sw.A, 1)^(1/k))
