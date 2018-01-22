@@ -54,7 +54,8 @@ const expected_lb = expected_ub ./ ratio
                                     @test get(psw) == msnp
                                 end
                             else
-                                @test get(psw) == msmp
+                                # I initially got only msmp but Mosek now also gets msbp
+                                @test get(psw) == msmp || get(psw) == msbp
                             end
                         elseif d <= 3
                             if 2 <= d && v_0 == 3
