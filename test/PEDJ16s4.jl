@@ -18,6 +18,17 @@ const expected_lb = expected_ub ./ ratio
 
 @testset "[PEDJ] Section 4" begin
     include(Pkg.dir("HybridSystems", "examples", "PEDJ16s4.jl"))
+
+    @testset "p-radius with $algo" for algo in (VeroneseLift(), KroneckerLift())
+        pρlb = [0.87907456299, 0.89372555286, 0.90488811163]
+        pρub = [1.42237252156, 1.13683646451, 1.06232506675]
+        for d in 1:3
+            lb, ub = pradiusb(hs, 2d, algo)
+            @test isapprox(lb, pρlb[d])
+            @test isapprox(ub, pρub[d])
+        end
+    end
+
     sbp = periodicswitching(hs, Edge.([3 => 3]))
     @test sbp.growthrate == 0.9392550239418472
     snp = periodicswitching(hs, Edge.([3 => 1, 1 => 3, 3 => 1, 1 => 3, 3 => 3, 3 => 3, 3 => 3, 3 => 3]))
@@ -31,7 +42,8 @@ const expected_lb = expected_ub ./ ratio
     @test msnp.growthrate == 0.9653214971459174
     msmp = periodicswitching(hsm, Edge.([5 => 3, 3 => 8, 8 => 3, 3 => 7, 7 => 2, 2 => 5, 5 => 5, 5 => 5]))
     @test msmp.growthrate == 0.9748171979372074
-    for solver in sdp_solvers
+
+    @testset "CJSR with $solver" for solver in sdp_solvers
         for s in (hs, hsm)
             m = s === hs ? 1 : 2
             for d in 1:(7-m)

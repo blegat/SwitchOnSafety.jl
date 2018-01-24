@@ -13,11 +13,13 @@ function pradius(s::DiscreteSwitchedLinearSystem, p, lift::Function; pnorm=Inf, 
     end
 end
 
-function kozyakinlift(s, t, A)
-    kron(sparse([source(s, t)], [target(s, t)], [1]), A[symbol(s, t)])
+function kozyakinlift(s, t, As)
+    n = nstates(s)
+    A = As[symbol(s, t)]
+    kron(sparse([source(s, t)], [target(s, t)], [one(eltype(A))], n, n), A)
 end
 function pradius(s::ConstrainedDiscreteSwitchedLinearSystem, p, lift::Function; pnorm=Inf, ɛ=1e-2, forceub=false)
-    Alifted = (A -> lift(A, p)).(s.resetmaps)
+    Alifted = (rm -> lift(rm.A, p)).(s.resetmaps)
     ρpmpp = ρ(sum(kozyakinlift(s, t, Alifted) for t in transitions(s)))
     if forceub
         ρpmpp^(1/p)
@@ -74,7 +76,7 @@ function pradius(s::DiscreteSwitchedLinearSystem, p, ::BruteForce; pnorm=Inf, ɛ
 end
 
 # p-radius algo needs to be exact to compute bounds on JSR
-function pradiusb(s::DiscreteSwitchedLinearSystem, p, algo::ExactPRadiusAlgorithm=VeroneseLift())
+function pradiusb(s::AbstractDiscreteSwitchedSystem, p, algo::ExactPRadiusAlgorithm=VeroneseLift())
     ρpmp = pradius(s, p, algo, forceub=true)
     ρp = ρpmp / ρA(s)^(1/p)
     updateb!(s, ρp, ρpmp)
