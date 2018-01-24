@@ -90,6 +90,10 @@ function isdecided(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode
     return isinfeasible(status) || isfeasible(status)
 end
 
+# Mosek's canget returns false when the primal is infeasible, near infeasible or illposed
+_primalstatus(model::JuMP.Model) = MOI.canget(model, MOI.PrimalStatus()) ? JuMP.primalstatus(model) : MOI.UnknownResultStatus
+_dualstatus(model::JuMP.Model) = MOI.canget(model, MOI.DualStatus()) ? JuMP.dualstatus(model) : MOI.UnknownResultStatus
+
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ; solver=()->nothing)
     model = SOSModel(solver=solver)
@@ -100,8 +104,8 @@ function soslyap(s::AbstractSwitchedSystem, d, γ; solver=()->nothing)
     #@constraint(model, sum(sum(coefficients(lyap)) for lyap in p))
     solve(model)
     status = (JuMP.terminationstatus(model),
-              JuMP.primalstatus(model),
-              JuMP.dualstatus(model))
+              _primalstatus(model),
+              _dualstatus(model))
     if isinfeasible(status)
         #println("Infeasible $γ")
         @assert !isfeasible(status)
