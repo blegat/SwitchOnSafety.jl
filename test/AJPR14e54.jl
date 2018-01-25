@@ -21,9 +21,9 @@
     @test pradius(s, 2) ≈ 3.234535151244 rtol=1e-9
     @test pradius(s, 2, BruteForce(), pnorm=2) ≈ 3.632097274822649
 
+    pρlb = [3.23453515151, 3.42756015606, 3.54374928704]
+    pρub = [4.57432347886, 4.07607892469, 3.97772408342]
     @testset "p-radius with $algo" for algo in (VeroneseLift(), KroneckerLift())
-        pρlb = [3.23453515151, 3.42756015606, 3.54374928704]
-        pρub = [4.57432347886, 4.07607892469, 3.97772408342]
         for d in 1:3
             lb, ub = pradiusb(s, 2d, algo)
             @test isapprox(lb, pρlb[d])
@@ -60,7 +60,7 @@
         end
     end
     if isempty(sdp_solvers)
-        @test getub(s) ≈ 4.0760789246858735
+        @test getub(s) ≈ pρub[end]
     else
         @test log(getub(s)) ≈ log(3.924086919) rtol=5e-4
         @test getsmp(s) == smp

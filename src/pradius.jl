@@ -43,7 +43,11 @@ struct BruteForce <: PRadiusAlgorithm end
 
 liftfunction(::VeroneseLift) = veroneselift
 liftfunction(::KroneckerLift) = kroneckerlift
-kroneckerlift(A::AbstractMatrix, p::Integer) = kronpow(veroneselift(A, 2), div(p, 2))
+function kroneckerlift(A::AbstractMatrix, p::Integer)
+    @assert iseven(p)
+    kronpow(veroneselift(A, 2), div(p, 2))
+end
+
 
 function pradius(s::AbstractDiscreteSwitchedSystem, p, algo::ExactPRadiusAlgorithm=VeroneseLift(); kws...)
     checkeven(p, algo)
