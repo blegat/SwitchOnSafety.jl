@@ -1,11 +1,15 @@
-# Switch On Safety (SOS) : Computing invariant sets and controlled invariant sets of hybrid systems
+# Switch On Safety (SOS)
 
 | **Documentation** | **PackageEvaluator** | **Build Status** |
 |:-----------------:|:--------------------:|:----------------:|
 | [![][docs-stable-img]][docs-stable-url] | [![][pkg-0.5-img]][pkg-0.5-url] | [![Build Status][build-img]][build-url] [![Build Status][winbuild-img]][winbuild-url] |
 | [![][docs-latest-img]][docs-latest-url] | [![][pkg-0.6-img]][pkg-0.6-url] | [![Coveralls branch][coveralls-img]][coveralls-url] [![Codecov branch][codecov-img]][codecov-url] |
 
-This packages implements methods for computing invariant sets and controlled invariant sets of [hybrid systems](https://github.com/blegat/HybridSystems.jl) using [Sum Of Squares Programming](https://github.com/JuliaOpt/SumOfSquares.jl).
+This packages implements methods for computing invariant sets using [Sum Of Squares Programming](https://github.com/JuliaOpt/SumOfSquares.jl).
+It supports:
+* Systems defined in [Systems.jl](https://github.com/JuliaReach/Systems.jl).
+* Hybrid Systems defined in [HybridSystems.jl](https://github.com/blegat/HybridSystems.jl).
+
 It also includes utilities for approximation the [Joint Spectral Radius](https://link.springer.com/book/10.1007%2F978-3-540-95980-9) / Lyapunov exponent of a system using invariant set computation.
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
