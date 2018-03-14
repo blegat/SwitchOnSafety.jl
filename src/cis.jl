@@ -3,12 +3,12 @@ using Polyhedra
 
 export getis
 
-function algebraiclift(s::DiscreteLinearControlSystem{T, MT, FullSpace}) where {T, MT}
+function algebraiclift(s::LinearControlDiscreteSystem)
     n = statedim(s)
     z = find(i -> iszero(sum(abs.(s.B[i,:]))), 1:n)
     @show z
     # TODO ty - 1//2y^3 + 3//1xy + 2//1yhe affine space may not be parallel to classical axis
-    DiscreteLinearAlgebraicSystem(s.A[z, :], (eye(n))[z, :])
+    LinearAlgebraicDiscreteSystem(s.A[z, :], (eye(n))[z, :])
 end
 algebraiclift(s::DiscreteIdentitySystem) = s
 algebraiclift(S::AbstractVector) = algebraiclift.(S)
@@ -76,7 +76,7 @@ function getp(m::Model, c, x, z::AbstractVariable)
     #                 L' diagm([λinv; -1])] ⪰ 0
     #ConeLyap(x' * Q * x, Q, L, λinv)
 end
-function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:HRep, FullSpace, <:DiscreteLinearAlgebraicSystem}, solver, c=map(cv->cv[1], chebyshevcenter.(s.invariants)))
+function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}, solver, c=map(cv->cv[1], chebyshevcenter.(s.invariants)))
     @show c
     g = s.automaton.G
     n = nv(g)
@@ -134,8 +134,6 @@ function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:HR
 #    end
 end
 
-const UnboundedControl = DiscreteLinearControlSystem{<:Any,<:Any,FullSpace}
-
-function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:HRep, FullSpace, <:UnboundedControl}, args...)
+function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearControlDiscreteSystem}, args...)
     getis(algebraiclift(s), args...)
 end
