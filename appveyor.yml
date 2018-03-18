@@ -27,6 +27,7 @@ build_script:
 # Need to convert from shallow to complete for Pkg.clone to work
   - IF EXIST .git\shallow (git fetch --unshallow)
   - C:\projects\julia\bin\julia -e "versioninfo();
+      Pkg.clone(\"https://github.com/JuliaReach/Systems.jl.git\");
       Pkg.clone(\"https://github.com/blegat/HybridSystems.jl.git\");
       Pkg.clone(pwd(), \"SwitchOnSafety\"); Pkg.build(\"SwitchOnSafety\")"
 
