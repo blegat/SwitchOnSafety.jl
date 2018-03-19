@@ -62,12 +62,12 @@ soslyapscaling(s::AbstractDiscreteSwitchedSystem, γ, d) = γ^(2*d)
 #soslyapscaling(s::AbstractContinuousSwitchedSystem, γ, d) = 2*d*γ
 function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, edge, d, γ)
     getid(x) = x.id
-    @constraint model soslyapforward(s, lyapforout(p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(p, edge)
+    @constraint model soslyapforward(s, lyapforout(s, p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(s, p, edge)
 end
 function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
     [soslyapconstraint(s, model, p, t, d, γ) for t in transitions(s)]
 end
-measurefor(μs, s::DiscreteSwitchedLinearSystem, t) = μs[t]
+measurefor(μs, s::DiscreteSwitchedLinearSystem, t) = μs[symbol(s, t)]
 measurefor(μs, s::ConstrainedDiscreteSwitchedLinearSystem, t) = μs[sosdata(s).eid[t]]
 
 function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
@@ -76,10 +76,8 @@ function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     @constraint model p >= sum(x.^(2*d))
     p
 end
-lyapforin(p::Vector, mode::Int) = p[1]
-lyapforout(p::Vector, mode::Int) = p[1]
-lyapforin(p::Vector, edge::LightGraphs.Edge) = p[edge.src]
-lyapforout(p::Vector, edge::LightGraphs.Edge) = p[edge.dst]
+lyapforin(s, p::Vector, t) = p[source(s, t)]
+lyapforout(s, p::Vector, t) = p[target(s, t)]
 
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ; solver::AbstractMathProgSolver=JuMP.UnsetSolver())

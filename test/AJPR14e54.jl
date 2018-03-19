@@ -34,7 +34,7 @@
 
     tmp = periodicswitching(s, [1, 2])
     tmp = periodicswitching(tmp.s, tmp.period, round(tmp.growthrate, 4)) # Avoid difference of floating point rounding
-    @test sprint(show, tmp) == "Periodic switching of growth rate 3.9174 and modes: [1, 2] for the transitions [1, 2]"
+    @test sprint(show, tmp) == "PSW(3.9174, [1, 2])" #"Periodic switching of growth rate 3.9174 and modes: [1, 2] for the transitions [1, 2]"
     smp = periodicswitching(s, [1, 2])
     #@test smp != tmp
     @test smp != periodicswitching(s, [2, 1, 2, 1])

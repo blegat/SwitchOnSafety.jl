@@ -129,10 +129,6 @@ end
 # nextoutnode(s, v, u) = u+1
 # doneoutnode(s, v, u) = u >= length(s.A)
 
-# TODO use inference instead
-transitiontype(::DiscreteSwitchedLinearSystem) = Int
-transitiontype(::ConstrainedDiscreteSwitchedLinearSystem) = Edge
-
 function _next!(it, seq, modeit, modest, As, i, A)
     seq[i], modest[i] = next(modeit[i], modest[i])
     B = dynamicfort(it.s, seq[i])

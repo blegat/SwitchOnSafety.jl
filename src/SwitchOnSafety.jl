@@ -7,8 +7,6 @@ using MultivariateMoments
 using Systems
 using HybridSystems
 
-import Base.==
-
 export ρ, quicklb, quickub, quickb
 
 function ρ(A::Matrix)

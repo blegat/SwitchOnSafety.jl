@@ -49,6 +49,11 @@ function periodicswitching(s::AbstractSwitchedSystem, period::Vector)
     periodicswitching(s, period, A)
 end
 
+# Shortcut
+function periodicswitching(s::DiscreteSwitchedLinearSystem, period::Vector{Int})
+    periodicswitching(s, HybridSystems.OneStateTransition.(period))
+end
+
 #function periodicswitching(s::AbstractContinuousSwitchedSystem, seq, growthrate, dt)
 #    # seq is a copy since it has been obtained with seq.seq[i:j]
 #    mode, Δt = seq[end]
@@ -58,7 +63,7 @@ end
 
 #hasrepetition(s::AbstractPeriodicSwitching) == !iszero(repetition(s.period))
 
-function (==)(s1::AbstractPeriodicSwitching, s2::AbstractPeriodicSwitching)
+function Base.:(==)(s1::AbstractPeriodicSwitching, s2::AbstractPeriodicSwitching)
     # Shortcut
     hash(s1) == hash(s2) # assumes norepetition
 #    if !(s1.s === s2.s)
