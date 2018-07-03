@@ -6,7 +6,7 @@
 # Ando, T. and Shih, M.-h.
 # Simultaneous Contractibility.
 # SIAM Journal on Matrix Analysis & Applications, 1998, 19, 487
-# The JSR is √2
+# The JSR is 1
 
 @testset "[PJ08] Example 2.8" begin
     expected_lb = [1, 1/2^(1/4)]
