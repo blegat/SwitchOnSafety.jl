@@ -11,23 +11,23 @@ end
 
 mos = false && try_import(:MathOptInterfaceMosek)
 if mos
-    mossolver = () -> MathOptInterfaceMosek.MosekOptimizer(LOG=0)
+    mossolver = MathOptInterfaceMosek.MosekOptimizer(LOG=0)
 else
-    mossolver = () -> nothing
+    mossolver = nothing
 end
 ismosek(solver) = solver === mossolver
 csd = false && try_import(:CSDP)
 if csd
-    csdsolver = () -> CSDP.CSDPOptimizer(printlevel=0)
+    csdsolver = CSDP.CSDPOptimizer(printlevel=0)
 else
-    csdsolver = () -> nothing
+    csdsolver = nothing
 end
 iscsdp(solver) = solver === csdsolver
 sda = false && try_import(:SDPA)
 if sda
-    sdasolver = () -> SDPA.SDPAOptimizer()
+    sdasolver = SDPA.SDPAOptimizer()
 else
-    sdasolver = () -> nothing
+    sdasolver = nothing
 end
 issdpa(solver) = solver === sdasolver
 scs = false && try_import(:SCS) # It does not work

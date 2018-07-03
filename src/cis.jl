@@ -1,5 +1,6 @@
 using SemialgebraicSets
 using Polyhedra
+using FillArrays
 
 export getis, fillis!, algebraiclift
 
@@ -11,7 +12,7 @@ function algebraiclift(s::LinearControlDiscreteSystem)
 end
 algebraiclift(s::DiscreteIdentitySystem) = s
 algebraiclift(S::AbstractVector) = algebraiclift.(S)
-algebraiclift(S::ConstantVector) = ConstantVector(algebraiclift(first(S)), length(S))
+algebraiclift(S::Fill) = Fill(algebraiclift(first(S)), length(S))
 function algebraiclift(h::HybridSystem)
     HybridSystem(h.automaton, algebraiclift(h.modes), h.invariants, h.guards, algebraiclift(h.resetmaps), h.switchings)
 end
@@ -51,7 +52,7 @@ function ATrp(p, x, A)
     p(x => B * y)
 end
 # If Re is a vector not constant, I would be comparing dummy variables of different meaning
-function lhs(p, x, Re::DiscreteLinearAlgebraicSystem)
+function lhs(p, x, Re::LinearAlgebraicDiscreteSystem)
     ATrp(p, x, Re.A)
 end
 
@@ -79,9 +80,9 @@ function _p(q, N, y, l, is, ps, h)
     end
 end
 
-function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(solver()), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle)
+function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(solver()), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle)
     n = nstates(s)
-    m = SOSModel(solver=solver)
+    m = SOSModel(optimizer=optimizer)
     l = Dict(u => getp(m, h[u], y, cone, detcone) for u in N)
 
     @objective m Max sum(p -> p.vol, values(l))
@@ -105,7 +106,7 @@ function fillis!(is, N, s::DTAHAS, solver, h=map(cv->InteriorPoint(cv[1]), cheby
         end
     end
 
-    JuMP.solve(m)
+    JuMP.optimize(m)
 
     if MOI.canget(m, MOI.SolveTime())
         @show MOI.get(m, MOI.SolveTime())
@@ -135,9 +136,7 @@ function getis(s::DTAHAS, args...; kws...)
     is
 end
 
-const UnboundedControl = DiscreteLinearControlSystem{<:Any,<:Any,FullSpace}
-
-function fillis!(is, N, s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:HRep, FullSpace, <:UnboundedControl}, args...; kws...)
+function fillis!(is, N, s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearControlDiscreteSystem}, args...; kws...)
     fillis!(is, N, algebraiclift(s), args...; kws...)
 end
 function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearControlDiscreteSystem}, args...; kws...)
