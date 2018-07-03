@@ -156,7 +156,7 @@ function lyapconstraint(_p::Function, N, s, l, y, t, m, cone, λuser)
     end
 end
 
-ellipsoid(p::QuadCone{T, P, JuMP.Variable}) where {T, P<:AbstractPolynomial{T}} = ellipsoid(JuMP.resultvalue(p))
+ellipsoid(p::QuadCone{T, P, JuMP.VariableRef}) where {T, P<:AbstractPolynomial{T}} = ellipsoid(JuMP.resultvalue(p))
 
 function _HPH(D, d, δ, H)
     P = [δ d'

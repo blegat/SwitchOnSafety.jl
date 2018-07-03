@@ -1,5 +1,7 @@
 module SwitchOnSafety
 
+using Compat
+
 using DynamicPolynomials
 using MultivariatePolynomials
 using MultivariateMoments

@@ -9,23 +9,23 @@ function try_import(name::Symbol)
     end
 end
 
-mos = try_import(:MathOptInterfaceMosek)
+mos = false && try_import(:MathOptInterfaceMosek)
 if mos
-    mossolver = () -> MathOptInterfaceMosek.MosekInstance(LOG=0)
+    mossolver = () -> MathOptInterfaceMosek.MosekOptimizer(LOG=0)
 else
     mossolver = () -> nothing
 end
 ismosek(solver) = solver === mossolver
 csd = false && try_import(:CSDP)
 if csd
-    csdsolver = () -> CSDP.CSDPInstance(printlevel=0)
+    csdsolver = () -> CSDP.CSDPOptimizer(printlevel=0)
 else
     csdsolver = () -> nothing
 end
 iscsdp(solver) = solver === csdsolver
 sda = false && try_import(:SDPA)
 if sda
-    sdasolver = () -> SDPA.SDPAInstance()
+    sdasolver = () -> SDPA.SDPAOptimizer()
 else
     sdasolver = () -> nothing
 end

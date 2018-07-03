@@ -95,14 +95,14 @@ _primalstatus(model::JuMP.Model) = MOI.canget(model, MOI.PrimalStatus()) ? JuMP.
 _dualstatus(model::JuMP.Model) = MOI.canget(model, MOI.DualStatus()) ? JuMP.dualstatus(model) : MOI.UnknownResultStatus
 
 # Solving the Lyapunov problem
-function soslyap(s::AbstractSwitchedSystem, d, γ; solver=()->nothing)
-    model = SOSModel(solver=solver)
+function soslyap(s::AbstractSwitchedSystem, d, γ; optimizer=nothing)
+    model = SOSModel(optimizer=optimizer)
     p = [buildlyap(model, variables(s, v), d) for v in states(s)]
     cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     #status = solve(model, suppress_warnings=true)
     #@constraint(model, sum(sum(coefficients(lyap)) for lyap in p))
-    solve(model)
+    JuMP.optimize(model)
     status = (JuMP.terminationstatus(model),
               _primalstatus(model),
               _dualstatus(model))
