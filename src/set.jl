@@ -94,14 +94,14 @@ struct InteriorPoint{T}
 end
 struct InteriorQuadCone{T, P<:AbstractPolynomial{T}, S} <: QuadCone{T, P, S}
     p::P
-    Q::Matrix{S}
+    Q::Symmetric{S, Matrix{S}}
     b::Vector{S}
     β::S
     h::Vector{Float64} # h is an interior point
     H::Matrix{Float64}
     vol::S
 end
-InteriorQuadCone(p::P, Q::Matrix{S}, b::Vector{S}, β::S, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = InteriorQuadCone{T, P, S}(p, Q, b, β, c, H, vol)
+InteriorQuadCone(p::P, Q::Symmetric{S, Matrix{S}}, b::Vector{S}, β::S, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = InteriorQuadCone{T, P, S}(p, Q, b, β, c, H, vol)
 JuMP.resultvalue(p::InteriorQuadCone) = InteriorQuadCone(JuMP.resultvalue(p.p), JuMP.resultvalue.(p.Q), JuMP.resultvalue.(p.b), JuMP.resultvalue(p.β), p.h, p.H, JuMP.resultvalue(p.vol))
 _β(m, h::InteriorPoint) = @variable m
 _b(m, h::InteriorPoint) = @variable m [1:length(h.h)]

@@ -10,11 +10,11 @@ function algebraiclift(s::LinearControlDiscreteSystem)
     # TODO ty - 1//2y^3 + 3//1xy + 2//1yhe affine space may not be parallel to classical axis
     LinearAlgebraicDiscreteSystem(s.A[z, :], (eye(n))[z, :])
 end
-algebraiclift(s::DiscreteIdentitySystem) = s
+algebraiclift(s::ConstrainedDiscreteIdentitySystem) = s
 algebraiclift(S::AbstractVector) = algebraiclift.(S)
 algebraiclift(S::Fill) = Fill(algebraiclift(first(S)), length(S))
 function algebraiclift(h::HybridSystem)
-    HybridSystem(h.automaton, algebraiclift(h.modes), h.invariants, h.guards, algebraiclift(h.resetmaps), h.switchings)
+    HybridSystem(h.automaton, algebraiclift(h.modes), algebraiclift(h.resetmaps), h.switchings)
 end
 
 function r(A::Matrix{T}, c::Vector{T}=zeros(T, size(A, 1))) where T
@@ -56,7 +56,8 @@ function lhs(p, x, Re::LinearAlgebraicDiscreteSystem)
     ATrp(p, x, Re.A)
 end
 
-const DTAHAS = HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}
+const DTAHAS = HybridSystem{<:AbstractAutomaton, <:ConstrainedDiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}
+const DTAHCS = HybridSystem{<:AbstractAutomaton, <:ConstrainedDiscreteIdentitySystem, <:LinearControlDiscreteSystem}
 function _vars(s::DTAHAS)
     @polyvar x[1:statedim(s, 1)] z
     [z; x]
@@ -80,7 +81,7 @@ function _p(q, N, y, l, is, ps, h)
     end
 end
 
-function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(s.invariants)); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(solver()), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle)
+function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(stateset.(s.modes))); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(solver()), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle)
     n = nstates(s)
     m = SOSModel(optimizer=optimizer)
     l = Dict(u => getp(m, h[u], y, cone, detcone) for u in N)
@@ -101,7 +102,7 @@ function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->I
         # Constraint 2
         #@SDconstraint m differentiate(p[q], x, 2) >= 0
         # Constraint 3
-        for hs in ineqs(s.invariants[q])
+        for hs in ineqs(stateset(s, q))
             @constraint m l[q].p(y => [-hs.β; hs.a]) <= 0
         end
     end
@@ -136,9 +137,9 @@ function getis(s::DTAHAS, args...; kws...)
     is
 end
 
-function fillis!(is, N, s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearControlDiscreteSystem}, args...; kws...)
+function fillis!(is, N, s::DTAHCS, args...; kws...)
     fillis!(is, N, algebraiclift(s), args...; kws...)
 end
-function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearControlDiscreteSystem}, args...; kws...)
+function getis(s::DTAHCS, args...; kws...)
     getis(algebraiclift(s), args...; kws...)
 end

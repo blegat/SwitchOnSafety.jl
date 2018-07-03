@@ -1,6 +1,6 @@
 julia 0.6
 Combinatorics
-MathProgBase
+MathOptInterface
 JuMP
 SumOfSquares
 MultivariatePolynomials
