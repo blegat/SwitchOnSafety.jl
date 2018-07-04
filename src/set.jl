@@ -76,13 +76,13 @@ struct CenterPoint{T}
 end
 struct CenterQuadCone{T, P<:AbstractPolynomial{T}, S} <: QuadCone{T, P, S}
     p::P
-    Q::Matrix{S}
+    Q::Symmetric{S, Matrix{S}}
     h::Vector{Float64} # h is the center
     H::Matrix{Float64}
     vol::S
 end
-CenterQuadCone(p::P, Q::Matrix{S}, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = CenterQuadCone{T, P, S}(p, Q, c, H, vol)
-JuMP.resultvalue(p::CenterQuadCone) = CenterQuadCone(JuMP.resultvalue(p.p), JuMP.resultvalue.(p.Q), p.h, p.H, JuMP.resultvalue(p.vol))
+CenterQuadCone(p::P, Q::Symmetric{S, Matrix{S}}, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = CenterQuadCone{T, P, S}(p, Q, c, H, vol)
+JuMP.resultvalue(p::CenterQuadCone) = CenterQuadCone(JuMP.resultvalue(p.p), Symmetric(JuMP.resultvalue.(p.Q)), p.h, p.H, JuMP.resultvalue(p.vol))
 _β(m, h::CenterPoint{T}) where T = -one(T)
 _b(m, h::CenterPoint{T}) where T = zeros(T, length(h.h))
 QuadCone(p, Q, b, β, h::CenterPoint, H, vol) = CenterQuadCone(p, Q, h.h, H, vol)
@@ -102,7 +102,7 @@ struct InteriorQuadCone{T, P<:AbstractPolynomial{T}, S} <: QuadCone{T, P, S}
     vol::S
 end
 InteriorQuadCone(p::P, Q::Symmetric{S, Matrix{S}}, b::Vector{S}, β::S, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = InteriorQuadCone{T, P, S}(p, Q, b, β, c, H, vol)
-JuMP.resultvalue(p::InteriorQuadCone) = InteriorQuadCone(JuMP.resultvalue(p.p), JuMP.resultvalue.(p.Q), JuMP.resultvalue.(p.b), JuMP.resultvalue(p.β), p.h, p.H, JuMP.resultvalue(p.vol))
+JuMP.resultvalue(p::InteriorQuadCone) = InteriorQuadCone(JuMP.resultvalue(p.p), Symmetric(JuMP.resultvalue.(p.Q)), JuMP.resultvalue.(p.b), JuMP.resultvalue(p.β), p.h, p.H, JuMP.resultvalue(p.vol))
 _β(m, h::InteriorPoint) = @variable m
 _b(m, h::InteriorPoint) = @variable m [1:length(h.h)]
 QuadCone(p, Q, b, β, h::InteriorPoint, H, vol) = InteriorQuadCone(p, Q, b, β, h.h, H, vol)

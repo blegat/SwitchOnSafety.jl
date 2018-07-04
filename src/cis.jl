@@ -81,8 +81,9 @@ function _p(q, N, y, l, is, ps, h)
     end
 end
 
-function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(stateset.(s.modes))); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(solver()), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle)
+function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(stateset.(s.modes))); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(typeof(optimizer)), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle)
     n = nstates(s)
+    MOI.empty!(optimizer)
     m = SOSModel(optimizer=optimizer)
     l = Dict(u => getp(m, h[u], y, cone, detcone) for u in N)
 
@@ -102,7 +103,8 @@ function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->I
         # Constraint 2
         #@SDconstraint m differentiate(p[q], x, 2) >= 0
         # Constraint 3
-        for hs in ineqs(stateset(s, q))
+        @assert iszero(nhyperplanes(stateset(s, q)))
+        for hs in halfspaces(stateset(s, q))
             @constraint m l[q].p(y => [-hs.β; hs.a]) <= 0
         end
     end
@@ -132,7 +134,7 @@ end
 
 function getis(s::DTAHAS, args...; kws...)
     nmodes = nstates(s)
-    is = Vector{Ellipsoid{Float64}}(nmodes)
+    is = Vector{Ellipsoid{Float64}}(undef, nmodes)
     fillis!(is, 1:nmodes, s, args...; kws...)
     is
 end
