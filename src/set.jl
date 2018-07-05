@@ -42,7 +42,6 @@ function Bbβλ(P)
     b = P[1, ix]
     B = P[ix, ix]
     λ = dot(b, B \ b) - β
-    @show λ
     @assert λ >= 0
     B, b, β, λ
 end

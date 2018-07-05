@@ -81,13 +81,13 @@ function _p(q, N, y, l, is, ps, h)
     end
 end
 
-function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(stateset.(s.modes))); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(typeof(optimizer)), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle)
+function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(stateset.(s.modes))); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(typeof(optimizer)), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle, verbose=1)
     n = nstates(s)
     MOI.empty!(optimizer)
-    m = SOSModel(optimizer=optimizer)
-    l = Dict(u => getp(m, h[u], y, cone, detcone) for u in N)
+    model = SOSModel(optimizer=optimizer)
+    l = Dict(u => getp(model, h[u], y, cone, detcone) for u in N)
 
-    @objective m Max sum(p -> p.vol, values(l))
+    @objective model Max sum(p -> p.vol, values(l))
 
     λouts = Dict{transitiontype(s), JuMP.AffExpr}()
 
@@ -97,32 +97,32 @@ function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->I
         for t in out_transitions(s, q)
             λin = get(λ, t, nothing)
             if target(s, t) in enabled
-                λouts[t] = lyapconstraint(v -> _p(v, N, y, l, is, ps, h), N, s, l, y, t, m, cone, λin)
+                λouts[t] = lyapconstraint(v -> _p(v, N, y, l, is, ps, h), N, s, l, y, t, model, cone, λin)
             end
         end
         # Constraint 2
-        #@SDconstraint m differentiate(p[q], x, 2) >= 0
+        #@SDconstraint model differentiate(p[q], x, 2) >= 0
         # Constraint 3
         @assert iszero(nhyperplanes(stateset(s, q)))
         for hs in halfspaces(stateset(s, q))
-            @constraint m l[q].p(y => [-hs.β; hs.a]) <= 0
+            @constraint model l[q].p(y => [-hs.β; hs.a]) <= 0
         end
     end
 
-    JuMP.optimize(m)
+    JuMP.optimize(model)
 
-    if MOI.canget(m, MOI.SolveTime())
-        @show MOI.get(m, MOI.SolveTime())
+    if verbose >= 1
+        @show MOI.get(model, MOI.SolveTime())
+        @show JuMP.terminationstatus(model)
+        @show JuMP.primalstatus(model)
+        @show JuMP.dualstatus(model)
+        @show JuMP.objectivevalue(model)
     end
 
-    @show JuMP.terminationstatus(m)
-    @show JuMP.primalstatus(m)
-    @show JuMP.dualstatus(m)
-
-    @show JuMP.objectivevalue(m)
-
-    for (t, λout) in λouts
-        println("λ for $t is $(JuMP.resultvalue.(λout))")
+    if verbose >= 2
+        for (t, λout) in λouts
+            println("λ for $t is $(JuMP.resultvalue.(λout))")
+        end
     end
 
     for q in N
