@@ -1,14 +1,17 @@
 julia 0.6
 Combinatorics
-MathProgBase
+MathOptInterface
 JuMP
 SumOfSquares
 MultivariatePolynomials
 MultivariateMoments
 DynamicPolynomials
+MathematicalSystems
+FillArrays
 HybridSystems
 Optim
 LightGraphs
 GraphPlot
 RecipesBase
 Polyhedra
+Compat v0.69

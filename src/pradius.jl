@@ -4,12 +4,6 @@ function pradiusk(As, p, k, pnorm)
     mean(map(A->norm(A, pnorm)^p, As))^(1/(p*k))
 end
 
-function checkeven(p, algo::Type{Val{A}}) where A
-    if !iseven(p)
-        throw(ArgumentError("Odd p is not supported yet for pradius computation with $A algorithm"))
-    end
-end
-
 function pradius(s::DiscreteSwitchedLinearSystem, p, lift::Function; pnorm=Inf, ɛ=1e-2, forceub=false)
     ρpmpp = ρ(sum((rm -> lift(rm.A, p)).(s.resetmaps)))
     if forceub
@@ -19,11 +13,13 @@ function pradius(s::DiscreteSwitchedLinearSystem, p, lift::Function; pnorm=Inf, 
     end
 end
 
-function kozyakinlift(s, t, A)
-    kron(sparse([source(s, t)], [target(s, t)], [1]), A[symbol(s, t)])
+function kozyakinlift(s, t, As)
+    n = nstates(s)
+    A = As[symbol(s, t)]
+    kron(sparse([source(s, t)], [target(s, t)], [one(eltype(A))], n, n), A)
 end
 function pradius(s::ConstrainedDiscreteSwitchedLinearSystem, p, lift::Function; pnorm=Inf, ɛ=1e-2, forceub=false)
-    Alifted = (A -> lift(A, p)).(s.resetmaps)
+    Alifted = (rm -> lift(rm.A, p)).(s.resetmaps)
     ρpmpp = ρ(sum(kozyakinlift(s, t, Alifted) for t in transitions(s)))
     if forceub
         ρpmpp^(1/p)
@@ -32,17 +28,33 @@ function pradius(s::ConstrainedDiscreteSwitchedLinearSystem, p, lift::Function; 
     end
 end
 
-function pradius(s::AbstractDiscreteSwitchedSystem, p, algo::Type{Val{:VeroneseLift}}; pnorm=Inf, ɛ=1e-2, forceub=false)
-    checkeven(p, algo)
-    pradius(s, p, veroneselift, pnorm=pnorm, ɛ=ɛ, forceub=forceub)
-end
-kroneckerlift(A::AbstractMatrix, p::Integer) = kronpow(veroneselift(A, 2), div(p, 2))
-function pradius(s::AbstractDiscreteSwitchedSystem, p, algo::Type{Val{:KroneckerLift}}; pnorm=Inf, ɛ=1e-2, forceub=false)
-    checkeven(p, algo)
-    pradius(s, p, kroneckerlift, pnorm=pnorm, ɛ=ɛ, forceub=forceub)
+abstract type PRadiusAlgorithm end
+abstract type ExactPRadiusAlgorithm <: PRadiusAlgorithm end
+function checkeven(p, algo::ExactPRadiusAlgorithm)
+    if !iseven(p)
+        throw(ArgumentError("Odd p is not supported yet for pradius computation with $algo algorithm"))
+    end
 end
 
-function pradius(s::DiscreteSwitchedLinearSystem, p, algo::Type{Val{:BruteForce}}; pnorm=Inf, ɛ=1e-2, forceub=false)
+export VeroneseLift, KroneckerLift, BruteForce
+struct VeroneseLift <: ExactPRadiusAlgorithm end
+struct KroneckerLift <: ExactPRadiusAlgorithm end
+struct BruteForce <: PRadiusAlgorithm end
+
+liftfunction(::VeroneseLift) = veroneselift
+liftfunction(::KroneckerLift) = kroneckerlift
+function kroneckerlift(A::AbstractMatrix, p::Integer)
+    @assert iseven(p)
+    kronpow(veroneselift(A, 2), div(p, 2))
+end
+
+
+function pradius(s::AbstractDiscreteSwitchedSystem, p, algo::ExactPRadiusAlgorithm=VeroneseLift(); kws...)
+    checkeven(p, algo)
+    pradius(s, p, liftfunction(algo); kws...)
+end
+# The Inf- and 1-norm of a matrices are easier to compute than the 2-norm
+function pradius(s::DiscreteSwitchedLinearSystem, p, ::BruteForce; pnorm=Inf, ɛ=1e-2, forceub=false)
     As = map(rm -> rm.A, s.resetmaps)
     Ascur = As
     ρp = Float64[]
@@ -67,13 +79,8 @@ function pradius(s::DiscreteSwitchedLinearSystem, p, algo::Type{Val{:BruteForce}
     end
 end
 
-# The Inf- and 1-norm of a matrices are easier to compute than the 2-norm
-function pradius(s::AbstractDiscreteSwitchedSystem, p, algo::Symbol=:VeroneseLift; pnorm=Inf, ɛ=1e-2, forceub=false)
-    pradius(s, p, Val{algo}, pnorm=pnorm, ɛ=ɛ, forceub=forceub)
-end
-
-function pradiusb(s::DiscreteSwitchedLinearSystem, p, algo::Symbol=:VeroneseLift)
-    @assert algo in [:VeroneseLift, :KroneckerLift] "p-radius algo needs to be exact to compute bounds on JSR"
+# p-radius algo needs to be exact to compute bounds on JSR
+function pradiusb(s::AbstractDiscreteSwitchedSystem, p, algo::ExactPRadiusAlgorithm=VeroneseLift())
     ρpmp = pradius(s, p, algo, forceub=true)
     ρp = ρpmp / ρA(s)^(1/p)
     updateb!(s, ρp, ρpmp)

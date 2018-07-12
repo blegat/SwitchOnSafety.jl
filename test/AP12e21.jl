@@ -6,7 +6,6 @@
 
 @testset "[AP12] Example 2.1" begin
     for solver in sdp_solvers
-        println("  > With solver $(typeof(solver))")
         tol = 1e-4
         for d in 1:3
             # Get a fresh system to discard lyapunovs, smp and sets lb to 0

@@ -26,7 +26,6 @@
                       -0.7118256033710013, # 11
                       -0.7120087088397513] # 12
     for solver in sdp_solvers
-        println("  > With solver $(typeof(solver))")
         for d in 1:12
             tol = (d < 10 ? (ismosek(solver) ? 1e-5 : 1e-4) : (ismosek(solver) ? 1e-4 : 1e-3))
             lb, ub = soslyapb(s, d, solver=solver, tol=tol)

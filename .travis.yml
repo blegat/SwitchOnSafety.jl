@@ -13,8 +13,12 @@ before_install:
         sudo apt-get install liblapack-dev libblas-dev;
     fi
 before_script:
-  - julia -e 'Pkg.clone("https://github.com/JuliaReach/Systems.jl.git")'
-  - julia -e 'Pkg.clone("https://github.com/blegat/HybridSystems.jl.git")'
+  - julia -e 'Pkg.add("JuMP")'
+  - julia -e 'Pkg.checkout("JuMP")'
+  - julia -e 'Pkg.add("PolyJuMP")'
+  - julia -e 'Pkg.checkout("PolyJuMP")'
+  - julia -e 'Pkg.add("SumOfSquares")'
+  - julia -e 'Pkg.checkout("SumOfSquares")'
 # uncomment the following lines to override the default test script
 #script:
 #  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi

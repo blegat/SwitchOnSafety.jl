@@ -1,20 +1,20 @@
 using SemialgebraicSets
 using Polyhedra
+using FillArrays
 
-export getis
+export getis, fillis!, algebraiclift
 
 function algebraiclift(s::LinearControlDiscreteSystem)
     n = statedim(s)
     z = find(i -> iszero(sum(abs.(s.B[i,:]))), 1:n)
-    @show z
     # TODO ty - 1//2y^3 + 3//1xy + 2//1yhe affine space may not be parallel to classical axis
     LinearAlgebraicDiscreteSystem(s.A[z, :], (eye(n))[z, :])
 end
-algebraiclift(s::DiscreteIdentitySystem) = s
+algebraiclift(s::ConstrainedDiscreteIdentitySystem) = s
 algebraiclift(S::AbstractVector) = algebraiclift.(S)
-algebraiclift(S::ConstantVector) = ConstantVector(algebraiclift(first(S)), length(S))
+algebraiclift(S::Fill) = Fill(algebraiclift(first(S)), length(S))
 function algebraiclift(h::HybridSystem)
-    HybridSystem(h.automaton, algebraiclift(h.modes), h.invariants, h.guards, algebraiclift(h.resetmaps), h.switchings)
+    HybridSystem(h.automaton, algebraiclift(h.modes), algebraiclift(h.resetmaps), h.switchings)
 end
 
 function r(A::Matrix{T}, c::Vector{T}=zeros(T, size(A, 1))) where T
@@ -42,98 +42,106 @@ using DynamicPolynomials
 using MultivariatePolynomials
 using PolyJuMP
 using SumOfSquares
+using MathOptInterface
+const MOI = MathOptInterface
 using JuMP
 using LightGraphs
 function ATrp(p, x, A)
     B = r(A)'
     y = x[1:size(B, 2)]
-    p(x => r(A)' * y)
+    p(x => B * y)
 end
-function lhs(p, x, Re::ConstantVector)
-    # If it is not constant, I would be comparing dummy variables of different meaning
-    ATrp(p, x, first(Re).A)
+# If Re is a vector not constant, I would be comparing dummy variables of different meaning
+function lhs(p, x, Re::LinearAlgebraicDiscreteSystem)
+    ATrp(p, x, Re.A)
 end
 
-function getp(m::Model, c, x, z::AbstractVariable)
-    y = [z; x]
-    n = length(x)
-    #β = 1.#@variable m lowerbound=0.
-    β = @variable m
-    b = @variable m [1:n]
-    #@constraint m b .== 0
-    Q = @variable m [1:n, 1:n] Symmetric
-    @constraint m y' * [β+1 b'; b Q] * y in DSOSCone()
-    H = householder([1; c]) # We add 1, for z
-    P = [β b'
-         b Q]
-    HPH = H * P * H
-    p = y' * HPH * y
-    ConeLyap(p, Q, b, c, H)
-    #@constraint m sum(Q) == 1 # dehomogenize
-    #@variable m L[1:n, 1:n]
-    #@variable m λinv[1:(n-1)] >= 0
-    #@SDconstraint m [Q  L
-    #                 L' diagm([λinv; -1])] ⪰ 0
-    #ConeLyap(x' * Q * x, Q, L, λinv)
+const DTAHAS = HybridSystem{<:AbstractAutomaton, <:ConstrainedDiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}
+const DTAHCS = HybridSystem{<:AbstractAutomaton, <:ConstrainedDiscreteIdentitySystem, <:LinearControlDiscreteSystem}
+function _vars(s::DTAHAS)
+    @polyvar x[1:statedim(s, 1)] z
+    [z; x]
 end
-function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}, solver, c=map(cv->cv[1], chebyshevcenter.(s.invariants)))
-    @show c
-    g = s.automaton.G
-    n = nv(g)
-    m = SOSModel(solver=solver)
-    @polyvar x[1:2] z
-    y = [z; x]
-    l = [getp(m, c[u], x, z) for u in 1:n]
-    #X = monomials(x, 2)
-    #@variable m p[1:n] Poly(X)
-    #@variable m vol
-    #@objective m Max vol
+function _p(q, N, y, l, is, ps, h)
+    if q in N
+        l[q].p
+    else
+        if isnull(ps[q])
+            le = LiftedEllipsoid(is[q])
+            Pd = inv(le.P)
+            H = _householder(h[q])
+            HPdH = H * Pd * H
+            # HPdH is not like a solution what would be obtained by solving the program
+            # since the λ computed for unlifting it is maybe not one.
+            # Therefore, the S-procedure's λ for the constraints will be different.
+            B, b, β, λ = Bbβλ(HPdH)
+            ps[q] = Nullable(y' * _HPH(B/λ, b/λ, β/λ, H) * y)
+        end
+        get(ps[q])
+    end
+end
 
-    @objective m Max sum(p -> trace(p.Q), l)
+function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(stateset.(s.modes))); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(typeof(optimizer)), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle, verbose=1)
+    n = nstates(s)
+    MOI.empty!(optimizer)
+    model = SOSModel(optimizer=optimizer)
+    l = Dict(u => getp(model, h[u], y, cone, detcone) for u in N)
 
-    λouts = Vector{Vector{JuMP.Variable}}(n)
-    #λouts = Vector{Vector{Float64}}(n)
-    for u in 1:n
+    @objective model Max sum(p -> p.vol, values(l))
+
+    λouts = Dict{transitiontype(s), JuMP.AffExpr}()
+
+    for q in N
         # Constraint 1
-        N = length(out_neighbors(g, u))
-        λout = @variable m [1:N] lowerbound=0
-        λouts[u] = λout
-        #@constraint m sum(λin) == 1
-        Σ = symbol.(s.automaton, Edge.(u, out_neighbors(g, u)))
-        expr = -lhs(l[u].p, y, s.resetmaps[Σ])
-        for (j, v) in enumerate(out_neighbors(g, u))
-            E = s.resetmaps[Σ[j]].E
-            #expr -= λout[j] * p[v](x => r(E)' * x)
-            newp = ATrp(l[v].p, y, E)
-            expr += λout[j] * newp
+        NN = length(out_transitions(s, q))
+        for t in out_transitions(s, q)
+            λin = get(λ, t, nothing)
+            if target(s, t) in enabled
+                λouts[t] = lyapconstraint(v -> _p(v, N, y, l, is, ps, h), N, s, l, y, t, model, cone, λin)
+            end
         end
-        @constraint m expr in DSOSCone()
         # Constraint 2
-        #@SDconstraint m differentiate(p[u], x, 2) >= 0
+        #@SDconstraint model differentiate(p[q], x, 2) >= 0
         # Constraint 3
-        for hs in ineqs(s.invariants[u])
-            @constraint m l[u].p(y => [-hs.β; hs.a]) <= 0
+        @assert iszero(nhyperplanes(stateset(s, q)))
+        for hs in halfspaces(stateset(s, q))
+            @constraint model l[q].p(y => [-hs.β; hs.a]) <= 0
         end
     end
 
-    status = solve(m)
+    JuMP.optimize(model)
 
-    @show getobjectivevalue(m)
-
-    for u in 1:n
-        @show getvalue.(λouts[u])
+    if verbose >= 1
+        @show MOI.get(model, MOI.SolveTime())
+        @show JuMP.terminationstatus(model)
+        @show JuMP.primalstatus(model)
+        @show JuMP.dualstatus(model)
+        @show JuMP.objectivevalue(model)
     end
 
-    @show status
-    @assert status == :Optimal
-    ellipsoid.(l)
-#    if uc
-#        [Ellipsoid(inv(Q[u].value), c[u] + 2*reshape(C[u].value, d)) for u in vertices(g)]
-#    else
-#        [Ellipsoid(inv(Q[u].value), c[u]) for u in vertices(g)]
-#    end
+    if verbose >= 2
+        for (t, λout) in λouts
+            println("λ for $t is $(JuMP.resultvalue.(λout))")
+        end
+    end
+
+    for q in N
+        lv = JuMP.resultvalue(l[q])
+        ps[q] = Nullable(lv.p)
+        is[q] = ellipsoid(lv)
+    end
 end
 
-function getis(s::HybridSystem{<:AbstractAutomaton, DiscreteIdentitySystem, <:LinearControlDiscreteSystem}, args...)
-    getis(algebraiclift(s), args...)
+function getis(s::DTAHAS, args...; kws...)
+    nmodes = nstates(s)
+    is = Vector{Ellipsoid{Float64}}(undef, nmodes)
+    fillis!(is, 1:nmodes, s, args...; kws...)
+    is
+end
+
+function fillis!(is, N, s::DTAHCS, args...; kws...)
+    fillis!(is, N, algebraiclift(s), args...; kws...)
+end
+function getis(s::DTAHCS, args...; kws...)
+    getis(algebraiclift(s), args...; kws...)
 end

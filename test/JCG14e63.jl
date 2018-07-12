@@ -16,7 +16,6 @@
     smp = periodicswitching(s, [1, 2])
     for solver in sdp_solvers
         sosdata(s).lb = 0
-        println("  > With solver $(typeof(solver))")
         tol = 1e-4
         for d in 1:2
             lb, ub = soslyapb(s, d, solver=solver, tol=tol)

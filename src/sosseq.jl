@@ -71,7 +71,7 @@ end
 #end
 
 # Extracting trajectory from Lyapunov
-function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver::AbstractMathProgSolver=JuMP.UnsetSolver(), v_0=:Random, p_0=:Random, l::Integer=1, Δt::Float64=1., niter::Integer=42, tol=1e-5)
+function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver=()->nothing, v_0=:Random, p_0=:Random, l::Integer=1, Δt::Float64=1., niter::Integer=42, tol=1e-5)
     lyap = getlyap(s, d; solver=solver, tol=tol)
 
     if v_0 == :Random

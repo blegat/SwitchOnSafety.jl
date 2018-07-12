@@ -1,10 +1,12 @@
 module SwitchOnSafety
 
+using Compat
+
 using DynamicPolynomials
 using MultivariatePolynomials
 using MultivariateMoments
 
-using Systems
+using MathematicalSystems
 using HybridSystems
 
 export ρ, quicklb, quickub, quickb
