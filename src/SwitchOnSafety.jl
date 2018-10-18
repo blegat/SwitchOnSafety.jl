@@ -1,6 +1,6 @@
 module SwitchOnSafety
 
-using Compat
+using LinearAlgebra, SparseArrays, Statistics
 
 using DynamicPolynomials
 using MultivariatePolynomials
@@ -54,7 +54,8 @@ io_transitions(s, st, forward::Bool) = forward ? out_transitions(s, st) : in_tra
 
 function _eyet(s, t)
     # transpose needed for rectangle system
-    eye(integratorfor(s, t)')
+    n, m = size(integratorfor(s, t)')
+    Matrix(1.0I, n, m)
 end
 function _eyes(s, st, forward)
     _eyet(s, first(io_transitions(s, st, forward)))

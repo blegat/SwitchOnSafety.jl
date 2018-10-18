@@ -31,7 +31,7 @@ end
 
 function Base.show(io::IO, s::AbstractPeriodicSwitching)
     #print(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(symbol.(s.s, s.period))")# for the transitions $(s.period)")
-    print(io, "PSW($(round(s.growthrate, 6)), $(symbol.(s.s, s.period)))")# for the transitions $(s.period)")
+    print(io, "PSW($(round(s.growthrate, digits=6)), $(symbol.(s.s, s.period)))")# for the transitions $(s.period)")
 end
 
 function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, growthrate, args...)
@@ -164,7 +164,7 @@ end
 function findsmp(seq)
     s = seq.s
     PS = periodicswitchingtype(s)
-    smp = Nullable{PS}()
+    smp = nothing
     for i in 1:seq.len
         startNode = state(s, seq.seq[i], false)
         P = _eyet(s, seq.seq[i])
@@ -178,8 +178,8 @@ function findsmp(seq)
                 if iszero(repetition(symbol.(s, seqij)))
                     newsmp, dt = bestperiod(s, seq.seq, i:j, P, Q)
                     notifyperiodic!(s, newsmp)
-                    if isnull(smp) || isbetter(newsmp, get(smp))
-                        smp = Nullable{PS}(newsmp)
+                    if smp === nothing || isbetter(newsmp, smp)
+                        smp = newsmp
                     end
                 end
             end
@@ -187,8 +187,8 @@ function findsmp(seq)
         end
     end
 
-    if !isnull(smp)
-        updatesmp!(s, get(smp))
+    if smp !== nothing
+        updatesmp!(s, smp)
     end
     smp
 end

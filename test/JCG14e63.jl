@@ -14,17 +14,17 @@
                                  -1  0  1;
                                  -1  0  0]])
     smp = periodicswitching(s, [1, 2])
-    for solver in sdp_solvers
+    for factory in sdp_factories
         sosdata(s).lb = 0
         tol = 1e-4
         for d in 1:2
-            lb, ub = soslyapb(s, d, solver=solver, tol=tol)
+            lb, ub = soslyapb(s, d, factory=factory, tol=tol)
             @test isapprox(lb, expected_lb[d], rtol=tol)
             @test isapprox(ub, expected_ub[d], rtol=tol)
             seq = sosbuildsequence(s, 1, p_0=:Primal)
             psw = findsmp(seq)
-            @test !isnull(psw)
-            @test get(psw) == smp
+            @test psw !== nothing
+            @test psw == smp
         end
     end
 end

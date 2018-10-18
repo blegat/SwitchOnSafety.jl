@@ -33,7 +33,7 @@ It is symmetric and orthogonal.
 """
 function householder(x)
     y = copy(x)
-    t = LinAlg.reflector!(y)
+    t = LinearAlgebra.reflector!(y)
     v = [1; y[2:end]]
     eye(length(x)) - t * v * v'
 end
@@ -66,7 +66,7 @@ function _p(q, N, y, l, is, ps, h)
     if q in N
         l[q].p
     else
-        if isnull(ps[q])
+        if ps[q] === nothing
             le = LiftedEllipsoid(is[q])
             Pd = inv(le.P)
             H = _householder(h[q])
@@ -75,13 +75,21 @@ function _p(q, N, y, l, is, ps, h)
             # since the λ computed for unlifting it is maybe not one.
             # Therefore, the S-procedure's λ for the constraints will be different.
             B, b, β, λ = Bbβλ(HPdH)
-            ps[q] = Nullable(y' * _HPH(B/λ, b/λ, β/λ, H) * y)
+            ps[q] = y' * _HPH(B/λ, b/λ, β/λ, H) * y
         end
-        get(ps[q])
+        ps[q]
     end
 end
 
-function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(stateset.(s.modes))); y=_vars(s), ps=fill(Nullable{polynomialtype(y, Float64)}(), length(is)), cone=SOSCone(), λ=Dict{transitiontype(s), Float64}(), enabled = 1:nstates(s), detcone = contains(string(typeof(optimizer)), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle, verbose=1)
+function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer,
+                 h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(stateset.(s.modes)));
+                 y=_vars(s),
+                 ps=fill!(Vector{Union{Nothing, polynomialtype(y, Float64)}}(length(is)), nothing),
+                 cone=SOSCone(),
+                 λ=Dict{transitiontype(s), Float64}(),
+                 enabled = 1:nstates(s),
+                 detcone = contains(string(typeof(optimizer)), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle,
+                 verbose=1)
     n = nstates(s)
     MOI.empty!(optimizer)
     model = SOSModel(optimizer=optimizer)
@@ -127,7 +135,7 @@ function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer, h=map(cv->I
 
     for q in N
         lv = JuMP.resultvalue(l[q])
-        ps[q] = Nullable(lv.p)
+        ps[q] = lv.p
         is[q] = ellipsoid(lv)
     end
 end

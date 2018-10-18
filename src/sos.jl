@@ -22,10 +22,10 @@ function setlyap!(s, lyap::Lyapunov)
 end
 function getlyap(s::AbstractSwitchedSystem, d::Int; solver=()->nothing, tol=1e-5)
     lyaps = getlyaps(s)
-    if d > length(lyaps) || isnull(lyaps[d])
+    if d > length(lyaps) || lyaps[d] === nothing
         soslyapb(s, d, solver=solver, tol=1e-5, cached=true)
     end
-    get(lyaps[d])
+    lyaps[d]
 end
 
 function getsoslyapinitub(s::AbstractDiscreteSwitchedSystem, d::Integer)
@@ -39,8 +39,8 @@ end
 
 function getsoslyapinit(s, d)
     lyaps = getlyaps(s)
-    if d <= length(lyaps) && !isnull(lyaps[d])
-        lyap = get(lyaps[d])
+    if d <= length(lyaps) && lyaps[d] !== nothing
+        lyap = lyaps[d]
         lyap.soslb, lyap.dual, lyap.sosub, lyap.primal
     else
         # The SOS ub is greater than the JSR hence also greater than any of its lower bound.
@@ -91,8 +91,8 @@ function isdecided(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode
 end
 
 # Mosek's canget returns false when the primal is infeasible, near infeasible or illposed
-_primalstatus(model::JuMP.Model) = MOI.canget(model, MOI.PrimalStatus()) ? JuMP.primalstatus(model) : MOI.UnknownResultStatus
-_dualstatus(model::JuMP.Model) = MOI.canget(model, MOI.DualStatus()) ? JuMP.dualstatus(model) : MOI.UnknownResultStatus
+_primalstatus(model::JuMP.Model) = JuMP.primal_status(model)
+_dualstatus(model::JuMP.Model) = JuMP.dual_status(model)
 
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ; optimizer=nothing)
@@ -102,17 +102,17 @@ function soslyap(s::AbstractSwitchedSystem, d, γ; optimizer=nothing)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     #status = solve(model, suppress_warnings=true)
     #@constraint(model, sum(sum(coefficients(lyap)) for lyap in p))
-    JuMP.optimize(model)
-    status = (JuMP.terminationstatus(model),
+    JuMP.optimize!(model)
+    status = (JuMP.termination_status(model),
               _primalstatus(model),
               _dualstatus(model))
     if isinfeasible(status)
         #println("Infeasible $γ")
         @assert !isfeasible(status)
-        status, nothing, JuMP.resultdual.(cons)
+        status, nothing, JuMP.result_dual.(cons)
     elseif isfeasible(status)
         #println("Feasible $γ")
-        status, JuMP.resultvalue.(p), nothing
+        status, JuMP.result_value.(p), nothing
     else
         @assert !isdecided(status)
         status, nothing, nothing

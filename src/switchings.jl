@@ -1,5 +1,3 @@
-import Base.start, Base.done, Base.next, Base.append!, Base.push!
-
 abstract type AbstractSwitchingSequence end
 abstract type AbstractDiscreteSwitchingSequence <: AbstractSwitchingSequence end
 
@@ -38,7 +36,7 @@ HybridSystems.target(s::HybridSystem{OneStateAutomaton}, ::DiscreteSwitchingSequ
 #    len::Int
 #end
 
-function push!(s::AbstractSwitchingSequence, el)
+function Base.push!(s::AbstractSwitchingSequence, el)
     if s.len < length(s.seq)
         s.seq[s.len + 1] = el
     else
@@ -87,7 +85,7 @@ function prepend!(s::AbstractSwitchingSequence, other::AbstractSwitchingSequence
     s.len += other.len
 end
 
-function append!(s::AbstractSwitchingSequence, other::AbstractSwitchingSequence)
+function Base.append!(s::AbstractSwitchingSequence, other::AbstractSwitchingSequence)
     s.A = other.A * s.A
     if s.len < length(s.seq)
         if s.len + other.len <= length(s.seq)
@@ -114,9 +112,9 @@ end
 
 struct SwitchingIterator{S<:AbstractDiscreteSwitchedSystem}
     s::S
-    k::Int
-    v0::Int
-    forward::Bool
+    k::Int        # length of sequence
+    v0::Int       # starting mode
+    forward::Bool # Is the sequence going forward or backward
 end
 
 # Iterates over all the `forward` switching of length `k` starting at `v0`
@@ -129,67 +127,64 @@ end
 # nextoutnode(s, v, u) = u+1
 # doneoutnode(s, v, u) = u >= length(s.A)
 
-function _next!(it, seq, modeit, modest, As, i, A)
-    seq[i], modest[i] = next(modeit[i], modest[i])
-    B = dynamicfort(it.s, seq[i])
-    As[i] = it.forward ? B * A : A * B
-    As[i], state(it.s, seq[i], it.forward)
-end
-
-function start(it::SwitchingIterator)
+function Base.iterate(it::SwitchingIterator)
     k = it.k
     ET = transitiontype(it.s)
-    seq = Vector{ET}(k)
-    I = it.forward ? (1:k) : (k:-1:1)
-    v = it.v0
-    A = _eyes(it.s, v, it.forward)
-    As = Vector{typeof(dynamicfort(it.s, first(transitions(it.s))))}(k)
-    # modeit[i] is a list of all the possible ith mode for the (i-1)th state
-    modeit = Vector{Vector{ET}}(k)
+    seq = Vector{ET}(undef, k)
+    As = Vector{typeof(dynamicfort(it.s, first(transitions(it.s))))}(undef, k)
+    # modeit[i] is a list of all the possible transitions for the (i-1)th mode
+    modeit = Vector{Vector{ET}}(undef, k)
     # modest[i] is the ith state of iterator modeit[i]
-    modest = Vector{Int}(k)
-    for i in I
-        modeit[i] = v == -1 ? ET[] : io_transitions(it.s, v, it.forward)
-        modest[i] = start(modeit[i])
-        if done(modeit[i], modest[i])
-            v = -1
-        elseif i != last(I)
-            A, v = _next!(it, seq, modeit, modest, As, i, A)
-        end
-    end
-    (modeit, modest, As, seq)
+    modest = fill!(Vector{Union{Nothing, Int}}(undef, k), nothing)
+    return complete_switching(it, modeit, modest, As, seq, it.forward ? 1 : it.k)
 end
-function done(it::SwitchingIterator, st)
-    modeit, modest, _, _ = st
-    I = it.forward ? (it.k:-1:1) : (1:it.k)
-    for i in I
-        if !done(modeit[i], modest[i])
-            return false
-        end
-    end
-    true
+function Base.iterate(it::SwitchingIterator, st)
+    next_switching(it, st..., it.forward ? it.k : 1)
 end
-function next(it::SwitchingIterator, st)
-    modeit, modest, As, seq = st
-    I = it.forward ? (it.k:-1:1) : (1:it.k)
-    i = -1
-    for j in I
-        if !done(modeit[j], modest[j])
-            i = j
-            break
-        end
+function prev_mode(it::SwitchingIterator, seq, i::Int)
+    j = i + (it.forward ? 1 : -1)
+    if j <= 0 || j > it.k
+        return it.v0
+    else
+        return seq[j]
     end
-    @assert i != -1
+end
+function prev_matrix(it::SwitchingIterator, seq, As, i::Int)
+    j = i + (it.forward ? 1 : -1)
+    if j <= 0 || j > it.k
+        return _eyes(it.s, it.v0, it.forward)
+    else
+        return As[j]
+    end
+end
+function process_item_state(it::SwitchingIterator, modeit, modest, As, seq, i::Int, item_state::Nothing)
     inc = it.forward ? 1 : -1
-    prev = i - inc
-    A = (prev >= 1 && prev <= it.k) ? As[prev] : _eyes(it.s, 1, it.forward) # FIXME, fix we should find the right state, not put 1
-    while 1 <= i <= it.k
-        A, v = _next!(it, seq, modeit, modest, As, i, A)
-        i += inc
-        if 1 <= i <= it.k
-            modeit[i] = io_transitions(it.s, v, it.forward)
-            modest[i] = start(modeit[i])
-        end
+    return next_switching(it, modeit, modest, As, seq, i - inc)
+end
+function process_item_state(it::SwitchingIterator, modeit, modest, As, seq, i::Int, item_state)
+    inc = it.forward ? 1 : -1
+    modest[i] = item_state[2]
+    seq[i] = item_state[1]
+    B = dynamicfort(it.s, seq[i])
+    A = prev_matrix(it, seq, As, i)
+    As[i] = it.forward ? B * A : A * B
+end
+function next_switching(it::SwitchingIterator, modeit, modest, As, seq, i::Int)
+    inc = it.forward ? 1 : -1
+    if i <= 0 || i > it.k
+        return nothing
+    else
+        item_state = iterate(modeit[i], modest[i])
+        process_item_state(it, modeit, modest, as, seq, i, item_state)
     end
-    (switchingsequence(it.s, A, copy(seq)), (modeit, modest, As, seq))
+end
+function complete_switching(it::SwitchingIterator, modeit, modest, As, seq, i::Int)
+    inc = it.forward ? 1 : -1
+    if i <= 0 || i > it.k
+        return switchingsequence(it.s, As[i - inc], copy(seq)), (modeit, modest, As, seq)
+    else
+        modeit[i] = io_transitions(it.s, state(it.s, prev_mode(it, seq, i), it.forward), it.forward)
+        item_state = iterate(modeit[i])
+        process_item_state(it, modeit, modest, as, seq, i, item_state)
+    end
 end

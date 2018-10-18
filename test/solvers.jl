@@ -1,5 +1,7 @@
 # Similar to JuMP/test/solvers.jl
 
+using JuMP
+
 function try_import(name::Symbol)
     try
         @eval import $name
@@ -11,36 +13,36 @@ end
 
 mos = false && try_import(:MathOptInterfaceMosek)
 if mos
-    mossolver = MathOptInterfaceMosek.MosekOptimizer(LOG=0)
+    mos_factory = with_optimizer(MathOptInterfaceMosek.MosekOptimizer, LOG=0)
 else
-    mossolver = nothing
+    mos_factory = nothing
 end
-ismosek(solver) = solver === mossolver
+ismosek(factory) = factory === mos_factory
 csd = false && try_import(:CSDP)
 if csd
-    csdsolver = CSDP.CSDPOptimizer(printlevel=0)
+    csd_factory = with_optimizer(CSDP.Optimizer, printlevel=0)
 else
-    csdsolver = nothing
+    csd_factory = nothing
 end
-iscsdp(solver) = solver === csdsolver
+iscsdp(solver) = solver === csd_factory
 sda = false && try_import(:SDPA)
 if sda
-    sdasolver = SDPA.SDPAOptimizer()
+    sda_factory = with_optimizer(SDPA.Optimizer)
 else
-    sdasolver = nothing
+    sda_factory = nothing
 end
-issdpa(solver) = solver === sdasolver
+issdpa(solver) = solver === sda_solver
 scs = false && try_import(:SCS) # It does not work
 isscs(solver) = false
 ipt = false && try_import(:Ipopt)
 
 # Semidefinite solvers
-sdp_solvers = Any[]
-mos && push!(sdp_solvers, mossolver)
-csd && push!(sdp_solvers, csdsolver)
-sda && push!(sdp_solvers, sdasolver)
-scs && push!(sdp_solvers, scssolver)
+sdp_factories = Any[]
+mos && push!(sdp_factories, mos_factory)
+csd && push!(sdp_factories, csd_factory)
+sda && push!(sdp_factories, sda_factory)
+scs && push!(sdp_factories, scs_factory)
 
 # Bilinear LP solvers
-blp_solvers = Any[]
-ipt && push!(blp_solvers, Ipopt.IpoptSolver(print_level=0))
+blp_factories = Any[]
+ipt && push!(blp_factories, with_optimizer(Ipopt.Optimizer, print_level=0))

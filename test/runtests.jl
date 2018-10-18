@@ -1,6 +1,7 @@
 using HybridSystems
+using Polyhedra
 using SwitchOnSafety
-using Base.Test
+using Test
 
 include("solvers.jl")
 

@@ -2,7 +2,7 @@
 # where ⊗ is the Kronecker product
 # Since p > 0, B will be kron'd at least once so it will be a Matrix{T}
 # This is not easy to guess for Julia inference so I annotate the return type
-function kronpow{MatType}(A::MatType, p)::MatType
+function (kronpow(A::MT, p)::MT) where MT <: AbstractMatrix
     @assert p > 0
     B = 1
     C = A

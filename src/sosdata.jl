@@ -6,15 +6,15 @@ mutable struct SOSData{S} <: AbstractSOSData
     lb::Float64
     ub::Float64
     # There will typically only be lyapunov for small d so a dictionary would be overkill
-    lyaps::Vector{Nullable{Lyapunov}}
+    lyaps::Vector{Union{Nothing, Lyapunov}}
     # Unstable periodic switchings
     upsw::Set{DiscretePeriodicSwitching{S}}
-    smp::Nullable{DiscretePeriodicSwitching{S}}
+    smp::Union{Nothing, DiscretePeriodicSwitching{S}}
 end
 function newsosdata(s::DiscreteSwitchedLinearSystem)
     n = statedim(s, 1)
     @polyvar x[1:n]
-    SOSData{typeof(s)}(x, 0, Inf, Nullable{Lyapunov}[], Set{DiscretePeriodicSwitching{typeof(s)}}(), nothing)
+    SOSData{typeof(s)}(x, 0, Inf, Union{Nothing, Lyapunov}[], Set{DiscretePeriodicSwitching{typeof(s)}}(), nothing)
 end
 
 import LightGraphs
@@ -23,10 +23,10 @@ mutable struct ConstrainedSOSData{S} <: AbstractSOSData
     eid::Dict{LightGraphs.Edge, Int}
     lb::Float64
     ub::Float64
-    lyaps::Vector{Nullable{Lyapunov}}
+    lyaps::Vector{Union{Nothing, Lyapunov}}
     # Unstable periodic switchings
     upsw::Set{DiscretePeriodicSwitching{S}}
-    smp::Nullable{DiscretePeriodicSwitching{S}}
+    smp::Union{Nothing, DiscretePeriodicSwitching{S}}
 end
 function newsosdata(s::ConstrainedDiscreteSwitchedLinearSystem)
     eid = Dict{LightGraphs.Edge, Int}()
@@ -40,7 +40,7 @@ function newsosdata(s::ConstrainedDiscreteSwitchedLinearSystem)
         @polyvar x[1:statedim(s, st)]
         y[st] = x
     end
-    ConstrainedSOSData{typeof(s)}(y, eid, 0, Inf, Nullable{Vector{Lyapunov}}[], Set{DiscretePeriodicSwitching{typeof(s)}}(), nothing)
+    ConstrainedSOSData{typeof(s)}(y, eid, 0, Inf, Union{Nothing, Vector{Lyapunov}}[], Set{DiscretePeriodicSwitching{typeof(s)}}(), nothing)
 end
 
 const sosdatakey = :SwitchOnSafetyData
@@ -80,7 +80,7 @@ end
 
 function updatesmp!(s::AbstractSOSData, smp::AbstractPeriodicSwitching)
     updatelb!(s, smp.growthrate)
-    if isnull(s.smp) || isbetter(smp, get(s.smp))
+    if s.smp === nothing || isbetter(smp, s.smp)
         s.smp = smp
     end
     smp
@@ -96,12 +96,12 @@ end
 
 unstable_periodic_switchings(s::AbstractSOSData) = s.upsw
 
-hassmp(s::AbstractSOSData) = !isnull(s.smp)
+hassmp(s::AbstractSOSData) = s.smp !== nothing
 function getsmp(s::AbstractSOSData)
     if !hassmp(s)
         error("No smp found")
     end
-    get(s.smp)
+    return s.smp
 end
 
 for f in (:getsmp, :hassmp, :unstable_periodic_switchings, :notifyperiodic!, :updatesmp!, :updateub!, :getub, :updatelb!, :getlyaps, :getlb)

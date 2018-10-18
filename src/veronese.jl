@@ -3,7 +3,7 @@ export permanent, veroneselift
 using Combinatorics
 
 function permanent(A, perms)
-    n = LinAlg.checksquare(A)
+    n = LinearAlgebra.checksquare(A)
     sum(σ -> prod(i -> A[i,σ[i]], 1:n), perms)
 end
 
@@ -26,10 +26,10 @@ end
 function veroneselift(A::AbstractMatrix, d::Integer)
     d > 0 || throw(ArgumentError("d should be a positive integer"))
 
-    n = LinAlg.checksquare(A)
+    n = LinearAlgebra.checksquare(A)
     N = binomial(n+d-1, d)
 
-    Ad = Matrix{Float64}(N, N)
+    Ad = Matrix{Float64}(undef, N, N)
 
     # Computing permutations is the most expensive part so we precompute it
     perms = collect(permutations(1:d))

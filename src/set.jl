@@ -11,7 +11,7 @@ struct Ellipsoid{T}
 end
 
 @recipe function f(ell::Ellipsoid)
-    @assert Base.LinAlg.checksquare(ell.Q) == 2
+    @assert LinearAlgebra.checksquare(ell.Q) == 2
     αs = linspace(0, 2π, 1024)
     ps = [[cos(α), sin(α)] for α in αs]
     r = [sqrt(dot(p, ell.Q * p)) for p in ps]
@@ -36,7 +36,7 @@ end
 
 Base.convert(::Type{Ellipsoid{T}}, ell::LiftedEllipsoid) where T = convert(Ellipsoid{T}, Ellipsoid(ell))
 function Bbβλ(P)
-    n = LinAlg.checksquare(P)-1
+    n = LinearAlgebra.checksquare(P) - 1
     ix = 1+(1:n)
     β = P[1, 1]
     b = P[1, ix]
@@ -81,7 +81,7 @@ struct CenterQuadCone{T, P<:AbstractPolynomial{T}, S} <: QuadCone{T, P, S}
     vol::S
 end
 CenterQuadCone(p::P, Q::Symmetric{S, Matrix{S}}, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = CenterQuadCone{T, P, S}(p, Q, c, H, vol)
-JuMP.resultvalue(p::CenterQuadCone) = CenterQuadCone(JuMP.resultvalue(p.p), Symmetric(JuMP.resultvalue.(p.Q)), p.h, p.H, JuMP.resultvalue(p.vol))
+JuMP.result_value(p::CenterQuadCone) = CenterQuadCone(JuMP.result_value(p.p), Symmetric(JuMP.result_value.(p.Q)), p.h, p.H, JuMP.result_value(p.vol))
 _β(m, h::CenterPoint{T}) where T = -one(T)
 _b(m, h::CenterPoint{T}) where T = zeros(T, length(h.h))
 QuadCone(p, Q, b, β, h::CenterPoint, H, vol) = CenterQuadCone(p, Q, h.h, H, vol)
@@ -101,7 +101,7 @@ struct InteriorQuadCone{T, P<:AbstractPolynomial{T}, S} <: QuadCone{T, P, S}
     vol::S
 end
 InteriorQuadCone(p::P, Q::Symmetric{S, Matrix{S}}, b::Vector{S}, β::S, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = InteriorQuadCone{T, P, S}(p, Q, b, β, c, H, vol)
-JuMP.resultvalue(p::InteriorQuadCone) = InteriorQuadCone(JuMP.resultvalue(p.p), Symmetric(JuMP.resultvalue.(p.Q)), JuMP.resultvalue.(p.b), JuMP.resultvalue(p.β), p.h, p.H, JuMP.resultvalue(p.vol))
+JuMP.result_value(p::InteriorQuadCone) = InteriorQuadCone(JuMP.result_value(p.p), Symmetric(JuMP.result_value.(p.Q)), JuMP.result_value.(p.b), JuMP.result_value(p.β), p.h, p.H, JuMP.result_value(p.vol))
 _β(m, h::InteriorPoint) = @variable m
 _b(m, h::InteriorPoint) = @variable m [1:length(h.h)]
 QuadCone(p, Q, b, β, h::InteriorPoint, H, vol) = InteriorQuadCone(p, Q, b, β, h.h, H, vol)
@@ -155,7 +155,7 @@ function lyapconstraint(_p::Function, N, s, l, y, t, m, cone, λuser)
     end
 end
 
-ellipsoid(p::QuadCone{T, P, JuMP.VariableRef}) where {T, P<:AbstractPolynomial{T}} = ellipsoid(JuMP.resultvalue(p))
+ellipsoid(p::QuadCone{T, P, JuMP.VariableRef}) where {T, P<:AbstractPolynomial{T}} = ellipsoid(JuMP.result_value(p))
 
 function _HPH(D, d, δ, H)
     P = [δ d'

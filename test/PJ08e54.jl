@@ -21,18 +21,18 @@
           -1  5  0  1]
     s = discreteswitchedsystem([A1, A2, A3])
     smp = periodicswitching(s, [1, 3])
-    for solver in sdp_solvers
+    for factory in sdp_factories
         sosdata(s).lb = 0
-        iscsdp(solver) && continue
+        iscsdp(factory) && continue
         for d in 1:2 # Mosek has troubles with d=3
-            tol = ismosek(solver) ? (d <= 2 ? 4e-4 : 4e-2) : 1e-3
-            lb, ub = soslyapb(s, d, solver=solver, tol=tol)
+            tol = ismosek(factory) ? (d <= 2 ? 4e-4 : 4e-2) : 1e-3
+            lb, ub = soslyapb(s, d, factory=factory, tol=tol)
             @test abs(log(expected_lb[d]) - log(lb)) <= tol
             @test abs(log(expected_ub[d]) - log(ub)) <= tol
             seq = sosbuildsequence(s, d, p_0=:Primal)
             psw = findsmp(seq)
-            @test !isnull(psw)
-            @test get(psw) == smp
+            @test psw !== nothing
+            @test psw == smp
         end
     end
 end

@@ -36,10 +36,10 @@ end
 
 function extractstates(args...)
     atoms = extractatomic(args...)
-    if isnull(atoms)
+    if atoms === nothing
         Vector{Float64}[]
     else
-        get(atoms).support
+        atoms.support
     end
 end
 
@@ -63,7 +63,7 @@ end
 
 # Atom extraction
 function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ranktols=1e-5, disttols=1e-5)
-    smp = Nullable{periodicswitchingtype(s)}(nothing)
+    smp = nothing
     for ranktol in ranktols
         # This part is the more costly since it does atom extraction
         # It is run only once for each disttols which is nice
@@ -103,20 +103,20 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
 
                 newsmp = periodicswitching(s, period)
                 notifyperiodic!(s, newsmp)
-                if isnull(smp) || isbetter(newsmp, get(smp))
-                    smp = Nullable{periodicswitchingtype(s)}(newsmp)
+                if smp === nothing || isbetter(newsmp, smp)
+                    smp = newsmp
                 end
             end
         end
     end
 
-    if !isnull(smp)
-        updatesmp!(s, get(smp))
+    if smp !== nothing
+        updatesmp!(s, smp)
     end
 
-    smp
+    return smp
 end
-function sosextractcycle(s::AbstractDiscreteSwitchedSystem, d::Integer; solver=()->nothing, tol=1e-5, ranktols=tol, disttols=tol)::Nullable{periodicswitchingtype(s)}
+function sosextractcycle(s::AbstractDiscreteSwitchedSystem, d::Integer; solver=()->nothing, tol=1e-5, ranktols=tol, disttols=tol)::Union{Nothing, periodicswitchingtype(s)}
     lyap = getlyap(s, d; solver=solver, tol=tol)
     sosextractcycle(s, lyap.dual, d; ranktols=ranktols, disttols=disttols)
 end

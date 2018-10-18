@@ -25,27 +25,27 @@
                       -0.7117890677652648, # 10
                       -0.7118256033710013, # 11
                       -0.7120087088397513] # 12
-    for solver in sdp_solvers
+    for factory in sdp_factories
         for d in 1:12
-            tol = (d < 10 ? (ismosek(solver) ? 1e-5 : 1e-4) : (ismosek(solver) ? 1e-4 : 1e-3))
-            lb, ub = soslyapb(s, d, solver=solver, tol=tol)
+            tol = (d < 10 ? (ismosek(factory) ? 1e-5 : 1e-4) : (ismosek(factory) ? 1e-4 : 1e-3))
+            lb, ub = soslyapb(s, d, factory=factory, tol=tol)
             @test lb == -Inf
-            if ismosek(solver)
+            if ismosek(factory)
                 @test isapprox(ub, expected[d])
             else
                 @test isapprox(ub, expected[d], rtol=2*tol)
             end
 #               for k in 1:100
 #                   psw = sosbuildsequence(s, d, p_0=:Random, niter=20)
-#                   @test isnull(psw) == false
-#                   @show get(psw).period
-#                   @show get(psw).growthrate
+#                   @test psw !== nothing
+#                   @show psw.period
+#                   @show psw.growthrate
 #               end
         end
     end
     #@test getsmp(s) == smp
     #@test isapprox(s.lb, 3.917384715148, rtol=1e-12)
-    if isempty(sdp_solvers)
+    if isempty(sdp_factories)
         @test isapprox(s.ub, Inf)
     else
         @test isapprox(s.ub, expected[12], rtol=1e-3)

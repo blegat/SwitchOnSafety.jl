@@ -17,7 +17,7 @@ const ratio = [2, ρAs, ρAs, ρAs, ρAs, ρAs].^(1./(2:2:12))
 const expected_lb = expected_ub ./ ratio
 
 @testset "[PEDJ] Section 4" begin
-    include(Pkg.dir("HybridSystems", "examples", "PEDJ16s4.jl"))
+    include(dirname(dirname(pathof("HybridSystems"))), "examples", "PEDJ16s4.jl")
 
     @testset "p-radius with $algo" for algo in (VeroneseLift(), KroneckerLift())
         pρlb = [0.87907456299, 0.89372555286, 0.90488811163]
@@ -43,12 +43,12 @@ const expected_lb = expected_ub ./ ratio
     msmp = periodicswitching(hsm, Edge.([5 => 3, 3 => 8, 8 => 3, 3 => 7, 7 => 2, 2 => 5, 5 => 5, 5 => 5]))
     @test msmp.growthrate == 0.9748171979372074
 
-    @testset "CJSR with $solver" for solver in sdp_solvers
+    @testset "CJSR with $factory" for factory in sdp_factories
         for s in (hs, hsm)
             m = s === hs ? 1 : 2
             for d in 1:(7-m)
-                tol = ismosek(solver) ? 6e-4 : 1e-3
-                lb, ub = soslyapb(s, d, solver=solver, tol=tol)
+                tol = ismosek(factory) ? 6e-4 : 1e-3
+                lb, ub = soslyapb(s, d, factory=factory, tol=tol)
                 @test log(lb) ≈ log(expected_lb[d, m]) atol=tol
                 @test log(ub) ≈ log(expected_ub[d, m]) atol=tol
             end
@@ -57,26 +57,26 @@ const expected_lb = expected_ub ./ ratio
                     for v_0 in states(s)
                         seq = sosbuildsequence(s, d, p_0=:Primal, v_0=v_0, niter=100)
                         psw = findsmp(seq)
-                        @test !isnull(psw)
+                        @test psw !== nothing
                         if s === hsm
                             if d == 1
                                 if v_0 == 5
-                                    @test get(psw) == msbp
+                                    @test psw == msbp
                                 else
-                                    @test get(psw) == msnp
+                                    @test psw == msnp
                                 end
                             else
                                 # I initially got only msmp but Mosek now also gets msbp
-                                @test get(psw) == msmp || get(psw) == msbp
+                                @test psw == msmp || psw == msbp
                             end
                         elseif d <= 3
                             if 2 <= d && v_0 == 3
-                                @test get(psw) == sbp
+                                @test psw == sbp
                             else
-                                @test get(psw) == snp
+                                @test psw == snp
                             end
                         else
-                            @test get(psw) == smp
+                            @test psw == smp
                         end
                     end
                 end
