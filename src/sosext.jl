@@ -37,17 +37,17 @@ end
 function extractstates(args...)
     atoms = extractatomic(args...)
     if atoms === nothing
-        Vector{Float64}[]
+        MultivariateMoments.WeightedDiracMeasure{Float64}[]
     else
-        atoms.support
+        atoms.atoms
     end
 end
 
 function startstates(s::AbstractDiscreteSwitchedSystem, edgestates, G, B, disttol)
     a = Tuple{Vector{Float64}, Int}[]
     for (t, states) in edgestates
-        for x in states
-            x /= norm(x)
+        for atom in states
+            x = atom.center / norm(atom.center)
             i = pushapprox!(a, x, length(G)+1, disttol)
             σ = symbol(s, t)
             if i == length(G)+1
@@ -67,7 +67,11 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
     for ranktol in ranktols
         # This part is the more costly since it does atom extraction
         # It is run only once for each disttols which is nice
-        edgestates = map(u -> map(t -> (t, extractstates(s, d, t, ranktol, dual)), out_transitions(s, u)), states(s))
+        edgestates = map(u -> begin
+                             map(t -> (t, extractstates(s, d, t, ranktol, dual)),
+                                 out_transitions(s, u))
+                         end,
+                         states(s))
 
         for disttol in disttols
             G = Vector{Tuple{Int, transitiontype(s)}}[] # G[u] = list of edges (σ, v) going out of u
@@ -116,7 +120,9 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
 
     return smp
 end
-function sosextractcycle(s::AbstractDiscreteSwitchedSystem, d::Integer; solver=()->nothing, tol=1e-5, ranktols=tol, disttols=tol)::Union{Nothing, periodicswitchingtype(s)}
-    lyap = getlyap(s, d; solver=solver, tol=tol)
+function sosextractcycle(s::AbstractDiscreteSwitchedSystem, d::Integer;
+                         tol=1e-5, ranktols=tol, disttols=tol,
+                         kws...)::Union{Nothing, periodicswitchingtype(s)}
+    lyap = getlyap(s, d; tol=tol, kws...)
     sosextractcycle(s, lyap.dual, d; ranktols=ranktols, disttols=disttols)
 end

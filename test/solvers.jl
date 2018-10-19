@@ -11,7 +11,7 @@ function try_import(name::Symbol)
     end
 end
 
-mos = false && try_import(:MathOptInterfaceMosek)
+mos = try_import(:MathOptInterfaceMosek)
 if mos
     mos_factory = with_optimizer(MathOptInterfaceMosek.MosekOptimizer, LOG=0)
 else

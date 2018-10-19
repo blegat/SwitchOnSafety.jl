@@ -50,22 +50,22 @@ function DiscreteSwitchingSequence(s::AbstractDiscreteSwitchedSystem, A::Abstrac
 end
 switchingsequence(s::AbstractDiscreteSwitchedSystem, A::AbstractMatrix, seq::Vector) = DiscreteSwitchingSequence(s, A, seq)
 function switchingsequence(s::AbstractDiscreteSwitchedSystem, len::Int=0, v::Int=1)
-    DiscreteSwitchingSequence(s, _eyes(s, v, true), Vector{transitiontype(s)}(len), 0)
+    DiscreteSwitchingSequence(s, _eyes(s, v, true), Vector{transitiontype(s)}(undef, len), 0)
 end
 
 #function ConstrainedDiscreteSwitchingSequence(s::ConstrainedDiscreteSwitchedSystem, u::Int, len=0) # TODO delete this
-#    ConstrainedDiscreteSwitchingSequence(s, speye(statedim(s, u)), Vector{Edge}(len), 0)
+#    ConstrainedDiscreteSwitchingSequence(s, speye(statedim(s, u)), Vector{Edge}(undef, len), 0)
 #end
 
 #function SwitchingSequence(s::ContinuousSwitchedSystem, len=0, v=1)
-#    ContinuousSwitchingSequence(s, speye(statedim(s, v)), Vector{Tuple{Int,Float64}}(len), 0)
+#    ContinuousSwitchingSequence(s, speye(statedim(s, v)), Vector{Tuple{Int,Float64}}(undef, len), 0)
 #end
 
 function prepend!(s::AbstractSwitchingSequence, other::AbstractSwitchingSequence)
     s.A = s.A * other.A
     if s.len < length(s.seq)
         if s.len + other.len <= length(s.seq)
-            s.seq[other.len+(1:s.len)] = s.seq[1:s.len] # Cannot use view here
+            s.seq[other.len .+ (1:s.len)] = s.seq[1:s.len] # Cannot use view here
             s.seq[1:other.len] = @view other.seq[1:other.len]
         else
             len = length(s.seq)

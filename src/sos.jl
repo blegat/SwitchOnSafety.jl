@@ -18,10 +18,10 @@ function setlyap!(s, lyap::Lyapunov)
     end
     lyaps[d] = lyap
 end
-function getlyap(s::AbstractSwitchedSystem, d::Int; solver=()->nothing, tol=1e-5)
+function getlyap(s::AbstractSwitchedSystem, d::Int; kws...)
     lyaps = getlyaps(s)
     if d > length(lyaps) || lyaps[d] === nothing
-        soslyapb(s, d, solver=solver, tol=1e-5, cached=true)
+        soslyapb(s, d, cached=true, kws...)
     end
     lyaps[d]
 end
@@ -93,8 +93,8 @@ _primalstatus(model::JuMP.Model) = JuMP.primal_status(model)
 _dualstatus(model::JuMP.Model) = JuMP.dual_status(model)
 
 # Solving the Lyapunov problem
-function soslyap(s::AbstractSwitchedSystem, d, γ; optimizer=nothing)
-    model = SOSModel(optimizer=optimizer)
+function soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
+    model = SOSModel(factory)
     p = [buildlyap(model, variables(s, v), d) for v in states(s)]
     cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
@@ -152,10 +152,10 @@ end
 #soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
 
 # Binary Search
-function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver=()->nothing, tol=1e-5, step=.5, ranktols=tol, disttols=tol)
+function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; tol=1e-5, step=.5, ranktols=tol, disttols=tol, kws...)
     while soschecktol(s, soslb, sosub) > tol
         mid = sosmid(s, soslb, sosub, step)
-        status, curprimal, curdual = soslyap(s, d, mid, solver=solver)
+        status, curprimal, curdual = soslyap(s, d, mid; kws...)
         if !isdecided(status)
             if usestep(s, soslb, sosub)
                 step *= 2
@@ -171,7 +171,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
             if dual !== nothing
                 midlb = max(midlb, sosshift(s, soslb, tol/8))
             end
-            statuslb, curprimallb, curduallb = soslyap(s, d, midlb, solver=solver)
+            statuslb, curprimallb, curduallb = soslyap(s, d, midlb; kws...)
             if isdecided(statuslb)
                 mid = midlb
                 status = statuslb
@@ -182,7 +182,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
                 if primal !== nothing
                     midub = min(midub, sosshift(s, sosub, -tol/8))
                 end
-                statusub, curprimalub, curdualub = soslyap(s, d, midub, solver=solver)
+                statusub, curprimalub, curdualub = soslyap(s, d, midub; kws...)
                 if isdecided(statusub)
                     mid = midub
                     status = statusub
@@ -201,7 +201,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
             end
             sosub = mid
         else
-            warn("Solver returned with status : $statuslb for γ=$midlb, $status for γ=$mid and $statusub for γ=$midub. Stopping bisection with $(soschecktol(s, soslb, sosub)) > $tol (= tol)")
+            @warn("Solver returned with status : $statuslb for γ=$midlb, $status for γ=$mid and $statusub for γ=$midub. Stopping bisection with $(soschecktol(s, soslb, sosub)) > $tol (= tol)")
             break
         end
     end
@@ -209,12 +209,12 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
 end
 
 # Obtaining bounds with Lyapunov
-function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver=()->nothing, tol=1e-5, cached=true, kws...)
-    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, getsoslyapinit(s, d)...; solver=solver, tol=tol, kws...)
+function soslyapb(s::AbstractSwitchedSystem, d::Integer; factory=nothing, tol=1e-5, cached=true, kws...)
+    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, getsoslyapinit(s, d)...; factory=factory, tol=tol, kws...)
     if cached
         if primal === nothing
             if isfinite(sosub)
-                status, primal, _ = soslyap(s, d, sosub, solver=solver)
+                status, primal, _ = soslyap(s, d, sosub, factory=factory)
                 @assert isfeasible(status)
                 @assert primal !== nothing
             else
@@ -223,15 +223,15 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; solver=()->nothing, tol
         end
         if dual === nothing
             if isfinite(soslb)
-                status, _, dual = soslyap(s, d, soslb, solver=solver)
+                status, _, dual = soslyap(s, d, soslb, factory=factory)
                 if !isinfeasible(status)
                     soslb = sosshift(s, soslb, -tol)
-                    status, _, dual = soslyap(s, d, soslb, solver=solver)
+                    status, _, dual = soslyap(s, d, soslb, factory=factory)
                     if !isinfeasible(status)
-                        warn("We ignore getlb and start from scratch. tol was probably set too small and soslb is too close to the JSR so soslb-tol is too close to the JSR")
+                        @warn("We ignore getlb and start from scratch. tol was probably set too small and soslb is too close to the JSR so soslb-tol is too close to the JSR")
                         soslb = 0. # FIXME fix for continuous
                     end
-                    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; solver=solver, tol=tol, kws...)
+                    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; factory=factory, tol=tol, kws...)
                     @assert dual !== nothing
                 end
             else

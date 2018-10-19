@@ -11,23 +11,19 @@ function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, 
         μ = measurefor(μs, dyn)
         dot(μ, soslf)
     end
-    dyns = candidates(s, l, curstate)
-    sdyns = start(dyns)
-    if done(dyns, sdyns)
-        error("$curstate does not have any incoming path of length $l.")
-    else
-        best_dyn, sdyns = next(dyns, sdyns)
-        best = rating(best_dyn)
-        while !done(dyns, sdyns)
-            dyn, sdyns = next(dyns, sdyns)
-            cur = rating(dyn)
-            if cur > best
-                best = cur
-                best_dyn = dyn
-            end
+    best_dyn = nothing
+    best = -Inf
+    for dyn in candidates(s, l, curstate)
+        cur = rating(dyn)
+        if cur > best
+            best = cur
+            best_dyn = dyn
         end
-        best_dyn
     end
+    if best_dyn === nothing
+        error("$curstate does not have any incoming path of length $l.")
+    end
+    return best_dyn
 end
 
 function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, seq, μs, p_k, l, Δt, curstate, iter)
@@ -71,8 +67,11 @@ end
 #end
 
 # Extracting trajectory from Lyapunov
-function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer; solver=()->nothing, v_0=:Random, p_0=:Random, l::Integer=1, Δt::Float64=1., niter::Integer=42, tol=1e-5)
-    lyap = getlyap(s, d; solver=solver, tol=tol)
+function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer;
+                          v_0=:Random, p_0=:Random, l::Integer=1,
+                          Δt::Float64=1., niter::Integer=42,
+                          kws...)
+    lyap = getlyap(s, d; kws...)
 
     if v_0 == :Random
         curstate = rand(states(s))

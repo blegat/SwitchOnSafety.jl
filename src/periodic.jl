@@ -148,7 +148,7 @@ function repetition(seq)
         if (k % i) == 0
             ok = true
             for j in 2:div(k, i)
-                if (@view seq[i*(j-2)+(1:i)]) != (@view seq[i*(j-1)+(1:i)])
+                if (@view seq[i*(j-2) .+ (1:i)]) != (@view seq[i*(j-1) .+ (1:i)])
                     ok = false
                     break
                 end
