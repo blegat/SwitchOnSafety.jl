@@ -35,7 +35,7 @@ function newsosdata(s::ConstrainedDiscreteSwitchedLinearSystem)
         neid += 1
         eid[t] = neid
     end
-    y = Vector{Vector{PolyVar{true}}}(nstates(s))
+    y = Vector{Vector{PolyVar{true}}}(undef, nstates(s))
     for st in states(s)
         @polyvar x[1:statedim(s, st)]
         y[st] = x

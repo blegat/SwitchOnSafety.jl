@@ -18,10 +18,7 @@ function ρ(A::Matrix)
     maximum(abs.(eigvals(A)))
 end
 # eigvals is not defined for SparseMatrixCSC
-ρ(A::AbstractSparseMatrix) = ρ(full(A))
 # eigvals is not defined for SMatrix in StaticArrays for non-Hermitian
-# I don't want to add StaticArrays to the REQUIRE file though so I
-# define it for AbstractMatrix.
 ρ(A::AbstractMatrix) = ρ(Matrix(A))
 
 #abstract type AbstractSwitchedSystem end

@@ -1,3 +1,5 @@
+using Combinatorics
+
 @testset "Veronese Lift" begin
     @test_throws DimensionMismatch permanent([1 2], collect(Combinatorics.permutations(1:2)))
     @test_throws DimensionMismatch veroneselift([1 2], 3)

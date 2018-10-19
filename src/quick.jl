@@ -5,7 +5,6 @@ function quickb(s::AbstractDiscreteSwitchedSystem, k::Integer=1, clb=true, cub=t
     ub∞ = 0.
     for st in states(s)
         for sw in switchings(s, k, st)
-            @show sw
             if clb && isperiodic(sw)
                 psw = periodicswitching(sw)
                 lb = max(lb, psw.growthrate)
@@ -13,9 +12,9 @@ function quickb(s::AbstractDiscreteSwitchedSystem, k::Integer=1, clb=true, cub=t
                 updatesmp!(s, psw)
             end
             if cub
-                ub1 = max(ub1, norm(sw.A, 1)^(1/k))
-                ub2 = max(ub2, norm(sw.A, 2)^(1/k))
-                ub∞ = max(ub∞, norm(sw.A, Inf)^(1/k))
+                ub1 = max(ub1, opnorm(sw.A, 1)^(1/k))
+                ub2 = max(ub2, opnorm(sw.A, 2)^(1/k))
+                ub∞ = max(ub∞, opnorm(sw.A, Inf)^(1/k))
             end
         end
     end

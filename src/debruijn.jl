@@ -37,7 +37,7 @@ function mdependentlift(s::AbstractDiscreteSwitchedSystem, n::Integer, forward=t
         for sw in switchings(s, n+1, st, forward)
             seq = sw.seq
             src = stateid(s, seq, m, 1:n)
-            dst = stateid(s, seq, m, 1+(1:n))
+            dst = stateid(s, seq, m, 1 .+ (1:n))
             σ = forward ? symbol(s, seq[n+1]) : symbol(s, seq[1])
             add_transition!(G, idmap[src], idmap[dst], σ)
         end

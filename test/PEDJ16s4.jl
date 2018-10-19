@@ -13,11 +13,11 @@ const expected_ub = [1.0035568400762171 0.9820958128927598
                      0.9749659545861287 0.9749374081223462
                      0.9749138871770363 0.9748393637263851]
 const ρAs = 2.618033988749896
-const ratio = [2, ρAs, ρAs, ρAs, ρAs, ρAs].^(1./(2:2:12))
+const ratio = [2, ρAs, ρAs, ρAs, ρAs, ρAs] .^ (1 ./ (2:2:12))
 const expected_lb = expected_ub ./ ratio
 
 @testset "[PEDJ] Section 4" begin
-    include(dirname(dirname(pathof("HybridSystems"))), "examples", "PEDJ16s4.jl")
+    include(joinpath(dirname(dirname(pathof(HybridSystems))), "examples", "PEDJ16s4.jl"))
 
     @testset "p-radius with $algo" for algo in (VeroneseLift(), KroneckerLift())
         pρlb = [0.87907456299, 0.89372555286, 0.90488811163]

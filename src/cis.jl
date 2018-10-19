@@ -8,7 +8,7 @@ function algebraiclift(s::LinearControlDiscreteSystem)
     n = statedim(s)
     z = find(i -> iszero(sum(abs.(s.B[i,:]))), 1:n)
     # TODO ty - 1//2y^3 + 3//1xy + 2//1yhe affine space may not be parallel to classical axis
-    LinearAlgebraicDiscreteSystem(s.A[z, :], (eye(n))[z, :])
+    LinearAlgebraicDiscreteSystem(s.A[z, :], Matrix(1.0I, n, n)[z, :])
 end
 algebraiclift(s::ConstrainedDiscreteIdentitySystem) = s
 algebraiclift(S::AbstractVector) = algebraiclift.(S)
@@ -35,7 +35,7 @@ function householder(x)
     y = copy(x)
     t = LinearAlgebra.reflector!(y)
     v = [1; y[2:end]]
-    eye(length(x)) - t * v * v'
+    I - t * v * v'
 end
 
 using DynamicPolynomials

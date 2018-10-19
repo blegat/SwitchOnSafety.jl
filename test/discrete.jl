@@ -1,4 +1,5 @@
 @testset "Unconstrained" begin
+    include("double_msd.jl")
     include("AJPR14e54.jl")
     include("AP12e21.jl")
     include("JCG14e61.jl")

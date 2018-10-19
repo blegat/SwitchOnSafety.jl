@@ -1,7 +1,7 @@
 export pradius, pradiusb
 
 function pradiusk(As, p, k, pnorm)
-    mean(map(A->norm(A, pnorm)^p, As))^(1/(p*k))
+    mean(map(A->opnorm(A, pnorm)^p, As))^(1/(p*k))
 end
 
 function pradius(s::DiscreteSwitchedLinearSystem, p, lift::Function; pnorm=Inf, ɛ=1e-2, forceub=false)

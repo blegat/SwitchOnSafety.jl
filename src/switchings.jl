@@ -122,72 +122,72 @@ function switchings(s::AbstractDiscreteSwitchedSystem, k::Int, v0::Int, forward=
     SwitchingIterator(s, k, v0, forward)
 end
 
-# nextinnode(s, v, u) = u+1
-# doneinnode(s, v, u) = u >= length(s.A)
-# nextoutnode(s, v, u) = u+1
-# doneoutnode(s, v, u) = u >= length(s.A)
+struct SwitchingIteratorState{MT, ET}
+    # modeit[i] is a list of all the possible transitions for the (i-1)th mode
+    modeit::Vector{Vector{ET}}
+    # modest[i] is the ith state of iterator modeit[i]
+    modest::Vector{Int}
+    As::Vector{MT}
+    seq::Vector{ET}
+    function SwitchingIteratorState{MT, ET}(k::Int) where {MT, ET}
+        new{MT, ET}(Vector{Vector{ET}}(undef, k), Vector{Int}(undef, k),
+                    Vector{MT}(undef, k), Vector{ET}(undef, k))
+    end
+end
 
 function Base.iterate(it::SwitchingIterator)
-    k = it.k
     ET = transitiontype(it.s)
-    seq = Vector{ET}(undef, k)
-    As = Vector{typeof(dynamicfort(it.s, first(transitions(it.s))))}(undef, k)
-    # modeit[i] is a list of all the possible transitions for the (i-1)th mode
-    modeit = Vector{Vector{ET}}(undef, k)
-    # modest[i] is the ith state of iterator modeit[i]
-    modest = Vector{Int}(undef, k)
-    return complete_switching(it, modeit, modest, As, seq, it.forward ? 1 : it.k)
+    MT = typeof(dynamicfort(it.s, first(transitions(it.s))))
+    st = SwitchingIteratorState{MT, ET}(it.k)
+    return complete_switching(it, st, it.forward ? 1 : it.k)
 end
-function Base.iterate(it::SwitchingIterator, st)
-    next_switching(it, st..., it.forward ? it.k : 1)
+function Base.iterate(it::SwitchingIterator, st::SwitchingIteratorState)
+    next_switching(it, st, it.forward ? it.k : 1)
 end
-function cur_mode(it::SwitchingIterator, seq::Vector, i::Int)
-    j = i + (it.forward ? 1 : -1)
+function cur_mode(it::SwitchingIterator, st::SwitchingIteratorState, i::Int)
+    j = i + (it.forward ? -1 : 1)
     if j <= 0 || j > it.k
         return it.v0
     else
-        return state(it.s, seq[j], it.forward)
+        return state(it.s, st.seq[j], it.forward)
     end
 end
-function prev_matrix(it::SwitchingIterator, seq::Vector, As::Vector, i::Int)
-    j = i + (it.forward ? 1 : -1)
+function prev_matrix(it::SwitchingIterator, st::SwitchingIteratorState, i::Int)
+    j = i + (it.forward ? -1 : 1)
     if j <= 0 || j > it.k
-        return _eyes(it.s, it.v0, it.forward)
+        return I
     else
-        return As[j]
+        return st.As[j]
     end
 end
-function process_item_state(it::SwitchingIterator, modeit::Vector, modest::Vector,
-                            As, seq, i::Int, item_state::Nothing)
+function process_item_state(it::SwitchingIterator, st::SwitchingIteratorState, i::Int, item_state::Nothing)
     inc = it.forward ? 1 : -1
-    return next_switching(it, modeit, modest, As, seq, i - inc)
+    return next_switching(it, st, i - inc)
 end
-function process_item_state(it::SwitchingIterator, modeit, modest, As::Vector, seq, i::Int, item_state)
-    inc = it.forward ? 1 : -1
-    modest[i] = item_state[2]
-    seq[i] = item_state[1]
-    B = dynamicfort(it.s, seq[i])
-    A = prev_matrix(it, seq, As, i)
-    As[i] = it.forward ? B * A : A * B
+function process_item_state(it::SwitchingIterator, st::SwitchingIteratorState, i::Int, item_state)
+    st.modest[i] = item_state[2]
+    st.seq[i] = item_state[1]
+    B = dynamicfort(it.s, st.seq[i])
+    A = prev_matrix(it, st, i)
+    st.As[i] = it.forward ? B * A : A * B
+    return complete_switching(it, st, i + (it.forward ? 1 : -1))
 end
-function next_switching(it::SwitchingIterator, modeit, modest, As::Vector, seq, i::Int)
+function next_switching(it::SwitchingIterator, st::SwitchingIteratorState, i::Int)
     inc = it.forward ? 1 : -1
     if i <= 0 || i > it.k
         return nothing
     else
-        item_state = iterate(modeit[i], modest[i])
-        process_item_state(it, modeit, modest, As, seq, i, item_state)
+        item_state = iterate(st.modeit[i], st.modest[i])
+        process_item_state(it, st, i, item_state)
     end
 end
-function complete_switching(it::SwitchingIterator, modeit::Vector,
-                            modest::Vector, As::Vector, seq::Vector, i::Int)
+function complete_switching(it::SwitchingIterator, st::SwitchingIteratorState, i::Int)
     inc = it.forward ? 1 : -1
     if i <= 0 || i > it.k
-        @show switchingsequence(it.s, As[i - inc], copy(seq)), (modeit, modest, As, seq)
-        return switchingsequence(it.s, As[i - inc], copy(seq)), (modeit, modest, As, seq)
+        return switchingsequence(it.s, st.As[i - inc], copy(st.seq)), st
     else
-        modeit[i] = io_transitions(it.s, cur_mode(it, seq, i), it.forward)
-        item_state = iterate(modeit[i])
-        process_item_state(it, modeit, modest, As, seq, i, item_state)
+        st.modeit[i] = io_transitions(it.s, cur_mode(it, st, i), it.forward)
+        item_state = iterate(st.modeit[i])
+        process_item_state(it, st, i, item_state)
     end
 end
