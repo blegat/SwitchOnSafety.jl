@@ -18,7 +18,7 @@ else
     mos_factory = nothing
 end
 ismosek(factory) = factory === mos_factory
-csd = false && try_import(:CSDP)
+csd = try_import(:CSDP)
 if csd
     csd_factory = with_optimizer(CSDP.Optimizer, printlevel=0)
 else
