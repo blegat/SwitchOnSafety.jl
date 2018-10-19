@@ -4,6 +4,7 @@ MathOptInterface
 JuMP
 SumOfSquares
 MultivariatePolynomials
+SemialgebraicSets
 MultivariateMoments
 DynamicPolynomials
 MathematicalSystems

@@ -5,6 +5,7 @@ function quickb(s::AbstractDiscreteSwitchedSystem, k::Integer=1, clb=true, cub=t
     ub∞ = 0.
     for st in states(s)
         for sw in switchings(s, k, st)
+            @show sw
             if clb && isperiodic(sw)
                 psw = periodicswitching(sw)
                 lb = max(lb, psw.growthrate)

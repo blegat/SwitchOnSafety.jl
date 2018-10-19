@@ -135,21 +135,21 @@ function Base.iterate(it::SwitchingIterator)
     # modeit[i] is a list of all the possible transitions for the (i-1)th mode
     modeit = Vector{Vector{ET}}(undef, k)
     # modest[i] is the ith state of iterator modeit[i]
-    modest = fill!(Vector{Union{Nothing, Int}}(undef, k), nothing)
+    modest = Vector{Int}(undef, k)
     return complete_switching(it, modeit, modest, As, seq, it.forward ? 1 : it.k)
 end
 function Base.iterate(it::SwitchingIterator, st)
     next_switching(it, st..., it.forward ? it.k : 1)
 end
-function prev_mode(it::SwitchingIterator, seq, i::Int)
+function cur_mode(it::SwitchingIterator, seq::Vector, i::Int)
     j = i + (it.forward ? 1 : -1)
     if j <= 0 || j > it.k
         return it.v0
     else
-        return seq[j]
+        return state(it.s, seq[j], it.forward)
     end
 end
-function prev_matrix(it::SwitchingIterator, seq, As, i::Int)
+function prev_matrix(it::SwitchingIterator, seq::Vector, As::Vector, i::Int)
     j = i + (it.forward ? 1 : -1)
     if j <= 0 || j > it.k
         return _eyes(it.s, it.v0, it.forward)
@@ -157,11 +157,12 @@ function prev_matrix(it::SwitchingIterator, seq, As, i::Int)
         return As[j]
     end
 end
-function process_item_state(it::SwitchingIterator, modeit, modest, As, seq, i::Int, item_state::Nothing)
+function process_item_state(it::SwitchingIterator, modeit::Vector, modest::Vector,
+                            As, seq, i::Int, item_state::Nothing)
     inc = it.forward ? 1 : -1
     return next_switching(it, modeit, modest, As, seq, i - inc)
 end
-function process_item_state(it::SwitchingIterator, modeit, modest, As, seq, i::Int, item_state)
+function process_item_state(it::SwitchingIterator, modeit, modest, As::Vector, seq, i::Int, item_state)
     inc = it.forward ? 1 : -1
     modest[i] = item_state[2]
     seq[i] = item_state[1]
@@ -169,22 +170,24 @@ function process_item_state(it::SwitchingIterator, modeit, modest, As, seq, i::I
     A = prev_matrix(it, seq, As, i)
     As[i] = it.forward ? B * A : A * B
 end
-function next_switching(it::SwitchingIterator, modeit, modest, As, seq, i::Int)
+function next_switching(it::SwitchingIterator, modeit, modest, As::Vector, seq, i::Int)
     inc = it.forward ? 1 : -1
     if i <= 0 || i > it.k
         return nothing
     else
         item_state = iterate(modeit[i], modest[i])
-        process_item_state(it, modeit, modest, as, seq, i, item_state)
+        process_item_state(it, modeit, modest, As, seq, i, item_state)
     end
 end
-function complete_switching(it::SwitchingIterator, modeit, modest, As, seq, i::Int)
+function complete_switching(it::SwitchingIterator, modeit::Vector,
+                            modest::Vector, As::Vector, seq::Vector, i::Int)
     inc = it.forward ? 1 : -1
     if i <= 0 || i > it.k
+        @show switchingsequence(it.s, As[i - inc], copy(seq)), (modeit, modest, As, seq)
         return switchingsequence(it.s, As[i - inc], copy(seq)), (modeit, modest, As, seq)
     else
-        modeit[i] = io_transitions(it.s, state(it.s, prev_mode(it, seq, i), it.forward), it.forward)
+        modeit[i] = io_transitions(it.s, cur_mode(it, seq, i), it.forward)
         item_state = iterate(modeit[i])
-        process_item_state(it, modeit, modest, as, seq, i, item_state)
+        process_item_state(it, modeit, modest, As, seq, i, item_state)
     end
 end

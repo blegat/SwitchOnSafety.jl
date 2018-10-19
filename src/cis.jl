@@ -40,7 +40,6 @@ end
 
 using DynamicPolynomials
 using MultivariatePolynomials
-using PolyJuMP
 using SumOfSquares
 using MathOptInterface
 const MOI = MathOptInterface

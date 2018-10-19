@@ -1,7 +1,5 @@
 using JuMP
-using PolyJuMP
 using SumOfSquares
-using MathProgBase
 
 using MathOptInterface
 const MOI = MathOptInterface
