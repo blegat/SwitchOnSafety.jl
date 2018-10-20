@@ -13,7 +13,7 @@ end
 
 mos = try_import(:MathOptInterfaceMosek)
 if mos
-    mos_factory = with_optimizer(MathOptInterfaceMosek.MosekOptimizer, LOG=0)
+    mos_factory = with_optimizer(MathOptInterfaceMosek.MosekOptimizer, QUIET=true)
 else
     mos_factory = nothing
 end

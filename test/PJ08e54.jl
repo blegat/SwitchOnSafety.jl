@@ -5,8 +5,9 @@
 # The JSR was conjectured to be 8.9149 = √ρ(A_1 * A_3)
 
 @testset "[PJ08] Example 5.4" begin
-    expected_lb = [5.635095912315392, 6.777216272557359, 8.92 / 3^(1/6)]
-    expected_ub = [9.761463937881695, 8.922585166517319, 8.92]
+    # values with log-accuracy 4e-7 taken from the examples/PJ08e54.ipynb
+    expected_lb = [5.635326998733677, 6.777596245727604, 7.423337986847027]
+    expected_ub = [9.760675006197351, 8.91982041593713,  8.914964296278484]
     A1 = [ 0  1  7  4;
            1  6 -2 -3;
           -1 -1 -2 -6;
@@ -23,9 +24,8 @@
     smp = periodicswitching(s, [1, 3])
     for factory in sdp_factories
         sosdata(s).lb = 0
-        iscsdp(factory) && continue
-        for d in 1:2 # Mosek has troubles with d=3
-            tol = ismosek(factory) ? (d <= 2 ? 4e-4 : 4e-2) : 1e-3
+        for d in 1:3
+            tol = 1e-6
             lb, ub = soslyapb(s, d, factory=factory, tol=tol)
             @test abs(log(expected_lb[d]) - log(lb)) <= tol
             @test abs(log(expected_ub[d]) - log(ub)) <= tol

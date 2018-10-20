@@ -48,20 +48,25 @@ function getsoslyapinit(s, d)
 end
 
 # Building the Lyapunov constraints
-function soslyapforward(s::AbstractDiscreteSwitchedSystem, p::Polynomial, path)
+function soslyapforward(s::AbstractDiscreteSwitchedSystem, p::Polynomial,
+                        path, args...)
     xin = variables(s, source(s, path))
     xout = variables(s, target(s, path))
-    p(xout => dynamicfort(s, path) * vec(xin))
+    p(xout => (dynamicfort(s, path, args...)) * vec(xin))
 end
 #function soslyapforward(s::AbstractContinuousSwitchedSystem, p::Polynomial, mode::Int)
 #    x = variables(p)
 #    dot(differentiate(p, x), dynamicfor(s, mode) * x)
 #end
-soslyapscaling(s::AbstractDiscreteSwitchedSystem, γ, d) = γ^(2*d)
+#soslyapscaling(s::AbstractDiscreteSwitchedSystem, γ, d) = γ^(2*d)
 #soslyapscaling(s::AbstractContinuousSwitchedSystem, γ, d) = 2*d*γ
 function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, edge, d, γ)
     getid(x) = x.id
-    @constraint model soslyapforward(s, lyapforout(s, p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(s, p, edge)
+    # For values of γ far from 1.0, it is better to divide A_i's by γ,
+    # it results in a problem that is better conditioned.
+    # This is clearly visible in [Example 5.4, PJ08] for which the JSR is ≈ 8.9
+    #@constraint model soslyapforward(s, lyapforout(s, p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(s, p, edge)
+    @constraint model soslyapforward(s, lyapforout(s, p, edge), edge, γ) <= lyapforin(s, p, edge)
 end
 function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
     [soslyapconstraint(s, model, p, t, d, γ) for t in transitions(s)]
@@ -123,9 +128,13 @@ end
 
 soschecktol(soslb, sosub) = sosub - soslb
 soschecktol(s::AbstractDiscreteSwitchedSystem, soslb, sosub) = soschecktol(log(soslb), log(sosub))
+tol_diff_str(s::AbstractDiscreteSwitchedSystem) = "Log-diff   "
 #soschecktol(s::AbstractContinuousSwitchedSystem, soslb, sosub) = soschecktol(soslb, sosub)
 
 sosshift(s::AbstractDiscreteSwitchedSystem, b, shift) = exp(log(b) + shift)
+function sosshift(s::AbstractDiscreteSwitchedSystem, b, shift, scaling)
+    return sosshift(s, b / scaling, shift) * scaling
+end
 #sosshift(s::AbstractContinuousSwitchedSystem, b, shift) = b + shift
 
 function sosmid(soslb, sosub, step)
@@ -143,6 +152,9 @@ usestep(soslb, sosub) = isfinite(soslb) ⊻ isfinite(sosub)
 sosmid(s::AbstractDiscreteSwitchedSystem, soslb, sosub, step) = exp(sosmid(log(soslb), log(sosub), step))
 usestep(s::AbstractDiscreteSwitchedSystem, soslb, sosub) = usestep(log(soslb), log(sosub))
 #sosmid(s::AbstractContinuousSwitchedSystem, soslb, sosub, step) = sosmid(soslb, sosub, step)
+function sosmid(s::AbstractDiscreteSwitchedSystem, soslb, sosub, step, scaling)
+    sosmid(s, soslb / scaling, sosub / scaling, step) * scaling
+end
 
 function soslb2lb(s::AbstractDiscreteSwitchedSystem, soslb, d)
     n = maximum(statedim.(s, states(s)))
@@ -151,11 +163,43 @@ function soslb2lb(s::AbstractDiscreteSwitchedSystem, soslb, d)
 end
 #soslb2lb(s::AbstractContinuousSwitchedSystem, soslb, d) = -Inf
 
+function showbs(s, soslb, sosub, tol, verbose, ok::Bool)
+    if verbose >= 2 || (ok && verbose >= 1)
+        println("Lower bound: $soslb")
+        println("Upper bound: $sosub")
+        println("$(tol_diff_str(s)): $(soschecktol(s, soslb, sosub)) $(ok ? '≤' : '>') $tol")
+    end
+end
+
+function showmid(γ, status, verbose)
+    if verbose >= 3
+        println("  Trial value of γ: $γ")
+        println("Termination status: $(status[1])")
+        println("     Primal status: $(status[2])")
+        println("       Dual status: $(status[3])")
+        if !isdecided(status)
+            problem_status = "Unknown"
+        elseif isfeasible(status)
+            problem_status = "Feasible"
+        else
+            @assert isinfeasible(status)
+            problem_status = "Infeasible"
+        end
+        println("    Problem status: $problem_status")
+    end
+end
+
 # Binary Search
-function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; tol=1e-5, step=.5, ranktols=tol, disttols=tol, kws...)
+function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
+                   soslb, dual,
+                   sosub, primal;
+                   verbose=0, tol=1e-5, step=0.5, scaling=quickub(s),
+                   ranktols=tol, disttols=tol, kws...)
     while soschecktol(s, soslb, sosub) > tol
-        mid = sosmid(s, soslb, sosub, step)
+        showbs(s, soslb, sosub, tol, verbose, false)
+        mid = sosmid(s, soslb, sosub, step, scaling)
         status, curprimal, curdual = soslyap(s, d, mid; kws...)
+        showmid(mid, status, verbose)
         if !isdecided(status)
             if usestep(s, soslb, sosub)
                 step *= 2
@@ -165,24 +209,28 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
             # the distance between soslb and mid is at least tol/2.
             # Sometimes, mid is far from soslb and is at a point where the solver Stall even if it is far from the optimum point.
             # In that case, it is better to take (mid + soslb)/2
-            midlb = min(sosmid(s, soslb, mid, step), sosshift(s, mid, -tol/2))
+            midlb = min(sosmid(s, soslb, mid, step, scaling),
+                        sosshift(s, mid, -tol/2, scaling))
             # If mid-tol/2 is too close to soslb, we would not make progress!
             # So we ensure we make a progress of at least tol/8. If dual is nothing, then that would still be progress to find a dual
             if dual !== nothing
                 midlb = max(midlb, sosshift(s, soslb, tol/8))
             end
             statuslb, curprimallb, curduallb = soslyap(s, d, midlb; kws...)
+            showmid(midlb, statuslb, verbose)
             if isdecided(statuslb)
                 mid = midlb
                 status = statuslb
                 curprimal = curprimallb
                 curdual = curduallb
             else
-                midub = max(sosmid(s, mid, sosub, step), sosshift(s, mid, tol/2))
+                midub = max(sosmid(s, mid, sosub, step, scaling),
+                            sosshift(s, mid, tol/2, scaling))
                 if primal !== nothing
                     midub = min(midub, sosshift(s, sosub, -tol/8))
                 end
                 statusub, curprimalub, curdualub = soslyap(s, d, midub; kws...)
+                showmid(midub, statusub, verbose)
                 if isdecided(statusub)
                     mid = midub
                     status = statusub
@@ -204,6 +252,9 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, pr
             @warn("Solver returned with status : $statuslb for γ=$midlb, $status for γ=$mid and $statusub for γ=$midub. Stopping bisection with $(soschecktol(s, soslb, sosub)) > $tol (= tol)")
             break
         end
+    end
+    if soschecktol(s, soslb, sosub) ≤ tol # it is not guaranteed because of the break
+        showbs(s, soslb, sosub, tol, verbose, true)
     end
     soslb, dual, sosub, primal
 end
