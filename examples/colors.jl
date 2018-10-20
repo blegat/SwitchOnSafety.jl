@@ -1,12 +1,23 @@
+function hexcolor(rgb::UInt32)
+    r = ((0xff0000 & rgb) >> 16) / 255
+    g = ((0x00ff00 & rgb) >>  8) / 255
+    b = ((0x0000ff & rgb)      ) / 255
+    Plots.RGBA(r, g, b)
+end
+
 # Values taken from http://www.toutes-les-couleurs.com/code-couleur-rvb.php
-troyes = Plots.RGBA(0.9961, 0.9922, 0.9412)
-frambo = Plots.RGBA(0.7804, 0.1725, 0.2824)
-lichen = Plots.RGBA(0.5216, 0.7569, 0.4941)
-canard = Plots.RGBA(0.0157, 0.5451, 0.6039)
-aurore = Plots.RGBA(((255, 203, 96) ./ 255)...)
+troyes = hexcolor(0xfefdf0)
+#troyes = Plots.RGBA(0.9961, 0.9922, 0.9412)
+frambo = hexcolor(0xc72c48)
+#frambo = Plots.RGBA(0.7804, 0.1725, 0.2824)
+lichen = hexcolor(0x85c17e)
+#lichen = Plots.RGBA(0.5216, 0.7569, 0.4941)
+canard = hexcolor(0x048b9a)
+#canard = Plots.RGBA(0.0157, 0.5451, 0.6039)
+aurore = hexcolor(0xffcb60)
 # colors taken from https://previews.123rf.com/images/capacitorphoto/capacitorphoto1410/capacitorphoto141000191/32438941-Graph-Icon-color-set-illustration--Stock-Vector.jpg
-red = Plots.RGBA(((0xf5, 0x92, 0x97) ./ 255)...)
-gre = Plots.RGBA(((0xcb, 0xdf, 0x80) ./ 255)...)
-blu = Plots.RGBA(((0x23, 0x94, 0xce) ./ 255)...)
-ora = Plots.RGBA(((0xfa, 0xcb, 0x95) ./ 255)...)
-yel = Plots.RGBA(((0xf2, 0xf0, 0x8b) ./ 255)...)
+red = hexcolor(0xf59297)
+gre = hexcolor(0xcbdf80)
+blu = hexcolor(0x2394ce)
+ora = hexcolor(0xfacb95)
+yel = hexcolor(0xf2f08b)
