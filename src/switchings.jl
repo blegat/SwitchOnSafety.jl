@@ -71,7 +71,7 @@ function prepend!(s::AbstractSwitchingSequence, other::AbstractSwitchingSequence
             len = length(s.seq)
             off = max(0, len - other.len)
             append!(s.seq, @view s.seq[(off+1):s.len])
-            s.seq[other.len+(1:off)] = s.seq[1:off] # Cannot use view here
+            s.seq[other.len .+ (1:off)] = s.seq[1:off] # Cannot use view here
             if len < other.len
                 s.seq[:] = @view other.seq[1:len]
                 append!(s.seq, @view other.seq[(len+1):other.len])
