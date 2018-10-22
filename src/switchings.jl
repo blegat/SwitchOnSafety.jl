@@ -26,8 +26,8 @@ end
 HybridSystems.source(s::HybridSystem, seq::DiscreteSwitchingSequence) = source(s, seq.seq[1])
 HybridSystems.target(s::HybridSystem, seq::DiscreteSwitchingSequence) = target(s, seq.seq[end])
 # Short circuit for unconstrained system
-HybridSystems.source(s::HybridSystem{OneStateAutomaton}, ::DiscreteSwitchingSequence) = 1
-HybridSystems.target(s::HybridSystem{OneStateAutomaton}, ::DiscreteSwitchingSequence) = 1
+HybridSystems.source(::HybridSystem{OneStateAutomaton}, ::DiscreteSwitchingSequence) = 1
+HybridSystems.target(::HybridSystem{OneStateAutomaton}, ::DiscreteSwitchingSequence) = 1
 
 #mutable struct ContinuousSwitchingSequence <: AbstractSwitchingSequence
 #    s::ContinuousSwitchedSystem

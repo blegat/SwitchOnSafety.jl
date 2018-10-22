@@ -16,3 +16,4 @@ GraphPlot
 RecipesBase
 Polyhedra
 Compat v0.69
+StaticArrays

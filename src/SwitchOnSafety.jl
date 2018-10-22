@@ -21,6 +21,21 @@ end
 # eigvals is not defined for SMatrix in StaticArrays for non-Hermitian
 ρ(A::AbstractMatrix) = ρ(Matrix(A))
 
+# TODO move to StaticArrays
+using StaticArrays
+function ρ(A::SMatrix{2, 2, <:Real})
+    trace = tr(A)
+    deter = det(A)
+    # Need to solve λ^2 - trace * λ + deter
+    Δ = trace^2 - 4deter
+    if Δ >= 0
+        sΔ = √Δ
+        return max(abs(trace + sΔ), abs(trace - sΔ)) / 2
+    else
+        return √(trace^2 + Δ^2) / 2
+    end
+end
+
 #abstract type AbstractSwitchedSystem end
 
 mutable struct Lyapunov

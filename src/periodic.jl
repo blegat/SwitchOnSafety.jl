@@ -106,7 +106,8 @@ function Base.hash(sw::DiscretePeriodicSwitching, h::UInt)
     if !sw.hashcomputed
         p = sw.period
         k = length(p)
-        hs = map(i -> hash([p[end-i+1:end]; p[1:end-i]]), 1:k)
+        hs = map(i -> hash((@view p[end-i+1:end]),
+                           hash(@view p[1:end-i])), 1:k)
         sw.hash = hash(sort(hs))
         sw.hashcomputed = true
     end
@@ -144,8 +145,8 @@ end
 
 function repetition(seq)
     k = length(seq)
-    for i in 1:(k-1)
-        if (k % i) == 0
+    for i in 1:div(k, 2)
+        if iszero(k % i)
             ok = true
             for j in 2:div(k, i)
                 if (@view seq[i*(j-2) .+ (1:i)]) != (@view seq[i*(j-1) .+ (1:i)])
