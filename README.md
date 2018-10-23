@@ -7,10 +7,22 @@
 
 This packages implements methods for computing invariant sets using [Sum Of Squares Programming](https://github.com/JuliaOpt/SumOfSquares.jl).
 It supports:
-* Systems defined in [Systems.jl](https://github.com/JuliaReach/Systems.jl).
+* Systems defined in [MathematicalSystems.jl](https://github.com/JuliaReach/MathematicalSystems.jl).
 * Hybrid Systems defined in [HybridSystems.jl](https://github.com/blegat/HybridSystems.jl).
 
-It also includes utilities for approximation the [Joint Spectral Radius](https://link.springer.com/book/10.1007%2F978-3-540-95980-9) / Lyapunov exponent of a system using invariant set computation.
+It also includes utilities for approximation the [Joint Spectral Radius](https://link.springer.com/book/10.1007%2F978-3-540-95980-9).
+
+## Installation
+
+The package currently requires Julia v1.0, you can download it [here](https://julialang.org/downloads/).
+It also needs the latest unreleased versions of JuMP, PolyJuMP and SumOfSquares so once Julia is installed,
+launch the REPL an type
+```julia
+] add JuMP#master
+] add PolyJuMP#master
+] add SumOfSquares#master
+] add https://github.com/blegat/SwitchOnSafety.jl.git
+```
 
 [docs-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [docs-latest-img]: https://img.shields.io/badge/docs-latest-blue.svg
