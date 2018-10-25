@@ -39,7 +39,7 @@ arXiv preprint arXiv:1710.01814, **2017**:
 [running example](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/LPJ17.ipynb),
 [Example 4.3](http://localhost:8888/notebooks/LPJ17e43.ipynb).
 
-### Reproducing
+### Exploring
 
 The linked notebooks explores the examples of the following papers using this
 package:
