@@ -1,3 +1,5 @@
+export sosbuildsequence
+
 function candidates(s::AbstractDiscreteSwitchedSystem, l, curstate)
     switchings(s, l, curstate, false)
 end

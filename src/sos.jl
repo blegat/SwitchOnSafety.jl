@@ -4,7 +4,7 @@ using SumOfSquares
 using MathOptInterface
 const MOI = MathOptInterface
 
-export getlyap, soslyap, soslyapb, sosbuildsequence
+export getlyap, soslyap, soslyapb
 
 # Storing the Lyapunov
 function setlyap!(s, lyap::Lyapunov)
