@@ -38,14 +38,6 @@ end
 
 #abstract type AbstractSwitchedSystem end
 
-mutable struct Lyapunov
-    d::Int
-    soslb::Float64
-    dual::Vector # TODO measure type
-    sosub::Float64
-    primal::Vector # TODO polynomial type
-end
-
 const AbstractDiscreteSwitchedSystem = Union{DiscreteSwitchedLinearSystem, ConstrainedDiscreteSwitchedLinearSystem}
 const AbstractSwitchedSystem = AbstractDiscreteSwitchedSystem
 integratorfor(s::AbstractDiscreteSwitchedSystem, t) = dynamicfort(s, t)

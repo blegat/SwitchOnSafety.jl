@@ -69,10 +69,12 @@ function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, edge
     @constraint model soslyapforward(s, lyapforout(s, p, edge), edge, γ) <= lyapforin(s, p, edge)
 end
 function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
-    [soslyapconstraint(s, model, p, t, d, γ) for t in transitions(s)]
+    cons = HybridSystems.transition_property(s, ConstraintRef{Model,SumOfSquares.SOSConstraint{DynamicPolynomials.Monomial{true},DynamicPolynomials.MonomialVector{true},VariableRef,MathOptInterface.VectorAffineFunction{Float64}},JuMP.ScalarShape})
+    for t in transitions(s)
+        cons[t] = soslyapconstraint(s, model, p, t, d, γ)
+    end
+    return cons
 end
-measurefor(μs, s::DiscreteSwitchedLinearSystem, t) = μs[symbol(s, t)]
-measurefor(μs, s::ConstrainedDiscreteSwitchedLinearSystem, t) = μs[sosdata(s).eid[t]]
 
 function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     Z = monomials(x, 2*d)

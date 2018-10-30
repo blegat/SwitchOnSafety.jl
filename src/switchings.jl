@@ -102,7 +102,7 @@ function Base.append!(s::AbstractSwitchingSequence, other::AbstractSwitchingSequ
 end
 
 function measurefor(μ, s::DiscreteSwitchingSequence)
-    measurefor(μ, s.s, first(s.seq))
+    μ[first(s.seq)]
 end
 
 # Only makes sense for discrete
@@ -122,23 +122,30 @@ function switchings(s::AbstractDiscreteSwitchedSystem, k::Int, v0::Int, forward=
     SwitchingIterator(s, k, v0, forward)
 end
 
-struct SwitchingIteratorState{MT, ET}
+struct SwitchingIteratorState{IT, ST, MT, ET}
     # modeit[i] is a list of all the possible transitions for the (i-1)th mode
-    modeit::Vector{Vector{ET}}
+    modeit::Vector{IT}
     # modest[i] is the ith state of iterator modeit[i]
-    modest::Vector{Int}
+    modest::Vector{ST}
     As::Vector{MT}
     seq::Vector{ET}
-    function SwitchingIteratorState{MT, ET}(k::Int) where {MT, ET}
-        new{MT, ET}(Vector{Vector{ET}}(undef, k), Vector{Int}(undef, k),
-                    Vector{MT}(undef, k), Vector{ET}(undef, k))
+    function SwitchingIteratorState{IT, ST, MT, ET}(k::Int) where {IT, ST, MT, ET}
+        new{IT, ST, MT, ET}(Vector{IT}(undef, k), Vector{ST}(undef, k),
+                        Vector{MT}(undef, k), Vector{ET}(undef, k))
     end
 end
 
 function Base.iterate(it::SwitchingIterator)
+    ts = io_transitions(it.s, it.v0, it.forward)
+    IT = typeof(ts)
+    state_item = iterate(ts)
+    if state_item === nothing
+        return nothing
+    end
+    ST = typeof(state_item[2])
+    MT = typeof(dynamicfort(it.s, state_item[1]))
     ET = transitiontype(it.s)
-    MT = typeof(dynamicfort(it.s, first(transitions(it.s))))
-    st = SwitchingIteratorState{MT, ET}(it.k)
+    st = SwitchingIteratorState{IT, ST, MT, ET}(it.k)
     return complete_switching(it, st, it.forward ? 1 : it.k)
 end
 function Base.iterate(it::SwitchingIterator, st::SwitchingIteratorState)

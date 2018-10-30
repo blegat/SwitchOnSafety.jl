@@ -28,7 +28,7 @@ end
 
 function extractatomic(s::AbstractDiscreteSwitchedSystem, d, t, ranktol, dual=getlyap(s, d).dual)
     σ = symbol(s, t)
-    μ = measurefor(dual, s, t)
+    μ = dual[t]
     X = monomials(variables(μ), d)
     ν = matmeasure(μ, X)
     extractatoms(ν, ranktol)
