@@ -106,8 +106,7 @@ function Base.hash(sw::DiscretePeriodicSwitching, h::UInt)
     if !sw.hashcomputed
         p = sw.period
         k = length(p)
-        hs = map(i -> hash((@view p[end-i+1:end]),
-                           hash(@view p[1:end-i])), 1:k)
+        hs = map(i -> hash([p[end-i+1:end]; p[1:end-i]]), 1:k)
         sw.hash = hash(sort(hs))
         sw.hashcomputed = true
     end
