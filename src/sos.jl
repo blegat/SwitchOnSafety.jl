@@ -82,8 +82,8 @@ function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     @constraint model p >= sum(x.^(2*d))
     p
 end
-lyapforin(s, p::Vector, t) = p[source(s, t)]
-lyapforout(s, p::Vector, t) = p[target(s, t)]
+lyapforin(s, p::HybridSystems.StateProperty, t) = p[source(s, t)]
+lyapforout(s, p::HybridSystems.StateProperty, t) = p[target(s, t)]
 
 function isinfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
     status[3] == MOI.InfeasibilityCertificate
@@ -102,7 +102,7 @@ _dualstatus(model::JuMP.Model) = JuMP.dual_status(model)
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
     model = SOSModel(factory)
-    p = HybridSystems.state_property(s, DynamicPolynomials.Polynomial{true, JuMP.VariableRef})
+    p = HybridSystems.state_property(s, PolynomialLyapunov{JuMP.VariableRef})
     for v in states(s)
         p[v] = buildlyap(model, variables(s, v), d)
     end
@@ -117,10 +117,10 @@ function soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
     if isinfeasible(status)
         #println("Infeasible $γ")
         @assert !isfeasible(status)
-        status, nothing, HybridSystems.typed_map(Float64, JuMP.result_dual, cons)
+        status, nothing, HybridSystems.typed_map(MeasureLyapunov{Float64}, JuMP.result_dual, cons)
     elseif isfeasible(status)
         #println("Feasible $γ")
-        status, HybridSystems.typed_map(Float64, JuMP.result_value, p), nothing
+        status, HybridSystems.typed_map(PolynomialLyapunov{Float64}, JuMP.result_value, p), nothing
     else
         @assert !isdecided(status)
         status, nothing, nothing

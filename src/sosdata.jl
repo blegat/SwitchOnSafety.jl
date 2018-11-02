@@ -34,12 +34,16 @@ function SOSData{S, TT, XT, PT, DT}(s::S) where {S, TT,
     lyaps = Union{Nothing, Lyapunov{PT, DT}}[]
     SOSData{S, TT, XT, PT, DT}(y, 0, Inf, lyaps, nothing, nothing)
 end
+
+const PolynomialLyapunov{T} = DynamicPolynomials.Polynomial{true, T}
+const MeasureLyapunov{T} = MultivariateMoments.Measure{T, DynamicPolynomials.Monomial{true}, DynamicPolynomials.MonomialVector{true}}
+
 function SOSData(s::DiscreteSwitchedLinearSystem)
     S = typeof(s)
     TT = transitiontype(s)
     XT = HybridSystems.state_property_type(S, Vector{PolyVar{true}})
-    PT = HybridSystems.state_property_type(S, DynamicPolynomials.Polynomial{true, Float64})
-    DT = HybridSystems.transition_property_type(S, MultivariateMoments.Measure{Float64, DynamicPolynomials.Monomial{true}, DynamicPolynomials.MonomialVector{true}})
+    PT = HybridSystems.state_property_type(S, PolynomialLyapunov{Float64})
+    DT = HybridSystems.transition_property_type(S, MeasureLyapunov{Float64})
     SOSData{S, TT, XT, PT, DT}(s)
 end
 
