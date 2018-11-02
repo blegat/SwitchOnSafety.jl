@@ -102,7 +102,10 @@ _dualstatus(model::JuMP.Model) = JuMP.dual_status(model)
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
     model = SOSModel(factory)
-    p = [buildlyap(model, variables(s, v), d) for v in states(s)]
+    p = HybridSystems.state_property(s, DynamicPolynomials.Polynomial{true, JuMP.VariableRef})
+    for v in states(s)
+        p[v] = buildlyap(model, variables(s, v), d)
+    end
     cons = soslyapconstraints(s, model, p, d, γ)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     #status = solve(model, suppress_warnings=true)
@@ -114,10 +117,10 @@ function soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
     if isinfeasible(status)
         #println("Infeasible $γ")
         @assert !isfeasible(status)
-        status, nothing, JuMP.result_dual.(cons)
+        status, nothing, HybridSystems.typed_map(Float64, JuMP.result_dual, cons)
     elseif isfeasible(status)
         #println("Feasible $γ")
-        status, JuMP.result_value.(p), nothing
+        status, HybridSystems.typed_map(Float64, JuMP.result_value, p), nothing
     else
         @assert !isdecided(status)
         status, nothing, nothing
