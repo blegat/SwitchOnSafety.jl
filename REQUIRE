@@ -9,7 +9,7 @@ MultivariateMoments
 DynamicPolynomials
 MathematicalSystems
 FillArrays
-HybridSystems
+HybridSystems 0.1.1
 Optim
 LightGraphs
 GraphPlot
