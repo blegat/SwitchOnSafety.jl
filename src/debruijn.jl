@@ -34,17 +34,18 @@ function mdependentlift(s::AbstractDiscreteSwitchedSystem, n::Integer, forward=t
         end
     end
     G = LightAutomaton(curstid)
-    # Avoid duplicate transitions, the label is automatically the same
-    added = Set{Pair{Int, Int}}()
     for st in states(s)
         for sw in switchings(s, n+1, st, forward)
             seq = sw.seq
             src = stateid(s, seq, 1:n)
             dst = stateid(s, seq, 1 .+ (1:n))
-            if !((src => dst) in added)
-                push!(added, src => dst)
+            src_id = idmap[src]
+            dst_id = idmap[dst]
+            # The label is automatically the same so we just have to check
+            # whether there is any transition between `src_id` and `dst_id`
+            if !has_transition(G, src_id, dst_id)
                 σ = forward ? symbol(s, seq[n+1]) : symbol(s, seq[1])
-                add_transition!(G, idmap[src], idmap[dst], σ)
+                add_transition!(G, src_id, dst_id, σ)
             end
         end
     end
