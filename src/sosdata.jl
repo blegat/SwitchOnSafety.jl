@@ -38,7 +38,7 @@ end
 const PolynomialLyapunov{T} = DynamicPolynomials.Polynomial{true, T}
 const MeasureLyapunov{T} = MultivariateMoments.Measure{T, DynamicPolynomials.Monomial{true}, DynamicPolynomials.MonomialVector{true}}
 
-function SOSData(s::DiscreteSwitchedLinearSystem)
+function SOSData(s::AbstractDiscreteSwitchedSystem)
     S = typeof(s)
     TT = transitiontype(s)
     XT = HybridSystems.state_property_type(S, Vector{PolyVar{true}})

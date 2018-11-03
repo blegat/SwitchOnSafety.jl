@@ -66,7 +66,7 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer; ra
     smp = nothing
     for ranktol in ranktols
         # This part is the more costly since it does atom extraction
-        # It is run only once for each disttols which is nice
+        # It is run only once for all disttols which is nice
         edgestates = map(u -> begin
                              map(t -> (t, extractstates(s, d, t, ranktol, dual)),
                                  out_transitions(s, u))

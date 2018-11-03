@@ -32,7 +32,7 @@ function ρ(A::SMatrix{2, 2, <:Real})
         sΔ = √Δ
         return max(abs(trace + sΔ), abs(trace - sΔ)) / 2
     else
-        return √(trace^2 + Δ^2) / 2
+        return √(trace^2 + abs(Δ)) / 2
     end
 end
 

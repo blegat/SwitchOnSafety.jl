@@ -3,7 +3,9 @@ export mdependentlift
 """
     mdependentlift(s::AbstractDiscreteSwitchedSystem, m, forward=true)
 
-Returns the `m`-path-dependent lift of the hybrid system `s` [LD06]. This corresponding automaton is the debruijn graph of dimension `m`. If `forward` is `false` then the debruijn graph works backward [ELD14].
+Returns the `m`-path-dependent lift of the hybrid system `s` [LD06]. The
+corresponding automaton is the debruijn graph of dimension `m`. If `forward` is
+`false` then the debruijn graph works backward [ELD14].
 
 [LD06] Lee, J.-W. & Dullerud, G. E.
 Uniform stabilization of discrete-time switched and Markovian jump linear systems
@@ -18,13 +20,12 @@ Stability of discrete-time switching systems with constrained switching sequence
 Automatica, 2016, 72, 242-250
 """
 function mdependentlift(s::AbstractDiscreteSwitchedSystem, n::Integer, forward=true)
-    m = length(s.resetmaps)
     curstid = 0
     idmap = Dict{Int, Int}()
     statelabels = String[]
     for st in states(s)
         for sw in switchings(s, n, st, forward)
-            id = stateid(s, sw.seq, m, 1:n)
+            id = stateid(s, sw.seq, 1:n)
             if !haskey(idmap, id)
                 curstid += 1
                 idmap[id] = curstid
@@ -33,13 +34,18 @@ function mdependentlift(s::AbstractDiscreteSwitchedSystem, n::Integer, forward=t
         end
     end
     G = LightAutomaton(curstid)
+    # Avoid duplicate transitions, the label is automatically the same
+    added = Set{Pair{Int, Int}}()
     for st in states(s)
         for sw in switchings(s, n+1, st, forward)
             seq = sw.seq
-            src = stateid(s, seq, m, 1:n)
-            dst = stateid(s, seq, m, 1 .+ (1:n))
-            σ = forward ? symbol(s, seq[n+1]) : symbol(s, seq[1])
-            add_transition!(G, idmap[src], idmap[dst], σ)
+            src = stateid(s, seq, 1:n)
+            dst = stateid(s, seq, 1 .+ (1:n))
+            if !((src => dst) in added)
+                push!(added, src => dst)
+                σ = forward ? symbol(s, seq[n+1]) : symbol(s, seq[1])
+                add_transition!(G, idmap[src], idmap[dst], σ)
+            end
         end
     end
     s = discreteswitchedsystem(map(rm -> rm.A, s.resetmaps), G)
@@ -47,7 +53,8 @@ function mdependentlift(s::AbstractDiscreteSwitchedSystem, n::Integer, forward=t
     s
 end
 
-function stateid(s, seq, m, I)
+function stateid(s, seq, I)
+    m = length(s.resetmaps)
     id = 0
     for i in I
         id = id * m + symbol(s, seq[i])-1

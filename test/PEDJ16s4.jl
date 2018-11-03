@@ -29,32 +29,43 @@ const expected_lb = expected_ub ./ ratio
         end
     end
 
-    sbp = periodicswitching(hs, Edge.([3 => 3]))
-    @test sbp.growthrate == 0.9392550239418472
-    snp = periodicswitching(hs, Edge.([3 => 1, 1 => 3, 3 => 1, 1 => 3, 3 => 3, 3 => 3, 3 => 3, 3 => 3]))
+    function t(pair::Pair)
+        edge = Edge(pair)
+        id = first(keys(hs.automaton.Σ[edge]))
+        return HybridSystems.LightTransition(edge, id)
+    end
+    sbp = periodicswitching(hs, t.([3 => 3]))
+    @test sbp.growthrate == 0.9392550239418471
+    snp = periodicswitching(hs, t.([3 => 1, 1 => 3, 3 => 1, 1 => 3, 3 => 3, 3 => 3, 3 => 3, 3 => 3]))
     @test snp.growthrate == 0.9728940109399586
-    smp = periodicswitching(hs, Edge.([3 => 1, 1 => 3, 3 => 1, 1 => 2, 2 => 3, 3 => 3, 3 => 3, 3 => 3]))
+    smp = periodicswitching(hs, t.([3 => 1, 1 => 3, 3 => 1, 1 => 2, 2 => 3, 3 => 3, 3 => 3, 3 => 3]))
     @test smp.growthrate == 0.9748171979372074
+
     hsm = mdependentlift(hs, 2)
-    msbp = periodicswitching(hsm, Edge.([5 => 5]))
-    @test msbp.growthrate == 0.9392550239418472
-    msnp = periodicswitching(hsm, Edge.([5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5]))
+    function t(pair::Pair)
+        edge = Edge(pair)
+        id = first(keys(hsm.automaton.Σ[edge]))
+        return HybridSystems.LightTransition(edge, id)
+    end
+    msbp = periodicswitching(hsm, t.([5 => 5]))
+    @test msbp.growthrate == 0.9392550239418471
+    msnp = periodicswitching(hsm, t.([5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5]))
     @test msnp.growthrate == 0.9653214971459174
-    msmp = periodicswitching(hsm, Edge.([5 => 3, 3 => 8, 8 => 3, 3 => 7, 7 => 2, 2 => 5, 5 => 5, 5 => 5]))
+    msmp = periodicswitching(hsm, t.([5 => 3, 3 => 8, 8 => 3, 3 => 7, 7 => 2, 2 => 5, 5 => 5, 5 => 5]))
     @test msmp.growthrate == 0.9748171979372074
 
     @testset "CJSR with $factory" for factory in sdp_factories
-        for s in (hs, hsm)
+        @testset "With $(s == hs ? "original system" : "2-dependent lift")" for s in (hs, hsm)
             m = s === hs ? 1 : 2
-            for d in 1:(7-m)
+            @testset "SOS d=$d" for d in 1:(7-m)
                 tol = ismosek(factory) ? 6e-4 : 1e-3
                 lb, ub = soslyapb(s, d, factory=factory, tol=tol)
                 @test log(lb) ≈ log(expected_lb[d, m]) atol=tol
                 @test log(ub) ≈ log(expected_ub[d, m]) atol=tol
             end
-            for d in 1:(7-m)
-                for l in 1:2
-                    for v_0 in states(s)
+            @testset "EXT d=$d" for d in 1:(7-m)
+                @testset "l=$l" for l in 1:2
+                    @testset "v_0=$v_0" for v_0 in states(s)
                         seq = sosbuildsequence(s, d, p_0=:Primal, v_0=v_0, niter=100)
                         psw = findsmp(seq)
                         @test psw !== nothing
