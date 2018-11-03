@@ -39,13 +39,25 @@ The linked notebooks reproduce the results of the following papers:
 [Certifying unstability of Switched Systems using Sum of Squares Programming](https://arxiv.org/abs/1710.01814),
 arXiv preprint arXiv:1710.01814, **2017**:
 [running example](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/LPJ17.ipynb),
-[Example 4.3](http://localhost:8888/notebooks/LPJ17e43.ipynb).
+[Example 4.3](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/LPJ17e43.ipynb).
 
 ### Exploring
 
 The linked notebooks explores the examples of the following papers using this
 package:
 
+* [AJPR14] A. Ahmadi, R. Jungers, P. Parrilo and M. Roozbehani,
+*Joint spectral radius and path-complete graph Lyapunov functions.*
+SIAM J. CONTROL OPTIM 52(1), 687-717, **2014**:
+[Example 5.4](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/AJPR14e54.ipynb).
+* [AP12] A. Ahmadi, and P. Parrilo
+*Joint spectral radius of rank one matrices and the maximum cycle mean problem.*
+CDC, 731-733, **2012**:
+[Example 2.1](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/AP12e21.ipynb).
+* [AS98] Ando, T. and Shih, M.-h.
+*Simultaneous Contractibility*.
+SIAM Journal on Matrix Analysis & Applications, **1998**, 19, 487:
+[construction](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/LPJ17e43.ipynb).
 * [BTV03] V. D. Blondel, J. Theys and A. A. Vladimirov.
 *An elementary counterexample to the finiteness conjecture*,
 SIAM Journal on Matrix Analysis and Applications, **2003**. 24, 963-970:
@@ -62,10 +74,25 @@ Linear Algebra and its Applications, **2008**, 428(10), 2265-2282:
 *An explicit counterexample to the Lagarias–Wang finiteness conjecture*.
 Advances in Mathematics, **2011**, 226(6), 4667-4701:
 [the counterexample](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/Finiteness_conjecture_counterexample.ipynb).
+* [JCG14] R. Jungers, A. Cicone and N. Guglielmi,
+*Lifted polytope methods for computing the joint spectral radius.*
+SIAM Journal on Matrix Analysis and Applications, SIAM, **2014**, 35, 391-410:
+[Example 6.1](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/JCG14e61.ipynb),
+[Example 6.3](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/JCG14e63.ipynb).
 * [PJ08] P. Parrilo and A. Jadbabaie.
 *Approximation of the joint spectral radius using sum of squares*.
 Linear Algebra and its Applications, Elsevier, **2008**, 428, 2385-2402:
+[Example 2.8](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/LPJ17e43.ipynb),
 [Example 5.4](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/PJ08e54.ipynb).
+* [P17] M. Philippe.
+*Path-Complete Methods and Analysis of Constrained Switching Systems*
+Doctoral dissertation, UCLouvain, **2017**:
+[Example 2.50](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/LPJ17.ipynb),
+[Example 2.52](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/Consensus.ipynb).
+* [PEDJ16] M. Philippe, R. Essick, G. E. Dullerud and R. M. Jungers.
+*Stability of discrete-time switching systems with constrained switching sequences.*
+Automatica, 72:242-250, **2016**:
+[Section 4](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/LPJ17.ipynb),
 
 ## How to cite
 

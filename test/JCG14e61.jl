@@ -23,7 +23,7 @@
             lb, ub = soslyapb(s, d, factory=factory, tol=tol)
             @test isapprox(lb, expected_lb[d], rtol=tol)
             @test isapprox(ub, expected_ub[d], rtol=tol)
-            seq = sosbuildsequence(s, 1, p_0=:Primal)
+            seq = sosbuildsequence(s, d, p_0=:Primal)
             psw = findsmp(seq)
             @test psw !== nothing
             @test psw == smp

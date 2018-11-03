@@ -28,7 +28,6 @@
                 @test getlb(s) ≈ 1
                 @test hassmp(s)
                 @test getsmp(s).growthrate == 1
-                @test getsmp(s).growthrate == 1
             end
         end
 
