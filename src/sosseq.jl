@@ -9,6 +9,8 @@ end
 
 function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, curstate)
     function rating(dyn)
+        # The major part of the time spent in sosbuildsequence is done
+        # in this function in the `subs` function of `DynamicPolynomials`
         soslf = soslyapforward(s, p, dyn)
         μ = measurefor(μs, dyn)
         dot(μ, soslf)
