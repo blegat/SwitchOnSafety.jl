@@ -35,7 +35,13 @@ We link them below with the literature.
 
 The linked notebooks reproduce the results of the following papers:
 
-* [BJP17] B. Legat, R. M. Jungers, and P. A. Parrilo.
+* [LTJ18] B. Legat, P. Tabuada, R. M. Jungers.
+[Computing controlled invariant sets for hybrid systems with applications to model-predictive control](https://www.sciencedirect.com/science/article/pii/S2405896318311480),
+IFAC-PapersOnLine, Volume 51, Issue 16, **2018**, Pages 193-198, ISSN 2405-8963,
+[https://doi.org/10.1016/j.ifacol.2018.08.033](https://doi.org/10.1016/j.ifacol.2018.08.033):
+[Figure 4 and 5](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/cruise_control.ipynb),
+[Figure 6](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/model_predictive_control.ipynb).
+* [LJP17] B. Legat, R. M. Jungers, and P. A. Parrilo.
 [Certifying unstability of Switched Systems using Sum of Squares Programming](https://arxiv.org/abs/1710.01814),
 arXiv preprint arXiv:1710.01814, **2017**:
 [running example](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/LPJ17.ipynb),
