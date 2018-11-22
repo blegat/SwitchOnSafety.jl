@@ -117,10 +117,10 @@ function soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
     if isinfeasible(status)
         #println("Infeasible $γ")
         @assert !isfeasible(status)
-        status, nothing, HybridSystems.typed_map(MeasureLyapunov{Float64}, JuMP.result_dual, cons)
+        status, nothing, HybridSystems.typed_map(MeasureLyapunov{Float64}, JuMP.dual, cons)
     elseif isfeasible(status)
         #println("Feasible $γ")
-        status, HybridSystems.typed_map(PolynomialLyapunov{Float64}, JuMP.result_value, p), nothing
+        status, HybridSystems.typed_map(PolynomialLyapunov{Float64}, JuMP.value, p), nothing
     else
         @assert !isdecided(status)
         status, nothing, nothing

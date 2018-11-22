@@ -6,6 +6,8 @@ using DynamicPolynomials
 using MultivariatePolynomials
 using MultivariateMoments
 
+using SetProg
+
 using MathematicalSystems
 using HybridSystems
 

@@ -81,7 +81,7 @@ struct CenterQuadCone{T, P<:AbstractPolynomial{T}, S} <: QuadCone{T, P, S}
     vol::S
 end
 CenterQuadCone(p::P, Q::Symmetric{S, Matrix{S}}, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = CenterQuadCone{T, P, S}(p, Q, c, H, vol)
-JuMP.result_value(p::CenterQuadCone) = CenterQuadCone(JuMP.result_value(p.p), Symmetric(JuMP.result_value.(p.Q)), p.h, p.H, JuMP.result_value(p.vol))
+JuMP.value(p::CenterQuadCone) = CenterQuadCone(JuMP.value(p.p), Symmetric(JuMP.value.(p.Q)), p.h, p.H, JuMP.value(p.vol))
 _β(m, h::CenterPoint{T}) where T = -one(T)
 _b(m, h::CenterPoint{T}) where T = zeros(T, length(h.h))
 QuadCone(p, Q, b, β, h::CenterPoint, H, vol) = CenterQuadCone(p, Q, h.h, H, vol)
@@ -101,7 +101,7 @@ struct InteriorQuadCone{T, P<:AbstractPolynomial{T}, S} <: QuadCone{T, P, S}
     vol::S
 end
 InteriorQuadCone(p::P, Q::Symmetric{S, Matrix{S}}, b::Vector{S}, β::S, c, H, vol::S) where {T, P<:AbstractPolynomial{T}, S} = InteriorQuadCone{T, P, S}(p, Q, b, β, c, H, vol)
-JuMP.result_value(p::InteriorQuadCone) = InteriorQuadCone(JuMP.result_value(p.p), Symmetric(JuMP.result_value.(p.Q)), JuMP.result_value.(p.b), JuMP.result_value(p.β), p.h, p.H, JuMP.result_value(p.vol))
+JuMP.value(p::InteriorQuadCone) = InteriorQuadCone(JuMP.value(p.p), Symmetric(JuMP.value.(p.Q)), JuMP.value.(p.b), JuMP.value(p.β), p.h, p.H, JuMP.value(p.vol))
 _β(m, h::InteriorPoint) = @variable m
 _b(m, h::InteriorPoint) = @variable m [1:length(h.h)]
 QuadCone(p, Q, b, β, h::InteriorPoint, H, vol) = InteriorQuadCone(p, Q, b, β, h.h, H, vol)
@@ -117,7 +117,7 @@ function getp(m::Model, h, y, cone, detcone)
     b = _b(m, h)
     #@constraint m b .== 0
     Q = @variable m [1:n, 1:n] Symmetric
-    @constraint m y' * [β+1 b'; b Q] * y in cone
+    @constraint m SetProg.quad_form(Symmetric([β+1 b'; b Q]), y) in cone
     H = _householder(h)
     p = y' * _HPH(Q, b, β, H) * y
     vol = @variable m
@@ -155,7 +155,7 @@ function lyapconstraint(_p::Function, N, s, l, y, t, m, cone, λuser)
     end
 end
 
-ellipsoid(p::QuadCone{T, P, JuMP.VariableRef}) where {T, P<:AbstractPolynomial{T}} = ellipsoid(JuMP.result_value(p))
+ellipsoid(p::QuadCone{T, P, JuMP.VariableRef}) where {T, P<:AbstractPolynomial{T}} = ellipsoid(JuMP.value(p))
 
 function _HPH(D, d, δ, H)
     P = [δ d'

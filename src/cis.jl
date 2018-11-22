@@ -6,7 +6,7 @@ export getis, fillis!, algebraiclift
 
 function algebraiclift(s::LinearControlDiscreteSystem)
     n = statedim(s)
-    z = find(i -> iszero(sum(abs.(s.B[i,:]))), 1:n)
+    z = findall(i -> iszero(sum(abs.(s.B[i,:]))), 1:n)
     # TODO ty - 1//2y^3 + 3//1xy + 2//1yhe affine space may not be parallel to classical axis
     LinearAlgebraicDiscreteSystem(s.A[z, :], Matrix(1.0I, n, n)[z, :])
 end
@@ -80,18 +80,17 @@ function _p(q, N, y, l, is, ps, h)
     end
 end
 
-function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer,
+function fillis!(is, N, s::DTAHAS, factory::JuMP.OptimizerFactory,
                  h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(stateset.(s.modes)));
                  y=_vars(s),
-                 ps=fill!(Vector{Union{Nothing, polynomialtype(y, Float64)}}(length(is)), nothing),
+                 ps=fill!(Vector{Union{Nothing, polynomialtype(y, Float64)}}(undef, length(is)), nothing),
                  cone=SOSCone(),
                  λ=Dict{transitiontype(s), Float64}(),
                  enabled = 1:nstates(s),
-                 detcone = contains(string(typeof(optimizer)), "SCS") ? MOI.LogDetConeTriangle : MOI.RootDetConeTriangle,
+                 detcone = MOI.RootDetConeTriangle,
                  verbose=1)
     n = nstates(s)
-    MOI.empty!(optimizer)
-    model = SOSModel(optimizer=optimizer)
+    model = SOSModel(factory)
     l = Dict(u => getp(model, h[u], y, cone, detcone) for u in N)
 
     @objective model Max sum(p -> p.vol, values(l))
@@ -116,24 +115,24 @@ function fillis!(is, N, s::DTAHAS, optimizer::MOI.AbstractOptimizer,
         end
     end
 
-    JuMP.optimize(model)
+    JuMP.optimize!(model)
 
     if verbose >= 1
         @show MOI.get(model, MOI.SolveTime())
-        @show JuMP.terminationstatus(model)
-        @show JuMP.primalstatus(model)
-        @show JuMP.dualstatus(model)
-        @show JuMP.objectivevalue(model)
+        @show JuMP.terminations_tatus(model)
+        @show JuMP.primal_status(model)
+        @show JuMP.dual_status(model)
+        @show JuMP.objective_value(model)
     end
 
     if verbose >= 2
         for (t, λout) in λouts
-            println("λ for $t is $(JuMP.resultvalue.(λout))")
+            println("λ for $t is $(JuMP.value.(λout))")
         end
     end
 
     for q in N
-        lv = JuMP.resultvalue(l[q])
+        lv = JuMP.value(l[q])
         ps[q] = lv.p
         is[q] = ellipsoid(lv)
     end
