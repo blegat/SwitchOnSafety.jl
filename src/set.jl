@@ -110,28 +110,6 @@ samecenter(l1, l2) = false
 
 _householder(h) = householder([1; h.h]) # We add 1, for z
 
-function getp(m::Model, h, y, cone, detcone)
-    n = length(y)-1
-    #β = 1.#@variable m lower_bound=0.
-    β = _β(m, h)
-    b = _b(m, h)
-    #@constraint m b .== 0
-    Q = @variable m [1:n, 1:n] Symmetric
-    @constraint m SetProg.quad_form(Symmetric([β+1 b'; b Q]), y) in cone
-    H = _householder(h)
-    p = y' * _HPH(Q, b, β, H) * y
-    vol = @variable m
-    #@constraint m vol <= trace Q
-    @constraint m [vol; [Q[i, j] for j in 1:n for i in 1:j]] in detcone(n)
-    QuadCone(p, Q, b, β, h, H, vol)
-    #@constraint m sum(Q) == 1 # dehomogenize
-    #@variable m L[1:n, 1:n]
-    #@variable m λinv[1:(n-1)] >= 0
-    #@SDconstraint m [Q  L
-    #                 L' diagm([λinv; -1])] ⪰ 0
-    #QuadCone(x' * Q * x, Q, L, λinv)
-end
-
 function lyapconstraint(_p::Function, N, s, l, y, t, m, cone, λuser)
     u = source(s, t)
     v = target(s, t)
