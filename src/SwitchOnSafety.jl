@@ -83,7 +83,7 @@ include("debruijn.jl")
 
 include("plot.jl")
 
-include("set.jl")
+#include("set.jl")
 include("cis.jl")
 
 end # module

@@ -61,22 +61,22 @@ function _vars(s::DTAHAS)
     @polyvar x[1:statedim(s, 1)] z
     [z; x]
 end
-function _p(q, N, y, l, is, ps, h)
-    if q in N
-        l[q].p
+function _p(state, N, y, l, is, ps, h)
+    if state in N
+        l[state].p
     else
-        if ps[q] === nothing
-            le = LiftedEllipsoid(is[q])
+        if ps[state] === nothing
+            le = SetProg.Sets.LiftedEllipsoid(is[state])
             Pd = inv(le.P)
-            H = _householder(h[q])
+            H = SetProg.Sets._householder(h[state])
             HPdH = H * Pd * H
             # HPdH is not like a solution what would be obtained by solving the program
             # since the λ computed for unlifting it is maybe not one.
             # Therefore, the S-procedure's λ for the constraints will be different.
             B, b, β, λ = Bbβλ(HPdH)
-            ps[q] = y' * _HPH(B/λ, b/λ, β/λ, H) * y
+            ps[state] = y' * _HPH(B/λ, b/λ, β/λ, H) * y
         end
-        ps[q]
+        ps[state]
     end
 end
 
@@ -91,27 +91,24 @@ function fillis!(is, N, s::DTAHAS, factory::JuMP.OptimizerFactory,
                  verbose=1)
     n = nstates(s)
     model = SOSModel(factory)
-    l = Dict(u => getp(model, h[u], y, cone, detcone) for u in N)
+    sets = @variable(model, [q in N], Ellipsoid(point=h[q]))
 
-    @objective model Max sum(p -> p.vol, values(l))
+    @objective model Max sum(set -> nth_root(volume(set)), sets)
 
     λouts = Dict{transitiontype(s), JuMP.AffExpr}()
 
     for q in N
-        # Constraint 1
-        NN = length(out_transitions(s, q))
+        @constraint(model, sets[q] ⊆ stateset(s, q))
+        # Invariance constraint
         for t in out_transitions(s, q)
             λin = get(λ, t, nothing)
-            if target(s, t) in enabled
-                λouts[t] = lyapconstraint(v -> _p(v, N, y, l, is, ps, h), N, s, l, y, t, model, cone, λin)
+            target_state = target(s, t)
+            if target_state in enabled
+                source_set = sets[q]
+                target_set = _p(target_state, N, l, is, ps, h)
+                r = s.resetmaps[symbol(s, t)]
+                λouts[t] = @constraint(model, r.A * source_set ⊆ r.E * target_set)
             end
-        end
-        # Constraint 2
-        #@SDconstraint model differentiate(p[q], x, 2) >= 0
-        # Constraint 3
-        @assert iszero(nhyperplanes(stateset(s, q)))
-        for hs in halfspaces(stateset(s, q))
-            @constraint model l[q].p(y => [-hs.β; hs.a]) <= 0
         end
     end
 
@@ -140,7 +137,7 @@ end
 
 function getis(s::DTAHAS, args...; kws...)
     nmodes = nstates(s)
-    is = Vector{Ellipsoid{Float64}}(undef, nmodes)
+    is = Vector{SetProg.Sets.Ellipsoid{Float64}}(undef, nmodes)
     fillis!(is, 1:nmodes, s, args...; kws...)
     is
 end
