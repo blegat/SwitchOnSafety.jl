@@ -12,7 +12,7 @@ end
 
 @recipe function f(ell::Ellipsoid)
     @assert LinearAlgebra.checksquare(ell.Q) == 2
-    αs = linspace(0, 2π, 1024)
+    αs = range(0, stop=2π, length=1024)
     ps = [[cos(α), sin(α)] for α in αs]
     r = [sqrt(dot(p, ell.Q * p)) for p in ps]
     seriestype --> :shape
@@ -37,7 +37,7 @@ end
 Base.convert(::Type{Ellipsoid{T}}, ell::LiftedEllipsoid) where T = convert(Ellipsoid{T}, Ellipsoid(ell))
 function Bbβλ(P)
     n = LinearAlgebra.checksquare(P) - 1
-    ix = 1+(1:n)
+    ix = 1 .+ (1:n)
     β = P[1, 1]
     b = P[1, ix]
     B = P[ix, ix]
@@ -112,7 +112,7 @@ _householder(h) = householder([1; h.h]) # We add 1, for z
 
 function getp(m::Model, h, y, cone, detcone)
     n = length(y)-1
-    #β = 1.#@variable m lowerbound=0.
+    #β = 1.#@variable m lower_bound=0.
     β = _β(m, h)
     b = _b(m, h)
     #@constraint m b .== 0
@@ -145,7 +145,7 @@ function lyapconstraint(_p::Function, N, s, l, y, t, m, cone, λuser)
         1.
     else
         if λuser === nothing
-            λ = @variable m lowerbound=0
+            λ = @variable m lower_bound=0.0
         else
             λ = λuser
         end

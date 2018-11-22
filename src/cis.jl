@@ -119,7 +119,7 @@ function fillis!(is, N, s::DTAHAS, factory::JuMP.OptimizerFactory,
 
     if verbose >= 1
         @show MOI.get(model, MOI.SolveTime())
-        @show JuMP.terminations_tatus(model)
+        @show JuMP.termination_status(model)
         @show JuMP.primal_status(model)
         @show JuMP.dual_status(model)
         @show JuMP.objective_value(model)
