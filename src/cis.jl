@@ -61,9 +61,9 @@ function _vars(s::DTAHAS)
     @polyvar x[1:statedim(s, 1)] z
     [z; x]
 end
-function _p(state, N, y, l, is, ps, h)
+function _p(state, N, sets, is, ps, h)
     if state in N
-        l[state].p
+        sets[state]
     else
         if ps[state] === nothing
             le = SetProg.Sets.LiftedEllipsoid(is[state])
@@ -83,7 +83,7 @@ end
 function fillis!(is, N, s::DTAHAS, factory::JuMP.OptimizerFactory,
                  h=map(cv->InteriorPoint(cv[1]), chebyshevcenter.(stateset.(s.modes)));
                  y=_vars(s),
-                 ps=fill!(Vector{Union{Nothing, polynomialtype(y, Float64)}}(undef, length(is)), nothing),
+                 ps=fill!(Vector{Union{Nothing, SetProg.Sets.DualQuadCone{Float64, Float64}}}(undef, length(is)), nothing),
                  cone=SOSCone(),
                  λ=Dict{transitiontype(s), Float64}(),
                  enabled = 1:nstates(s),
@@ -91,9 +91,12 @@ function fillis!(is, N, s::DTAHAS, factory::JuMP.OptimizerFactory,
                  verbose=1)
     n = nstates(s)
     model = SOSModel(factory)
-    sets = @variable(model, [q in N], Ellipsoid(point=h[q]))
+    #sets = @variable(model, [q in N], Ellipsoid(point=h[q]))
+    # FIXME calls JuMP.variable_type(model, Ellipsoid(point=h[q])) then
+    # complains that q is not defined
+    sets = Dict(state => @variable(model, variable_type=Ellipsoid(point=h[state])) for state in N)
 
-    @objective model Max sum(set -> nth_root(volume(set)), sets)
+    @objective model Max sum(set -> nth_root(volume(set)), values(sets))
 
     λouts = Dict{transitiontype(s), JuMP.AffExpr}()
 
@@ -105,9 +108,10 @@ function fillis!(is, N, s::DTAHAS, factory::JuMP.OptimizerFactory,
             target_state = target(s, t)
             if target_state in enabled
                 source_set = sets[q]
-                target_set = _p(target_state, N, l, is, ps, h)
+                target_set = _p(target_state, N, sets, is, ps, h)
                 r = s.resetmaps[symbol(s, t)]
-                λouts[t] = @constraint(model, r.A * source_set ⊆ r.E * target_set)
+                λouts[t] = 1.0
+                @constraint(model, r.A * source_set ⊆ r.E * target_set)
             end
         end
     end
@@ -124,14 +128,14 @@ function fillis!(is, N, s::DTAHAS, factory::JuMP.OptimizerFactory,
 
     if verbose >= 2
         for (t, λout) in λouts
-            println("λ for $t is $(JuMP.value.(λout))")
+            println("λ for $t is $(JuMP.value(λout))")
         end
     end
 
     for q in N
-        lv = JuMP.value(l[q])
-        ps[q] = lv.p
-        is[q] = ellipsoid(lv)
+        lv = JuMP.value(sets[q])
+        ps[q] = lv
+        is[q] = convert(SetProg.Sets.Ellipsoid{Float64}, lv) # FIXME the convert shouldn't be needed
     end
 end
 
