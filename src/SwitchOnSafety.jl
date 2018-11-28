@@ -6,7 +6,8 @@ using DynamicPolynomials
 using MultivariatePolynomials
 using MultivariateMoments
 
-using SetProg
+import Reexport
+Reexport.@reexport using SetProg
 
 using MathematicalSystems
 using HybridSystems

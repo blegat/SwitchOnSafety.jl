@@ -17,4 +17,5 @@ RecipesBase
 Polyhedra
 Compat v0.69
 StaticArrays
+Reexport
 SetProg
