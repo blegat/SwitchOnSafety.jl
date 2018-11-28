@@ -23,6 +23,7 @@ launch the REPL an type
 ] add JuMP#master
 ] add PolyJuMP#master
 ] add SumOfSquares#master
+] add https://github.com/blegat/SetProg.jl.git
 ] add https://github.com/blegat/SwitchOnSafety.jl.git
 ```
 
