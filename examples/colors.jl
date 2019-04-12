@@ -16,7 +16,7 @@ canard = hexcolor(0x048b9a)
 #canard = Plots.RGBA(0.0157, 0.5451, 0.6039)
 aurore = hexcolor(0xffcb60)
 # colors taken from https://previews.123rf.com/images/capacitorphoto/capacitorphoto1410/capacitorphoto141000191/32438941-Graph-Icon-color-set-illustration--Stock-Vector.jpg
-red = hexcolor(0xf59297)
+re = hexcolor(0xf59297)
 gre = hexcolor(0xcbdf80)
 blu = hexcolor(0x2394ce)
 ora = hexcolor(0xfacb95)
