@@ -59,15 +59,30 @@ function invariant_sets!(sets, modes_to_compute, s::DTAHAS, factory::JuMP.Optimi
                 target_set = target_state in modes_to_compute ? set_vrefs[target_state] : sets[target_state]
                 r = s.resetmaps[symbol(s, t)]
                 λouts[t] = 1.0
-                @constraint(model, r.A * source_set ⊆ r.E * target_set)
+                @constraint(model, r.A * source_set ⊆ r.E * target_set,
+                            S_procedure_scaling = λin)
             end
         end
     end
 
+    if verbose >= 3
+        print(model)
+    end
+
     JuMP.optimize!(model)
 
+    if verbose >= 4
+        print(model)
+    end
+
     if verbose >= 1
-        @show MOI.get(model, MOI.SolveTime())
+        try
+            @show MOI.get(model, MOI.SolveTime())
+        catch err
+            if !(err isa ArgumentError)
+                rethrow(err)
+            end
+        end
         @show JuMP.termination_status(model)
         @show JuMP.primal_status(model)
         @show JuMP.dual_status(model)
