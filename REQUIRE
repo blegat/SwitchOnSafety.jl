@@ -1,7 +1,7 @@
 julia 1.1
 Combinatorics
 MathOptInterface
-JuMP
+JuMP 0.19
 SumOfSquares
 MultivariatePolynomials
 SemialgebraicSets
