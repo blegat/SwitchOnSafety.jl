@@ -88,9 +88,9 @@ end
 
 function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     Z = monomials(x, 2*d)
-    p = (@variable model [1] Poly(Z))[1]
-    @constraint model p >= sum(x.^(2*d))
-    p
+    p = @variable(model, variable_type=Poly(Z))
+    @constraint(model, p >= sum(x.^(2*d)))
+    return p
 end
 lyapforin(s, p::HybridSystems.StateProperty, t) = p[source(s, t)]
 lyapforout(s, p::HybridSystems.StateProperty, t) = p[target(s, t)]
