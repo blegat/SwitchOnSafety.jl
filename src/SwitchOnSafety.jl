@@ -4,6 +4,7 @@ using LinearAlgebra, SparseArrays, Statistics
 
 using DynamicPolynomials
 using MultivariatePolynomials
+using SemialgebraicSets
 using MultivariateMoments
 
 import Reexport

@@ -1,9 +1,6 @@
 using JuMP
 using SumOfSquares
 
-using MathOptInterface
-const MOI = MathOptInterface
-
 export getlyap, soslyap, soslyapb
 
 # Storing the Lyapunov
@@ -66,10 +63,23 @@ function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, edge
     # it results in a problem that is better conditioned.
     # This is clearly visible in [Example 5.4, PJ08] for which the JSR is ≈ 8.9
     #@constraint model soslyapforward(s, lyapforout(s, p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(s, p, edge)
-    @constraint model soslyapforward(s, lyapforout(s, p, edge), edge, γ) <= lyapforin(s, p, edge)
+    @constraint(model, soslyapforward(s, lyapforout(s, p, edge), edge, γ) <= lyapforin(s, p, edge))
 end
 function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
-    cons = HybridSystems.transition_property(s, ConstraintRef{Model,SumOfSquares.SOSConstraint{DynamicPolynomials.Monomial{true},DynamicPolynomials.MonomialVector{true},VariableRef,MathOptInterface.VectorAffineFunction{Float64}},JuMP.ScalarShape})
+    cons = HybridSystems.transition_property(
+        s,
+        ConstraintRef{
+            Model,
+            MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},
+                                SumOfSquares.SOSPolynomialSet{SemialgebraicSets.FullSpace,
+                                                              SumOfSquares.NonnegPolyInnerCone{MOI.PositiveSemidefiniteConeTriangle},
+                                                              PolyJuMP.MonomialBasis,
+                                                              DynamicPolynomials.
+                                                              Monomial{true},
+                                                              DynamicPolynomials.MonomialVector{true},
+                                                              Tuple{}}},
+            PolyJuMP.PolynomialShape{DynamicPolynomials.Monomial{true},
+                                     DynamicPolynomials.MonomialVector{true}}})
     for t in transitions(s)
         cons[t] = soslyapconstraint(s, model, p, t, d, γ)
     end
@@ -86,10 +96,10 @@ lyapforin(s, p::HybridSystems.StateProperty, t) = p[source(s, t)]
 lyapforout(s, p::HybridSystems.StateProperty, t) = p[target(s, t)]
 
 function isinfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
-    status[3] == MOI.InfeasibilityCertificate
+    status[3] == MOI.INFEASIBILITY_CERTIFICATE
 end
 function isfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
-    status[2] == MOI.FeasiblePoint
+    status[2] == MOI.FEASIBLE_POINT
 end
 function isdecided(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
     return isinfeasible(status) || isfeasible(status)

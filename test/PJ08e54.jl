@@ -25,7 +25,7 @@
     for factory in sdp_factories
         sosdata(s).lb = 0
         for d in 1:3
-            tol = 1e-6
+            tol = 1e-5
             lb, ub = soslyapb(s, d, factory=factory, tol=tol)
             @test abs(log(expected_lb[d]) - log(lb)) <= tol
             @test abs(log(expected_ub[d]) - log(ub)) <= tol

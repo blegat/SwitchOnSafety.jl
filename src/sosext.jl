@@ -30,7 +30,7 @@ function extractatomic(s::AbstractDiscreteSwitchedSystem, d, t, ranktol, dual=ge
     σ = symbol(s, t)
     μ = dual[t]
     X = monomials(variables(μ), d)
-    ν = matmeasure(μ, X)
+    ν = moment_matrix(μ, X)
     extractatoms(ν, ranktol)
 end
 
