@@ -20,27 +20,27 @@ function getlyap(s::AbstractSwitchedSystem, d::Int; kws...)
     if d > length(lyaps) || lyaps[d] === nothing
         soslyapb(s, d, cached=true, kws...)
     end
-    lyaps[d]
+    return lyaps[d]
 end
 
 function getsoslyapinitub(s::AbstractDiscreteSwitchedSystem, d::Integer)
     #_, sosub = pradiusb(s, 2*d)
     #sosub
-    Inf
+    return Inf
 end
 #function getsoslyapinitub(s::AbstractContinuousSwitchedSystem, d::Integer)
-#    Inf
+#    return Inf
 #end
 
 function getsoslyapinit(s, d)
     lyaps = getlyaps(s)
     if d <= length(lyaps) && lyaps[d] !== nothing
         lyap = lyaps[d]
-        lyap.soslb, lyap.dual, lyap.sosub, lyap.primal
+        return lyap.soslb, lyap.dual, lyap.sosub, lyap.primal
     else
         # The SOS ub is greater than the JSR hence also greater than any of its lower bound.
         # Hence getlb(s) can be used as an initial lowerbound
-        getlb(s), nothing, getsoslyapinitub(s, d), nothing
+        return getlb(s), nothing, getsoslyapinitub(s, d), nothing
     end
 end
 
@@ -49,7 +49,7 @@ function soslyapforward(s::AbstractDiscreteSwitchedSystem, p::Polynomial,
                         path, args...)
     xin = variables(s, source(s, path))
     xout = variables(s, target(s, path))
-    p(xout => (dynamicfort(s, path, args...)) * vec(xin))
+    return p(xout => (dynamicfort(s, path, args...)) * vec(xin))
 end
 #function soslyapforward(s::AbstractContinuousSwitchedSystem, p::Polynomial, mode::Int)
 #    x = variables(p)
@@ -87,10 +87,9 @@ function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, 
 end
 
 function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
-    Z = monomials(x, 2*d)
-    p = @variable(model, variable_type=Poly(Z))
-    @constraint(model, p >= sum(x.^(2*d)))
-    return p
+    Z = monomials(x, d)
+    p = @variable(model, variable_type=SOSPoly(Z))
+    return sum(x.^(2*d)) + p
 end
 lyapforin(s, p::HybridSystems.StateProperty, t) = p[source(s, t)]
 lyapforout(s, p::HybridSystems.StateProperty, t) = p[target(s, t)]
@@ -112,7 +111,7 @@ _dualstatus(model::JuMP.Model) = JuMP.dual_status(model)
 # Solving the Lyapunov problem
 function soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
     model = SOSModel(factory)
-    p = HybridSystems.state_property(s, PolynomialLyapunov{JuMP.VariableRef})
+    p = HybridSystems.state_property(s, PolynomialLyapunov{JuMP.AffExpr})
     for v in states(s)
         p[v] = buildlyap(model, variables(s, v), d)
     end
