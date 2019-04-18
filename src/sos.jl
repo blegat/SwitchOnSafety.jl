@@ -89,7 +89,8 @@ end
 function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     Z = monomials(x, d)
     p = @variable(model, variable_type=SOSPoly(Z))
-    return sum(x.^(2*d)) + p
+    q = GramMatrix(SOSDecomposition(x.^d))
+    return q + p
 end
 lyapforin(s, p::HybridSystems.StateProperty, t) = p[source(s, t)]
 lyapforout(s, p::HybridSystems.StateProperty, t) = p[target(s, t)]
