@@ -5,7 +5,7 @@
 # The JSR is 3.917384715148
 
 @testset "[AJPR14] Example 5.4" begin
-    s = discreteswitchedsystem([[-1 -1; -4 0],[3 3; -2 1]])
+    s = discreteswitchedsystem([[-1 -1; -4 0], [3 3; -2 1]])
     @test sprint(show, s) == "Hybrid System with automaton OneStateAutomaton(2)"
     qub = 4.31959610746
     @test quicklb(s) ≈ 3
