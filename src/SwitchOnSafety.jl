@@ -70,8 +70,9 @@ function _eyes(s, st, forward)
     _eyet(s, first(io_transitions(s, st, forward)))
 end
 
-include("quick.jl")
 include("periodic.jl")
+include("quick.jl")
+include("gripenberg.jl")
 include("sosdata.jl")
 include("switchings.jl")
 include("veronese.jl")

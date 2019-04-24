@@ -4,6 +4,8 @@
 # Linear Algebra and its Applications, Elsevier, 2008, 428, 2385-2402
 # The JSR was conjectured to be 8.9149 = √ρ(A_1 * A_3)
 
+using LinearAlgebra
+
 @testset "[PJ08] Example 5.4" begin
     # values with log-accuracy 4e-7 taken from the examples/PJ08e54.ipynb
     expected_lb = [5.635326998733677, 6.777596245727604, 7.423337986847027]
@@ -22,6 +24,18 @@
           -1  5  0  1]
     s = discreteswitchedsystem([A1, A2, A3])
     smp = periodicswitching(s, [1, 3])
+
+    @testset "Gripenberg" begin
+        for p in [1, 2, Inf]
+            psw, ub = gripenberg(s, max_length = 1, matrix_norm = A -> opnorm(A, p))
+            @test psw == periodicswitching(s, [2])
+            @test ub ≈ opnorm(A3, p)
+        end
+        psw, ub = gripenberg(s)
+        @test psw == smp
+        @test ub ≈ psw.growthrate + 1e-2 # 1e-2 is the default δ
+    end
+
     for factory in sdp_factories
         sosdata(s).lb = 0
         for d in 1:3
