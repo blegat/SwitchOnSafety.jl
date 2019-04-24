@@ -7,13 +7,14 @@ end
 #    modes(s, curstate, false)
 #end
 
-function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, curstate)
+function best_dynamic(s::AbstractSwitchedSystem, d, μs, p::GramMatrix, l, curstate)
     function rating(dyn)
         # The major part of the time spent in sosbuildsequence is done
         # in this function in the `subs` function of `DynamicPolynomials`
-        soslf = soslyapforward(s, p, dyn)
-        μ = measurefor(μs, dyn)
-        dot(μ, soslf)
+        soslf = soslyapforward(s, d, p, dyn)
+        ν = measurefor(μs, dyn)
+        #dot(μ, soslf)
+        return dot(getmat(ν), getmat(soslf))
     end
     best_dyn = nothing
     best = -Inf
@@ -30,13 +31,13 @@ function best_dynamic(s::AbstractSwitchedSystem, μs, p::AbstractPolynomial, l, 
     return best_dyn
 end
 
-function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, seq, μs, p_k, l, Δt, curstate, iter)
-    best_dyn = best_dynamic(s, μs, p_k, l, curstate)
+function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, d, seq, μs, p_k::GramMatrix, l, Δt, curstate, iter)
+    best_dyn = best_dynamic(s, d, μs, p_k, l, curstate)
 
     curstate = state(s, best_dyn.seq[1], false)
     prepend!(seq, best_dyn)
     x = variables(p_k)
-    iter+l, curstate, soslyapforward(s, p_k, best_dyn)
+    iter+l, curstate, soslyapforward(s, d, p_k, best_dyn)
 end
 
 #function sosbuilditeration(s::AbstractContinuousSwitchedSystem, seq, μs, p_prev, l, Δt, curstate, iter)
@@ -87,21 +88,22 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer;
     end
 
     if p_0 == :Primal
-        p_0 = lyap.primal[curstate]
+        p_k = lyap.primal[curstate]
     elseif p_0 == :Random
         Z = monomials(variables(s, curstate), d)
-        p_0 = randsos(Z, monotype=:Gram, r=1)
-    end # otherwise p_0 is assumed to be an sos polynomial given by the user
-    p_0 = polynomial(p_0)
+        p_k = randsos(Z, monotype=:Gram, r=1)
+    else
+        # otherwise p_0 is assumed to be an sos polynomial given by the user
+        p_k = p_0::GramMatrix
+    end
 
-    p_k = p_0
     seq = switchingsequence(s, niter, curstate)
 
     iter = 1
     while iter <= niter
-        iter, curstate, p_k = sosbuilditeration(s, seq, lyap.dual, p_k, l, Δt, curstate, iter)
+        iter, curstate, p_k = sosbuilditeration(s, d, seq, lyap.dual, p_k, l, Δt, curstate, iter)
         # Avoid having it go to zero
-        p_k /= p_k(variables(p_k) => ones(Int, nvariables(p_k)))
+        p_k = gram_operate(/, p_k, p_k(variables(p_k) => ones(Int, nvariables(p_k))))
     end
     @assert seq.len == length(seq.seq)
     seq

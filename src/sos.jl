@@ -45,11 +45,10 @@ function getsoslyapinit(s, d)
 end
 
 # Building the Lyapunov constraints
-function soslyapforward(s::AbstractDiscreteSwitchedSystem, p::Polynomial,
-                        path, args...)
+function soslyapforward(s::AbstractDiscreteSwitchedSystem, d::Int,
+                        p::GramMatrix, path, args...)
     xin = variables(s, source(s, path))
-    xout = variables(s, target(s, path))
-    return p(xout => (dynamicfort(s, path, args...)) * vec(xin))
+    return SetProg.apply_matrix(p, dynamicfort(s, path, args...), xin, d)
 end
 #function soslyapforward(s::AbstractContinuousSwitchedSystem, p::Polynomial, mode::Int)
 #    x = variables(p)
@@ -57,13 +56,13 @@ end
 #end
 #soslyapscaling(s::AbstractDiscreteSwitchedSystem, γ, d) = γ^(2*d)
 #soslyapscaling(s::AbstractContinuousSwitchedSystem, γ, d) = 2*d*γ
-function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model, p, edge, d, γ)
-    getid(x) = x.id
+function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model,
+                           p::HybridSystems.StateProperty, edge, d, γ)
     # For values of γ far from 1.0, it is better to divide A_i's by γ,
     # it results in a problem that is better conditioned.
     # This is clearly visible in [Example 5.4, PJ08] for which the JSR is ≈ 8.9
     #@constraint model soslyapforward(s, lyapforout(s, p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(s, p, edge)
-    @constraint(model, soslyapforward(s, lyapforout(s, p, edge), edge, γ) <= lyapforin(s, p, edge))
+    @constraint(model, soslyapforward(s, d, lyapforout(s, p, edge), edge, γ) <= lyapforin(s, p, edge))
 end
 function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
     cons = HybridSystems.transition_property(
@@ -90,7 +89,7 @@ function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     Z = monomials(x, d)
     p = @variable(model, variable_type=SOSPoly(Z))
     q = GramMatrix(SOSDecomposition(x.^d))
-    return q + p
+    return SetProg.SumOfSquares.gram_operate(+, q, p)
 end
 lyapforin(s, p::HybridSystems.StateProperty, t) = p[source(s, t)]
 lyapforout(s, p::HybridSystems.StateProperty, t) = p[target(s, t)]
@@ -127,7 +126,7 @@ function soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
     if isinfeasible(status)
         #println("Infeasible $γ")
         @assert !isfeasible(status)
-        status, nothing, HybridSystems.typed_map(MeasureLyapunov{Float64}, JuMP.dual, cons)
+        status, nothing, HybridSystems.typed_map(MeasureLyapunov{Float64}, SetProg.SumOfSquares.moment_matrix, cons)
     elseif isfeasible(status)
         #println("Feasible $γ")
         status, HybridSystems.typed_map(PolynomialLyapunov{Float64}, JuMP.value, p), nothing

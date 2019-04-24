@@ -35,8 +35,8 @@ function SOSData{S, TT, XT, PT, DT}(s::S) where {S, TT,
     SOSData{S, TT, XT, PT, DT}(y, 0, Inf, lyaps, nothing, nothing)
 end
 
-const PolynomialLyapunov{T} = DynamicPolynomials.Polynomial{true, T}
-const MeasureLyapunov{T} = MultivariateMoments.Measure{T, DynamicPolynomials.Monomial{true}, DynamicPolynomials.MonomialVector{true}}
+const PolynomialLyapunov{T} = SetProg.SumOfSquares.GramMatrix{T, DynamicPolynomials.Monomial{true}, DynamicPolynomials.MonomialVector{true}}
+const MeasureLyapunov{T} = MultivariateMoments.MomentMatrix{T, DynamicPolynomials.Monomial{true}, DynamicPolynomials.MonomialVector{true}}
 
 function SOSData(s::AbstractDiscreteSwitchedSystem)
     S = typeof(s)
