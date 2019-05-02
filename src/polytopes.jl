@@ -69,12 +69,14 @@ end
 function invariant_polytopes(
     s::AbstractDiscreteSwitchedSystem, factory::JuMP.OptimizerFactory,
     smp::AbstractPeriodicSwitching; max_length=10, verbose=1, tol=nothing,
-    max_cycles=10, new_candidate_tol=1e-6)
+    max_cycles=10, new_candidate_tol=1e-6, gready=false)
     leaves = Int[]
     sets = PolytopeLike[]
     new_smp = true
     max_lowtol = -Inf
     min_uptol = Inf
+    max_low_candidate_tol = -Inf
+    min_up_candidate_tol = Inf
     while new_smp
         new_smp = false
         n = length(smp.period)
@@ -146,7 +148,7 @@ function invariant_polytopes(
                 new_smp && break
                 root, path = root_path(parent, leaf, n)
                 if verbose ≥ 2
-                    println("Path starting starting at root $root: $(map(i -> symbol(s, transition[i]), reverse(path))):")
+                    println("Path starting starting at root $root: $(map(i -> symbol(s, transition[i]), path)):")
                 end
                 for t in out_transitions(s, _mode(leaf))
                     new_smp && break
@@ -175,30 +177,61 @@ function invariant_polytopes(
                             min_uptol = min(min_uptol, r)
                         end
                     else
-                        if dot(duals[root], v) - 1 > new_candidate_tol
+                        candidate_rating = dot(duals[root], v) - 1
+                        if candidate_rating > new_candidate_tol
+                            min_up_candidate_tol = min(min_up_candidate_tol, candidate_rating)
                             period = [[transition[i] for i in path]; t]
                             if verbose ≥ 2
                                 printstyled("New candidate s.m.p. found", bold=true, color=:blue)
                                 println(" because ⟨v_$root*, v⟩ - 1 = $(dot(duals[root], v) - 1) > $new_candidate_tol:")
                             end
                             cycle = [transition[root+1:n]; transition[1:root]]
-                            _smp = periodicswitching(s, period)
+                            _smp = periodicswitching(s, period, scaling = smp.growthrate)
+                            __smp = _smp
+                            better = isbetter(_smp, smp)
                             for i in 1:max_cycles
-                                if isbetter(_smp, smp)
-                                    break
+                                if better
+                                    if gready
+                                        if i > 1 && !isbetter(_smp, __smp)
+                                            # It does not improve, let's stop
+                                            break
+                                        end
+                                    else
+                                        break
+                                    end
                                 end
                                 if verbose ≥ 2
-                                    println(_smp, " is not better yet, adding a cycle.")
+                                    print(_smp)
+                                    if better
+                                        print(" is better than existing s.m.p. but it might still be improved")
+                                    else
+                                        print(" is not better yet")
+                                    end
+                                    println(", adding a cycle.")
                                 end
                                 period = [cycle; period]
-                                _smp = periodicswitching(s, period)
+                                __smp = _smp
+                                _smp = periodicswitching(s, period, scaling = smp.growthrate)
+                                if !better
+                                    better = isbetter(_smp, smp)
+                                end
                             end
-                            new_smp = true
-                            smp = _smp
-                            if verbose ≥ 2
-                                println(smp)
+                            if better
+                                new_smp = true
+                                smp = _smp
+                                if verbose ≥ 2
+                                    println(smp)
+                                end
+                            else
+                                if verbose ≥ 1
+                                    printstyled("aborting", bold=true, color=:red)
+                                    println(" with smp candidate $_smp after prefixing suffix with $max_cycles times the current s.m.p. Increase the `max_cycles` keyword argument to go further.")
+                                end
                             end
                         else
+                            max_low_candidate_tol = max(max_low_candidate_tol, candidate_rating)
+                        end
+                        if !new_smp
                             if verbose ≥ 2
                                 printstyled("living leaf", color=:green)
                                 if tol !== nothing
@@ -236,6 +269,12 @@ function invariant_polytopes(
         else
             println("Use `tol` < $max_lowtol to eliminite at least one more living leaf.")
             println("Use `tol` > $min_uptol to keep at least one more dead leaf.")
+        end
+        if isfinite(max_low_candidate_tol)
+            println("Use `new_candidate_tol` < $max_low_candidate_tol to consider at least one more candidate as s.m.p.")
+        end
+        if isfinite(min_up_candidate_tol)
+            println("Use `new_candidate_tol` > $min_up_candidate_tol to eliminate at least one s.m.p. candidate.")
         end
     end
     return smp, isempty(leaves), sets

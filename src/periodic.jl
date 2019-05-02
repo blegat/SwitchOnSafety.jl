@@ -31,22 +31,27 @@ end
 
 function Base.show(io::IO, s::AbstractPeriodicSwitching)
     #print(io, "Periodic switching of growth rate $(s.growthrate) and modes: $(symbol.(s.s, s.period))")# for the transitions $(s.period)")
-    print(io, "PSW($(round(s.growthrate, digits=8)), $(symbol.(s.s, s.period)))")# for the transitions $(s.period)")
+    print(io, "PSW($(s.growthrate), $(symbol.(s.s, s.period)))")# for the transitions $(s.period)")
 end
 
 function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, growthrate, args...)
     DiscretePeriodicSwitching(s, period, growthrate)
 end
 
-function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, A::AbstractMatrix)
+_scale(A, ::Nothing) = A
+_scale(A, scaling) = A * scaling
+_unscale(A, ::Nothing) = A
+_unscale(A, scaling) = A / scaling
+
+function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, A::AbstractMatrix; scaling = nothing)
     lambda = ρ(A)
-    growthrate = adaptgrowthrate(abs(lambda), period)
+    growthrate = _scale(adaptgrowthrate(abs(lambda), period), scaling)
     periodicswitching(s, period, growthrate)
 end
 
-function periodicswitching(s::AbstractSwitchedSystem, period::Vector)
-    A = prod(reverse(integratorfor.(s, period)))
-    periodicswitching(s, period, A)
+function periodicswitching(s::AbstractSwitchedSystem, period::Vector; scaling = nothing)
+    A = prod(t -> _unscale(integratorfor(s, t), scaling), reverse(period))
+    return periodicswitching(s, period, A, scaling = scaling)
 end
 
 # Shortcut
