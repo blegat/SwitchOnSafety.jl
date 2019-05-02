@@ -18,7 +18,7 @@ end
 function getlyap(s::AbstractSwitchedSystem, d::Int; kws...)
     lyaps = getlyaps(s)
     if d > length(lyaps) || lyaps[d] === nothing
-        soslyapb(s, d, cached=true, kws...)
+        soslyapb(s, d; cached=true, kws...)
     end
     return lyaps[d]
 end

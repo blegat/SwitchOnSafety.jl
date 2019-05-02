@@ -73,6 +73,9 @@ end
 include("periodic.jl")
 include("quick.jl")
 include("gripenberg.jl")
+
+include("polytopes.jl")
+
 include("sosdata.jl")
 include("switchings.jl")
 include("veronese.jl")

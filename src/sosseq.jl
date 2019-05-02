@@ -3,23 +3,20 @@ export sosbuildsequence
 function candidates(s::AbstractDiscreteSwitchedSystem, l, curstate)
     switchings(s, l, curstate, false)
 end
-#function candidates(s::AbstractContinuousSwitchedSystem, l, curstate)
-#    modes(s, curstate, false)
-#end
 
-function best_dynamic(s::AbstractSwitchedSystem, d, μs, p::GramMatrix, l, curstate)
-    function rating(dyn)
+function best_dynamic(s::AbstractSwitchedSystem, d, μs, p::GramMatrix, l, curstate, candidates)
+    function rating(dyn, transformation)
         # The major part of the time spent in sosbuildsequence is done
-        # in this function in the `subs` function of `DynamicPolynomials`
-        soslf = soslyapforward(s, d, p, dyn)
+        # in this line so the transformation is cached in `transformation`
+        soslf = SetProg.apply_transformation(p, transformation)
         ν = measurefor(μs, dyn)
-        #dot(μ, soslf)
+        # return dot(μ, soslf)
         return dot(getmat(ν), getmat(soslf))
     end
     best_dyn = nothing
     best = -Inf
-    for dyn in candidates(s, l, curstate)
-        cur = rating(dyn)
+    for (dyn, transformation) in candidates[curstate]
+        cur = rating(dyn, transformation)
         if cur > best
             best = cur
             best_dyn = dyn
@@ -31,8 +28,8 @@ function best_dynamic(s::AbstractSwitchedSystem, d, μs, p::GramMatrix, l, curst
     return best_dyn
 end
 
-function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, d, seq, μs, p_k::GramMatrix, l, Δt, curstate, iter)
-    best_dyn = best_dynamic(s, d, μs, p_k, l, curstate)
+function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, d, seq, μs, p_k::GramMatrix, l, Δt, curstate, iter, candidates)
+    best_dyn = best_dynamic(s, d, μs, p_k, l, curstate, candidates)
 
     curstate = state(s, best_dyn.seq[1], false)
     prepend!(seq, best_dyn)
@@ -71,6 +68,12 @@ end
 #    iter, curstate, p_cur
 #end
 
+function transformation(s::AbstractSwitchedSystem, path, d)
+    xin = variables(s, source(s, path))
+    xout = variables(s, target(s, path))
+    return SetProg.transformation(monomials(xout, d), dynamicfort(s, path), xin, d)
+end
+
 # Extracting trajectory from Lyapunov
 function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer;
                           v_0=:Random, p_0=:Random, l::Integer=1,
@@ -99,9 +102,12 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer;
 
     seq = switchingsequence(s, niter, curstate)
 
+    candidates = Dict(state => [(dyn, transformation(s, dyn, d)) for dyn in collect(switchings(s, l, state, false))]
+                      for state in states(s))
+
     iter = 1
     while iter <= niter
-        iter, curstate, p_k = sosbuilditeration(s, d, seq, lyap.dual, p_k, l, Δt, curstate, iter)
+        iter, curstate, p_k = sosbuilditeration(s, d, seq, lyap.dual, p_k, l, Δt, curstate, iter, candidates)
         # Avoid having it go to zero
         p_k = gram_operate(/, p_k, p_k(variables(p_k) => ones(Int, nvariables(p_k))))
     end

@@ -77,6 +77,11 @@ SIAM Journal on Matrix Analysis and Applications, **2003**. 24, 963-970:
 *An algorithm for finding extremal polytope norms of matrix families*.
 Linear Algebra and its Applications, **2008**, 428(10), 2265-2282:
 [Section 5](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/Finiteness_conjecture_counterexample.ipynb).
+* [GP13] N. Guglielmi and V. Protasov.
+*Exact computation of joint spectral characteristics of linear operators*.
+Foundations of Computational Mathematics 13.1, **2013**, 37-97.
+[Example 1](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/Finiteness_conjecture_counterexample.ipynb).
+[Example 2](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/Finiteness_conjecture_counterexample.ipynb).
 * [HMST11] K. G. Hare, I. D Morris, N. Sidorov and J. Theys,
 *An explicit counterexample to the Lagarias–Wang finiteness conjecture*.
 Advances in Mathematics, **2011**, 226(6), 4667-4701:

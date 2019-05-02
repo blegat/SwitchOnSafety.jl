@@ -116,6 +116,7 @@ struct SwitchingIterator{S<:AbstractDiscreteSwitchedSystem}
     v0::Int       # starting mode
     forward::Bool # Is the sequence going forward or backward
 end
+Base.IteratorSize(::SwitchingIterator) = Base.SizeUnknown()
 
 # Iterates over all the `forward` switching of length `k` starting at `v0`
 function switchings(s::AbstractDiscreteSwitchedSystem, k::Int, v0::Int, forward=true)

@@ -30,7 +30,7 @@ const expected_lb = expected_ub ./ ratio
     end
 
     function t(pair::Pair)
-        edge = Edge(pair)
+        edge = HybridSystems.edge_object(hs.automaton, pair.first, pair.second)
         id = first(keys(hs.automaton.Σ[edge]))
         return HybridSystems.LightTransition(edge, id)
     end
