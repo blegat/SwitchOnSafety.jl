@@ -1,0 +1,8 @@
+[deps]
+GLPK = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
+HybridSystems = "2207ec0c-686c-5054-b4d2-543502888820"
+MosekTools = "1ec41992-ff65-5c91-ac43-2df89e9693a4"
+SetProg = "fc078b4a-c1ae-5945-9d19-22107d1bf3e1"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+SumOfSquares = "4b9e565b-77fc-50a5-a571-1244f986bda1"
+SwitchOnSafety = "ceb7f16a-07bf-5f4a-9354-b68f01b1610f"

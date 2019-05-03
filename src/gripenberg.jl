@@ -14,8 +14,9 @@ end
 *Linear Algebra and its Applications*, *Elsevier*, **1996**, *234*, 43-60
 """
 function gripenberg(s::AbstractDiscreteSwitchedSystem; δ=1e-2,
-                    max_ρ_eval=1000, max_norm_eval=10000, max_length = 50,
-                    matrix_norm=A -> opnorm(A, 2), verbose=1)
+                    max_eval = 10000, max_ρ_eval = max_eval,
+                    max_norm_eval = max_eval, max_length = 50,
+                    matrix_norm = A -> opnorm(A, 2), verbose = 1)
     MT = typeof(dynamicfort(s, first(out_transitions(s, 1))))
     ET = transitiontype(s)
     branches = [BranchState{MT, ET}(Matrix(LinearAlgebra.I, HybridSystems.statedim(s, mode), HybridSystems.statedim(s, mode)), ET[], mode, Inf) for mode in modes(s)]
@@ -60,7 +61,7 @@ function gripenberg(s::AbstractDiscreteSwitchedSystem; δ=1e-2,
         ub = min(ub, β)
     end
     if verbose ≥ 1
-        function _txt(cur, max)
+        function _keyword_feedback(cur, max)
             if cur < max
                 print(cur, " < ", max)
             else
@@ -68,13 +69,13 @@ function gripenberg(s::AbstractDiscreteSwitchedSystem; δ=1e-2,
             end
         end
         print("ρ evaluations   : ")
-        _txt(n_ρ_eval, max_ρ_eval)
+        _keyword_feedback(n_ρ_eval, max_ρ_eval)
         println(" = max_ρ_eval.")
         print("norm evaluations: ")
-        _txt(n_norm_eval, max_norm_eval)
+        _keyword_feedback(n_norm_eval, max_norm_eval)
         println(" = max_norm_eval.")
         print("switch length   : ")
-        _txt(cur_length, max_length)
+        _keyword_feedback(cur_length, max_length)
         println(" = max_length.")
     end
     return smp, ub

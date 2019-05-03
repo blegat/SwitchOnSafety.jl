@@ -68,8 +68,8 @@ end
 # Foundations of Computational Mathematics 13.1, **2013**, 37-97.
 function invariant_polytopes(
     s::AbstractDiscreteSwitchedSystem, factory::JuMP.OptimizerFactory,
-    smp::AbstractPeriodicSwitching; max_length=10, verbose=1, tol=nothing,
-    max_cycles=10, new_candidate_tol=1e-6, gready=false)
+    smp::AbstractPeriodicSwitching; max_length=10, verbose=2, tol=nothing,
+    max_cycles=10, new_candidate_tol=1e-6, gready=false, max_smp_length=50)
     leaves = Int[]
     sets = PolytopeLike[]
     new_smp = true
@@ -131,7 +131,7 @@ function invariant_polytopes(
         end
         _mode(i) = target(s, transition[i])
         for i in 1:n
-            if verbose ≥ 2
+            if verbose ≥ 3
                 println("v_$i = ", vertices[i])
             end
             Polyhedra.convexhull!(sets[_mode(i)], SymPoint(vertices[i]))
@@ -140,14 +140,14 @@ function invariant_polytopes(
         for k in 1:max_length
             new_smp && break
             isempty(leaves) && break
-            if verbose ≥ 1
+            if verbose ≥ 2 || (verbose ≥ 1 && ((k % 100) == 0))
                 println("Depth $k: $(map(p -> length(p.points), sets)) points, $(length(leaves)) living leaves...")
             end
             new_leaves = Int[]
             for leaf in leaves
                 new_smp && break
                 root, path = root_path(parent, leaf, n)
-                if verbose ≥ 2
+                if verbose ≥ 3
                     println("Path starting starting at root $root: $(map(i -> symbol(s, transition[i]), path)):")
                 end
                 for t in out_transitions(s, _mode(leaf))
@@ -156,7 +156,7 @@ function invariant_polytopes(
                         continue
                     end
                     v = SwitchOnSafety.integratorfor(s, t) * vertices[leaf] / λ
-                    if verbose ≥ 2
+                    if verbose ≥ 3
                         print(symbol(s, t), " : ", v, " : ")
                     end
                     if tol === nothing
@@ -166,7 +166,7 @@ function invariant_polytopes(
                         is_in = r ≥ tol
                     end
                     if is_in
-                        if verbose ≥ 2
+                        if verbose ≥ 3
                             printstyled("dead leaf", color=:red)
                             if tol !== nothing
                                 println(": $r ≥ $tol")
@@ -189,18 +189,23 @@ function invariant_polytopes(
                             _smp = periodicswitching(s, period, scaling = smp.growthrate)
                             __smp = _smp
                             better = isbetter(_smp, smp)
+                            n_cycles = 0
                             for i in 1:max_cycles
+                                if length(_smp.period) + length(cycle) > max_smp_length
+                                    break
+                                end
                                 if better
                                     if gready
                                         if i > 1 && !isbetter(_smp, __smp)
                                             # It does not improve, let's stop
+                                            _smp = __smp
                                             break
                                         end
                                     else
                                         break
                                     end
                                 end
-                                if verbose ≥ 2
+                                if verbose ≥ 3
                                     print(_smp)
                                     if better
                                         print(" is better than existing s.m.p. but it might still be improved")
@@ -212,6 +217,7 @@ function invariant_polytopes(
                                 period = [cycle; period]
                                 __smp = _smp
                                 _smp = periodicswitching(s, period, scaling = smp.growthrate)
+                                n_cycles += 1
                                 if !better
                                     better = isbetter(_smp, smp)
                                 end
@@ -219,20 +225,26 @@ function invariant_polytopes(
                             if better
                                 new_smp = true
                                 smp = _smp
-                                if verbose ≥ 2
+                                if verbose ≥ 1
                                     println(smp)
                                 end
                             else
-                                if verbose ≥ 1
+                                if verbose ≥ 2
                                     printstyled("aborting", bold=true, color=:red)
-                                    println(" with smp candidate $_smp after prefixing suffix with $max_cycles times the current s.m.p. Increase the `max_cycles` keyword argument to go further.")
+                                    print(" with smp candidate $_smp of length $(length(_smp.period)) after prefixing the suffix with $n_cycles times the current s.m.p.")
+                                    @assert n_cycles ≤ max_cycles
+                                    if n_cycles == max_cycles
+                                        println(" Increase the value of the `max_cycles` keyword argument to go further.")
+                                    else
+                                        println(" Increase the value of the `max_smp_length` keyword argument to go further.")
+                                    end
                                 end
                             end
                         else
                             max_low_candidate_tol = max(max_low_candidate_tol, candidate_rating)
                         end
                         if !new_smp
-                            if verbose ≥ 2
+                            if verbose ≥ 3
                                 printstyled("living leaf", color=:green)
                                 if tol !== nothing
                                     println(": $r < $tol")
