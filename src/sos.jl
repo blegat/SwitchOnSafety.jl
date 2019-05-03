@@ -108,7 +108,16 @@ end
 _primalstatus(model::JuMP.Model) = JuMP.primal_status(model)
 _dualstatus(model::JuMP.Model) = JuMP.dual_status(model)
 
-# Solving the Lyapunov problem
+"""
+    soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
+
+Find Sum-of-Squares Lyapunov functions guaranteeing a growth rate of `γ`; i.e. solves [(5), PJ08]
+or gives moment matrices certifying the infeasibility of the problem.
+
+[PJ08] P. Parrilo and A. Jadbabaie.
+*Approximation of the joint spectral radius using sum of squares*.
+Linear Algebra and its Applications, Elsevier, **2008**, 428, 2385-2402
+"""
 function soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
     model = SOSModel(factory)
     p = HybridSystems.state_property(s, PolynomialLyapunov{JuMP.AffExpr})
@@ -204,6 +213,17 @@ function showmid(γ, status, verbose)
 end
 
 # Binary Search
+
+"""
+    soslyapbs(s::AbstractSwitchedSystem, d::Integer,
+              soslb, dual,
+              sosub, primal;
+              verbose=0, tol=1e-5, step=0.5, scaling=quickub(s),
+              ranktols=tol, disttols=tol, kws...)
+
+
+Find the smallest `γ` such that [`soslyap`](@ref) is feasible.
+"""
 function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
                    soslb, dual,
                    sosub, primal;
@@ -273,7 +293,25 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
     soslb, dual, sosub, primal
 end
 
-# Obtaining bounds with Lyapunov
+"""
+    soslyapbs(s::AbstractSwitchedSystem, d::Integer,
+              soslb, dual,
+              sosub, primal;
+              verbose=0, tol=1e-5, step=0.5, scaling=quickub(s),
+              ranktols=tol, disttols=tol, kws...)
+
+
+Find upper bounds to the (constrained) Joint Spectral Radius [(5), PJ08].
+Lower bounds a obtained using guarantees in [LPJ19].
+
+[LPJ19] B. Legat, P. A. Parrilo and R. M. Jungers
+*An entropy-based bound for the computational complexity of a switched system*.
+IEEE Transactions on Automatic Control, **2019**.
+
+[PJ08] P. Parrilo and A. Jadbabaie.
+*Approximation of the joint spectral radius using sum of squares*.
+Linear Algebra and its Applications, Elsevier, **2008**, 428, 2385-2402
+"""
 function soslyapb(s::AbstractSwitchedSystem, d::Integer; factory=nothing, tol=1e-5, cached=true, kws...)
     soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, getsoslyapinit(s, d)...; factory=factory, tol=tol, kws...)
     if cached
