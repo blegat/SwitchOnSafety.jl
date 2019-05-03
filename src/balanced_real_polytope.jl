@@ -78,6 +78,5 @@ end
 function _ratio_model(brp::BalancedRealPolytope, v)
     hull = _build_model(brp)
     brp.t_0 = @variable(brp.model)
-    brp.z = ParameterJuMP.add_parameters(brp.model, collect(v))
     @constraint(brp.model, brp.t_0 .* v .== hull)
 end
