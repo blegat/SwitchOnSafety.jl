@@ -45,7 +45,9 @@ function Base.in(v, brp::PolytopeLike)
 end
 function in_ratio(v, p::PolytopeLike)
     if isempty(p.points)
-        return Inf
+        # The polytope is the set containing the origin only so `v` needs to be
+        # multiplied by 0.0 to be mapped to the polytope
+        return 0.0
     end
     _ratio_model(p, v)
     @objective(p.model, Max, p.t_0)
