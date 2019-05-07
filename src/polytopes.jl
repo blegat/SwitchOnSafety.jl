@@ -136,6 +136,7 @@ function invariant_polytopes(
         vertices = [v1]
         duals = [u1 / dot(u1, v1)]
         for i in 2:n
+            # TODO should maybe also add complex conjugate if it is complex like in CJSR
             push!(vertices,
                   SwitchOnSafety.integratorfor(s, transition[i]) * vertices[i-1] / λ)
         end
