@@ -81,7 +81,8 @@ end
 function invariant_polytopes(
     s::AbstractDiscreteSwitchedSystem, factory::JuMP.OptimizerFactory,
     smp::AbstractPeriodicSwitching; max_length=10, verbose=2, tol=nothing,
-    max_cycles=10, new_candidate_tol=1e-6, gready=false, max_smp_length=50)
+    max_cycles=10, new_candidate_tol=1e-6, gready=false, max_smp_length=50,
+    log_step_length=10)
     leaves = Int[]
     sets = PolytopeLike[]
     new_smp = true
@@ -157,7 +158,7 @@ function invariant_polytopes(
         for k in 1:max_length
             new_smp && break
             isempty(leaves) && break
-            if verbose ≥ 2 || (verbose ≥ 1 && ((k % 100) == 0))
+            if verbose ≥ 2 || (verbose ≥ 1 && ((k % log_step_length) == 0))
                 println("Depth $k: $(map(p -> length(p.points), sets)) points, $(length(leaves)) living leaves...")
             end
             new_leaves = Int[]
