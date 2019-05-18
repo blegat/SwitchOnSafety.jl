@@ -100,7 +100,7 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer;
         p_k = p_0::GramMatrix
     end
 
-    seq = switchingsequence(s, niter, curstate)
+    seq = HybridSystems.switchingsequence(s, niter, curstate)
 
     candidates = Dict(state => [(dyn, transformation(s, dyn, d)) for dyn in collect(switchings(s, l, state, false))]
                       for state in states(s))

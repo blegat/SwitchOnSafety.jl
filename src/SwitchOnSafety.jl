@@ -55,6 +55,15 @@ nlabels(s::AbstractSwitchedSystem, t) = 1
 
 #modes(s::AbstractSwitchedSystem, v::Int, forward=true) = 1:length(s.A)
 
+function measurefor(μ, s::HybridSystems.DiscreteSwitchingSequence)
+    μ[first(s.seq)]
+end
+
+# Only makes sense for discrete
+function dynamicfort(s::AbstractDiscreteSwitchedSystem, sw::HybridSystems.DiscreteSwitchingSequence)
+    sw.A
+end
+
 dynamicforσ(s::AbstractDiscreteSwitchedSystem, σ) = s.resetmaps[σ].A
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t) = dynamicforσ(s, symbol(s, t))
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t, γ) = dynamicfort(s, t) / γ
@@ -66,9 +75,6 @@ function _eyet(s, t)
     n, m = size(integratorfor(s, t)')
     Matrix(1.0I, n, m)
 end
-function _eyes(s, st, forward)
-    _eyet(s, first(io_transitions(s, st, forward)))
-end
 
 include("periodic.jl")
 include("quick.jl")
@@ -77,7 +83,6 @@ include("gripenberg.jl")
 include("polytopes.jl")
 
 include("sosdata.jl")
-include("switchings.jl")
 include("veronese.jl")
 include("kronecker.jl")
 include("pradius.jl")

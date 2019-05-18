@@ -27,11 +27,11 @@ using LinearAlgebra
 
     @testset "Gripenberg" begin
         for p in [1, 2, Inf]
-            psw, ub = gripenberg(s, max_length = 1, matrix_norm = A -> opnorm(A, p))
+            psw, ub = gripenberg(s, max_length = 1, matrix_norm = A -> opnorm(A, p), verbose=0)
             @test psw == periodicswitching(s, [2])
             @test ub ≈ opnorm(A3, p)
         end
-        psw, ub = gripenberg(s)
+        psw, ub = gripenberg(s, verbose=0)
         @test psw == smp
         @test ub ≈ psw.growthrate + 1e-2 # 1e-2 is the default δ
     end

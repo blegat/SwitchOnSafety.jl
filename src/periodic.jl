@@ -59,6 +59,16 @@ function periodicswitching(s::DiscreteSwitchedLinearSystem, period::Vector{Int})
     periodicswitching(s, HybridSystems.OneStateTransition.(period))
 end
 
+isperiodic(sw::HybridSystems.DiscreteSwitchingSequence) = source(sw.s, sw) == target(sw.s, sw)
+function periodicswitching(s::HybridSystems.DiscreteSwitchingSequence)
+    k = repetition(s.seq)
+    if iszero(k)
+        periodicswitching(s.s, s.seq, s.A)
+    else
+        periodicswitching(s.s, s.seq[1:k])
+    end
+end
+
 #function periodicswitching(s::AbstractContinuousSwitchedSystem, seq, growthrate, dt)
 #    # seq is a copy since it has been obtained with seq.seq[i:j]
 #    mode, Δt = seq[end]

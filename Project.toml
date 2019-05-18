@@ -31,7 +31,7 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 SumOfSquares = "4b9e565b-77fc-50a5-a571-1244f986bda1"
 
 [compat]
-HybridSystems = "≥ 0.1.1"
+HybridSystems = "0.2"
 JuMP = "0.19"
 ParameterJuMP = "0.1"
 julia = "1"
