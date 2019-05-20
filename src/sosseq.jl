@@ -34,7 +34,7 @@ function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, d, seq, μs, p_k::
     curstate = state(s, best_dyn.seq[1], false)
     prepend!(seq, best_dyn)
     x = variables(p_k)
-    iter+l, curstate, soslyapforward(s, d, p_k, best_dyn)
+    iter+l, curstate, SetProg.apply_matrix(p_k, dynamicfort(s, best_dyn), variables(s, source(s, best_dyn)), d)
 end
 
 #function sosbuilditeration(s::AbstractContinuousSwitchedSystem, seq, μs, p_prev, l, Δt, curstate, iter)

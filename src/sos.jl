@@ -45,24 +45,8 @@ function getsoslyapinit(s, d)
 end
 
 # Building the Lyapunov constraints
-function soslyapforward(s::AbstractDiscreteSwitchedSystem, d::Int,
-                        p::GramMatrix, path, args...)
-    xin = variables(s, source(s, path))
-    return SetProg.apply_matrix(p, dynamicfort(s, path, args...), xin, d)
-end
-#function soslyapforward(s::AbstractContinuousSwitchedSystem, p::Polynomial, mode::Int)
-#    x = variables(p)
-#    dot(differentiate(p, x), dynamicfor(s, mode) * x)
-#end
-#soslyapscaling(s::AbstractDiscreteSwitchedSystem, γ, d) = γ^(2*d)
-#soslyapscaling(s::AbstractContinuousSwitchedSystem, γ, d) = 2*d*γ
 function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model,
                            p::HybridSystems.StateProperty, edge, d, γ)
-    # For values of γ far from 1.0, it is better to divide A_i's by γ,
-    # it results in a problem that is better conditioned.
-    # This is clearly visible in [Example 5.4, PJ08] for which the JSR is ≈ 8.9
-    #@constraint model soslyapforward(s, lyapforout(s, p, edge), edge) <= soslyapscaling(s, γ, d) * lyapforin(s, p, edge)
-    @constraint(model, soslyapforward(s, d, lyapforout(s, p, edge), edge, γ) <= lyapforin(s, p, edge))
 end
 function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
     cons = HybridSystems.transition_property(
@@ -80,7 +64,13 @@ function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, 
             PolyJuMP.PolynomialShape{DynamicPolynomials.Monomial{true},
                                      DynamicPolynomials.MonomialVector{true}}})
     for t in transitions(s)
-        cons[t] = soslyapconstraint(s, model, p, t, d, γ)
+        # For values of γ far from 1.0, it is better to divide A_i's by γ,
+        # it results in a problem that is better conditioned.
+        # This is clearly visible in [Example 5.4, PJ08] for which the JSR is ≈ 8.9
+        A = dynamicfort(s, t, γ)
+        Sout = SetProg.Sets.PolynomialSublevelSetAtOrigin(2d, lyapforout(s, p, t))
+        Sin = SetProg.Sets.PolynomialSublevelSetAtOrigin(2d, lyapforin(s, p, t))
+        cons[t] = @constraint(model, A * Sin ⊆ Sout)
     end
     return cons
 end
