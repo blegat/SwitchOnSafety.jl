@@ -68,9 +68,7 @@ function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, 
         # it results in a problem that is better conditioned.
         # This is clearly visible in [Example 5.4, PJ08] for which the JSR is ≈ 8.9
         A = dynamicfort(s, t, γ)
-        Sout = SetProg.Sets.PolynomialSublevelSetAtOrigin(2d, lyapforout(s, p, t))
-        Sin = SetProg.Sets.PolynomialSublevelSetAtOrigin(2d, lyapforin(s, p, t))
-        cons[t] = @constraint(model, A * Sin ⊆ Sout)
+        cons[t] = @constraint(model, A * p[source(s, t)] ⊆ p[target(s, t)])
     end
     return cons
 end
@@ -79,10 +77,9 @@ function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     Z = monomials(x, d)
     p = @variable(model, variable_type=SOSPoly(Z))
     q = GramMatrix(SOSDecomposition(x.^d))
-    return SetProg.SumOfSquares.gram_operate(+, q, p)
+    pq = SetProg.SumOfSquares.gram_operate(+, q, p)
+    return SetProg.Sets.PolynomialSublevelSetAtOrigin(2d, pq)
 end
-lyapforin(s, p::HybridSystems.StateProperty, t) = p[source(s, t)]
-lyapforout(s, p::HybridSystems.StateProperty, t) = p[target(s, t)]
 
 function isinfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
     status[3] == MOI.INFEASIBILITY_CERTIFICATE

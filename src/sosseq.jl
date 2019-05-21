@@ -91,7 +91,7 @@ function sosbuildsequence(s::AbstractSwitchedSystem, d::Integer;
     end
 
     if p_0 == :Primal
-        p_k = lyap.primal[curstate]
+        p_k = lyap.primal[curstate].p
     elseif p_0 == :Random
         Z = monomials(variables(s, curstate), d)
         p_k = randsos(Z, monotype=:Gram, r=1)
