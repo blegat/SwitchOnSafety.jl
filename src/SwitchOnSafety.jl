@@ -42,6 +42,8 @@ end
 
 #abstract type AbstractSwitchedSystem end
 
+include("scaled.jl")
+
 const AbstractDiscreteSwitchedSystem = Union{DiscreteSwitchedLinearSystem, ConstrainedDiscreteSwitchedLinearSystem}
 const AbstractSwitchedSystem = AbstractDiscreteSwitchedSystem
 integratorfor(s::AbstractDiscreteSwitchedSystem, t) = dynamicfort(s, t)

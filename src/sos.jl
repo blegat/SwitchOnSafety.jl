@@ -44,11 +44,12 @@ function getsoslyapinit(s, d)
     end
 end
 
-# Building the Lyapunov constraints
-function soslyapconstraint(s::AbstractSwitchedSystem, model::JuMP.Model,
-                           p::HybridSystems.StateProperty, edge, d, γ)
+function constrain_invariance(model, s::Union{LinearMap, LinearDiscreteSystem}, Sin, Sout)
+    return @constraint(model, s.A * Sin ⊆ Sout)
 end
-function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, γ)
+
+# Building the Lyapunov constraints
+function soslyapconstraints(s::HybridSystems.AbstractHybridSystem, model::JuMP.Model, p, d)
     cons = HybridSystems.transition_property(
         s,
         ConstraintRef{
@@ -64,11 +65,7 @@ function soslyapconstraints(s::AbstractSwitchedSystem, model::JuMP.Model, p, d, 
             PolyJuMP.PolynomialShape{DynamicPolynomials.Monomial{true},
                                      DynamicPolynomials.MonomialVector{true}}})
     for t in transitions(s)
-        # For values of γ far from 1.0, it is better to divide A_i's by γ,
-        # it results in a problem that is better conditioned.
-        # This is clearly visible in [Example 5.4, PJ08] for which the JSR is ≈ 8.9
-        A = dynamicfort(s, t, γ)
-        cons[t] = @constraint(model, A * p[source(s, t)] ⊆ p[target(s, t)])
+        cons[t] = constrain_invariance(model, resetmap(s, t), p[source(s, t)], p[target(s, t)])
     end
     return cons
 end
@@ -95,23 +92,29 @@ end
 _primalstatus(model::JuMP.Model) = JuMP.primal_status(model)
 _dualstatus(model::JuMP.Model) = JuMP.dual_status(model)
 
+# For values of γ far from 1.0, it is better to divide A_i's by γ,
+# it results in a problem that is better conditioned.
+# This is clearly visible in [Example 5.4, PJ08] for which the JSR is ≈ 8.9
+# So we ask the user to give a scaled system, i.e. do `p(A/γx) ≥ p(x)` rather
+# than do `p(Ax) ≥ γ p(x)`
 """
     soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
 
-Find Sum-of-Squares Lyapunov functions guaranteeing a growth rate of `γ`; i.e. solves [(5), PJ08]
+Find Sum-of-Squares Lyapunov functions; i.e. solves [(5), PJ08]
 or gives moment matrices certifying the infeasibility of the problem.
+Use [`ScaledHybridSystem`](@ref) to use a different growth rate than 1.
 
 [PJ08] P. Parrilo and A. Jadbabaie.
 *Approximation of the joint spectral radius using sum of squares*.
 Linear Algebra and its Applications, Elsevier, **2008**, 428, 2385-2402
 """
-function soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
+function soslyap(s::HybridSystems.AbstractHybridSystem, d; factory=nothing)
     model = SOSModel(factory)
     p = HybridSystems.state_property(s, PolynomialLyapunov{JuMP.AffExpr})
     for v in states(s)
         p[v] = buildlyap(model, variables(s, v), d)
     end
-    cons = soslyapconstraints(s, model, p, d, γ)
+    cons = soslyapconstraints(s, model, p, d)
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     #status = solve(model, suppress_warnings=true)
     #@constraint(model, sum(sum(coefficients(lyap)) for lyap in p))
@@ -216,10 +219,11 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
                    sosub, primal;
                    verbose=0, tol=1e-5, step=0.5, scaling=quickub(s),
                    ranktols=tol, disttols=tol, kws...)
+    _lyap(γ) = soslyap(ScaledHybridSystem(s, γ), d; kws...)
     while soschecktol(s, soslb, sosub) > tol
         showbs(s, soslb, sosub, tol, verbose, false)
         mid = sosmid(s, soslb, sosub, step, scaling)
-        status, curprimal, curdual = soslyap(s, d, mid; kws...)
+        status, curprimal, curdual = _lyap(mid)
         showmid(mid, status, verbose)
         if !isdecided(status)
             if usestep(s, soslb, sosub)
@@ -237,7 +241,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
             if dual !== nothing
                 midlb = max(midlb, sosshift(s, soslb, tol/8))
             end
-            statuslb, curprimallb, curduallb = soslyap(s, d, midlb; kws...)
+            statuslb, curprimallb, curduallb = _lyap(midlb)
             showmid(midlb, statuslb, verbose)
             if isdecided(statuslb)
                 mid = midlb
@@ -250,7 +254,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
                 if primal !== nothing
                     midub = min(midub, sosshift(s, sosub, -tol/8))
                 end
-                statusub, curprimalub, curdualub = soslyap(s, d, midub; kws...)
+                statusub, curprimalub, curdualub = _lyap(midub)
                 showmid(midub, statusub, verbose)
                 if isdecided(statusub)
                     mid = midub
@@ -301,10 +305,11 @@ Linear Algebra and its Applications, Elsevier, **2008**, 428, 2385-2402
 """
 function soslyapb(s::AbstractSwitchedSystem, d::Integer; factory=nothing, tol=1e-5, cached=true, kws...)
     soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, getsoslyapinit(s, d)...; factory=factory, tol=tol, kws...)
+    _lyap(γ) = soslyap(ScaledHybridSystem(s, γ), d, factory=factory)
     if cached
         if primal === nothing
             if isfinite(sosub)
-                status, primal, _ = soslyap(s, d, sosub, factory=factory)
+                status, primal, _ = _lyap(sosub)
                 @assert isfeasible(status)
                 @assert primal !== nothing
             else
@@ -313,10 +318,10 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; factory=nothing, tol=1e
         end
         if dual === nothing
             if isfinite(soslb)
-                status, _, dual = soslyap(s, d, soslb, factory=factory)
+                status, _, dual = _lyap(soslb)
                 if !isinfeasible(status)
                     soslb = sosshift(s, soslb, -tol)
-                    status, _, dual = soslyap(s, d, soslb, factory=factory)
+                    status, _, dual = _lyap(soslb)
                     if !isinfeasible(status)
                         @warn("We ignore getlb and start from scratch. tol was probably set too small and soslb is too close to the JSR so soslb-tol is too close to the JSR")
                         soslb = 0. # FIXME fix for continuous
