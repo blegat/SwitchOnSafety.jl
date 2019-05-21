@@ -48,28 +48,6 @@ function constrain_invariance(model, s::Union{LinearMap, LinearDiscreteSystem}, 
     return @constraint(model, s.A * Sin ⊆ Sout)
 end
 
-# Building the Lyapunov constraints
-function soslyapconstraints(s::HybridSystems.AbstractHybridSystem, model::JuMP.Model, p, d)
-    cons = HybridSystems.transition_property(
-        s,
-        ConstraintRef{
-            Model,
-            MOI.ConstraintIndex{MOI.VectorAffineFunction{Float64},
-                                SumOfSquares.SOSPolynomialSet{SemialgebraicSets.FullSpace,
-                                                              SumOfSquares.NonnegPolyInnerCone{MOI.PositiveSemidefiniteConeTriangle},
-                                                              PolyJuMP.MonomialBasis,
-                                                              DynamicPolynomials.
-                                                              Monomial{true},
-                                                              DynamicPolynomials.MonomialVector{true},
-                                                              Tuple{}}},
-            PolyJuMP.PolynomialShape{DynamicPolynomials.Monomial{true},
-                                     DynamicPolynomials.MonomialVector{true}}})
-    for t in transitions(s)
-        cons[t] = constrain_invariance(model, resetmap(s, t), p[source(s, t)], p[target(s, t)])
-    end
-    return cons
-end
-
 function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
     Z = monomials(x, d)
     p = @variable(model, variable_type=SOSPoly(Z))
@@ -110,11 +88,20 @@ Linear Algebra and its Applications, Elsevier, **2008**, 428, 2385-2402
 """
 function soslyap(s::HybridSystems.AbstractHybridSystem, d; factory=nothing)
     model = SOSModel(factory)
-    p = HybridSystems.state_property(s, PolynomialLyapunov{JuMP.AffExpr})
+    #p = HybridSystems.state_property(s, PolynomialLyapunov{JuMP.AffExpr})
+    p = HybridSystems.state_property(s, SetProg.SetVariableRef)
     for v in states(s)
-        p[v] = buildlyap(model, variables(s, v), d)
+        #p[v] = buildlyap(model, variables(s, v), d)
+        q = GramMatrix(SOSDecomposition(variables(s, v).^d))
+        Q = SetProg.Sets.PolynomialSublevelSetAtOrigin(2d, q)
+        p[v] = @variable(model, variable_type=PolySet(symmetric=true, degree=2d, superset=Q))
     end
-    cons = soslyapconstraints(s, model, p, d)
+    cons = HybridSystems.transition_property(
+        s,
+        ConstraintRef{Model, SetProg.ConstraintIndex, SetProg.SetShape})
+    for t in transitions(s)
+        cons[t] = constrain_invariance(model, resetmap(s, t), p[source(s, t)], p[target(s, t)])
+    end
     # I suppress the warning "Not solved to optimality, status: Infeasible"
     #status = solve(model, suppress_warnings=true)
     #@constraint(model, sum(sum(coefficients(lyap)) for lyap in p))

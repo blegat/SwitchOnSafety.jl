@@ -36,7 +36,6 @@ function invariant_sets!(sets, modes_to_compute, s::DTAHAS, factory::JuMP.Optimi
                          enabled = 1:nstates(s),
                          volume_heuristic = nth_root,
                          verbose=1)
-    n = nstates(s)
     model = SOSModel(factory)
     #set_vrefs = @variable(model, [q in modes_to_compute], Ellipsoid(point=h[q]))
     # FIXME calls JuMP.variable_type(model, Ellipsoid(point=h[q])) then
