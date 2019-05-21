@@ -28,13 +28,17 @@ function best_dynamic(s::AbstractSwitchedSystem, d, μs, p::GramMatrix, l, curst
     return best_dyn
 end
 
+function apply_map(sw::HybridSystems.DiscreteSwitchingSequence, p, new_vars, d)
+    return SetProg.apply_matrix(p, sw.A, new_vars, d)
+end
+
 function sosbuilditeration(s::AbstractDiscreteSwitchedSystem, d, seq, μs, p_k::GramMatrix, l, Δt, curstate, iter, candidates)
     best_dyn = best_dynamic(s, d, μs, p_k, l, curstate, candidates)
 
     curstate = state(s, best_dyn.seq[1], false)
     prepend!(seq, best_dyn)
     x = variables(p_k)
-    iter+l, curstate, SetProg.apply_matrix(p_k, dynamicfort(s, best_dyn), variables(s, source(s, best_dyn)), d)
+    iter+l, curstate, apply_map(best_dyn, p_k, variables(s, source(s, best_dyn)), d)
 end
 
 #function sosbuilditeration(s::AbstractContinuousSwitchedSystem, seq, μs, p_prev, l, Δt, curstate, iter)
