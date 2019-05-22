@@ -22,19 +22,38 @@ end
 
 const DTAHAS = HybridSystem{<:AbstractAutomaton, <:ConstrainedDiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}
 const DTAHCS = HybridSystem{<:AbstractAutomaton, <:ConstrainedDiscreteIdentitySystem, <:LinearControlDiscreteSystem}
-function _vars(s::DTAHAS)
-    @polyvar x[1:statedim(s, 1)] z
-    [z; x]
+
+function constrain_invariance(model, s::ContinuousIdentitySystem, set) end
+function constrain_invariance(model, s::ConstrainedContinuousIdentitySystem, set)
+    return @constraint(model, set ⊆ stateset(s))
 end
 
-function invariant_sets!(sets, modes_to_compute, s::DTAHAS, factory::JuMP.OptimizerFactory,
+function constrain_invariance(model, s::LinearMap, source_set, target_set, λ)
+    return @constraint(model, s.A * source_set ⊆ target_set)
+end
+function constrain_invariance(model, s::LinearAlgebraicDiscreteSystem, source_set, target_set, λ)
+    return @constraint(model, s.A * source_set ⊆ s.E * target_set,
+                       S_procedure_scaling = λ)
+end
+
+function isinfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
+    status[3] == MOI.INFEASIBILITY_CERTIFICATE
+end
+function isfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
+    status[2] == MOI.FEASIBLE_POINT
+end
+function isdecided(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
+    return isinfeasible(status) || isfeasible(status)
+end
+
+function invariant_sets!(sets, modes_to_compute, s::AbstractHybridSystem, factory::JuMP.OptimizerFactory,
                          set_variables::AbstractVector{<:SetProg.AbstractVariable} = map(cv->Ellipsoid(InteriorPoint(cv[1])),
                                                                                          chebyshevcenter.(stateset.(s.modes)));
-                         y=_vars(s),
                          cone=SOSCone(),
                          λ=Dict{transitiontype(s), Float64}(),
-                         enabled = 1:nstates(s),
+                         enabled = states(s),
                          volume_heuristic = nth_root,
+                         infeasibility_certificates = nothing,
                          verbose=1)
     model = SOSModel(factory)
     #set_vrefs = @variable(model, [q in modes_to_compute], Ellipsoid(point=h[q]))
@@ -42,24 +61,30 @@ function invariant_sets!(sets, modes_to_compute, s::DTAHAS, factory::JuMP.Optimi
     # complains that q is not defined
     set_vrefs = Dict(state => @variable(model, variable_type=set_variables[state]) for state in modes_to_compute)
 
-    @objective(model, Max,
-               sum(set -> volume_heuristic(volume(set)), values(set_vrefs)))
+    if volume_heuristic !== nothing
+        @objective(model, Max,
+                   sum(set -> volume_heuristic(volume(set)), values(set_vrefs)))
+    end
 
     λouts = Dict{transitiontype(s), JuMP.AffExpr}()
+    transition_constraints = HybridSystems.transition_property(
+        s, ConstraintRef{Model, SetProg.ConstraintIndex, SetProg.SetShape})
 
     for q in modes_to_compute
-        @constraint(model, set_vrefs[q] ⊆ stateset(s, q))
-        # Invariance constraint
+        source_set = set_vrefs[q]
+        # Invariance constraint for mode
+        constrain_invariance(model, HybridSystems.mode(s, q), source_set)
+        # Invariance constraint for transitions
         for t in out_transitions(s, q)
             λin = get(λ, t, nothing)
             target_state = target(s, t)
             if target_state in enabled
-                source_set = set_vrefs[q]
                 target_set = target_state in modes_to_compute ? set_vrefs[target_state] : sets[target_state]
-                r = s.resetmaps[symbol(s, t)]
-                λouts[t] = 1.0
-                @constraint(model, r.A * source_set ⊆ r.E * target_set,
-                            S_procedure_scaling = λin)
+                if λin !== nothing
+                    λouts[t] = λin
+                end
+                transition_constraints[t] = constrain_invariance(
+                    model, resetmap(s, t), source_set, target_set, λin)
             end
         end
     end
@@ -94,21 +119,35 @@ function invariant_sets!(sets, modes_to_compute, s::DTAHAS, factory::JuMP.Optimi
         end
     end
 
-    for q in modes_to_compute
-        sets[q] = JuMP.value(set_vrefs[q])
+    status = (JuMP.termination_status(model),
+              JuMP.primal_status(model),
+              JuMP.dual_status(model))
+
+    if isfeasible(status)
+        for q in modes_to_compute
+            sets[q] = JuMP.value(set_vrefs[q])
+        end
+    elseif isinfeasible(status) && infeasibility_certificates !== nothing
+        for q in modes_to_compute
+            for t in out_transitions(s, q)
+                if target(s, t) in enabled
+                    infeasibility_certificates[t] = SetProg.SumOfSquares.moment_matrix(transition_constraints[t])
+                end
+            end
+        end
     end
 
-    return sets
-end
-
-function invariant_sets(s::DTAHAS, args...; kws...)
-    nmodes = nstates(s)
-    sets = Vector{SetProg.Sets.AbstractSet{Float64}}(undef, nmodes)
-    return invariant_sets!(sets, 1:nmodes, s, args...; kws...)
+    return status
 end
 function invariant_sets!(sets, modes_to_compute, s::DTAHCS, args...; kws...)
     return invariant_sets!(sets, modes_to_compute, algebraiclift(s), args...;
                            kws...)
+end
+
+function invariant_sets(s::DTAHAS, args...; kws...)
+    sets = HybridSystems.state_property(s, SetProg.Sets.AbstractSet{Float64})
+    invariant_sets!(sets, states(s), s, args...; kws...)
+    return sets
 end
 function invariant_sets(s::DTAHCS, args...; kws...)
     return invariant_sets(algebraiclift(s), args...; kws...)

@@ -44,31 +44,10 @@ function getsoslyapinit(s, d)
     end
 end
 
-function constrain_invariance(model, s::Union{LinearMap, LinearDiscreteSystem}, Sin, Sout)
-    return @constraint(model, s.A * Sin ⊆ Sout)
+function superset(s::HybridSystems.AbstractHybridSystem, mode, d)
+    q = GramMatrix(SOSDecomposition(variables(s, mode).^d))
+    return SetProg.Sets.PolynomialSublevelSetAtOrigin(2d, q)
 end
-
-function buildlyap(model::JuMP.Model, x::Vector{PolyVar{true}}, d::Int)
-    Z = monomials(x, d)
-    p = @variable(model, variable_type=SOSPoly(Z))
-    q = GramMatrix(SOSDecomposition(x.^d))
-    pq = SetProg.SumOfSquares.gram_operate(+, q, p)
-    return SetProg.Sets.PolynomialSublevelSetAtOrigin(2d, pq)
-end
-
-function isinfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
-    status[3] == MOI.INFEASIBILITY_CERTIFICATE
-end
-function isfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
-    status[2] == MOI.FEASIBLE_POINT
-end
-function isdecided(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
-    return isinfeasible(status) || isfeasible(status)
-end
-
-# Mosek's canget returns false when the primal is infeasible, near infeasible or illposed
-_primalstatus(model::JuMP.Model) = JuMP.primal_status(model)
-_dualstatus(model::JuMP.Model) = JuMP.dual_status(model)
 
 # For values of γ far from 1.0, it is better to divide A_i's by γ,
 # it results in a problem that is better conditioned.
@@ -87,35 +66,19 @@ Use [`ScaledHybridSystem`](@ref) to use a different growth rate than 1.
 Linear Algebra and its Applications, Elsevier, **2008**, 428, 2385-2402
 """
 function soslyap(s::HybridSystems.AbstractHybridSystem, d; factory=nothing)
-    model = SOSModel(factory)
-    #p = HybridSystems.state_property(s, PolynomialLyapunov{JuMP.AffExpr})
-    p = HybridSystems.state_property(s, SetProg.SetVariableRef)
-    for v in states(s)
-        #p[v] = buildlyap(model, variables(s, v), d)
-        q = GramMatrix(SOSDecomposition(variables(s, v).^d))
-        Q = SetProg.Sets.PolynomialSublevelSetAtOrigin(2d, q)
-        p[v] = @variable(model, variable_type=PolySet(symmetric=true, degree=2d, superset=Q))
-    end
-    cons = HybridSystems.transition_property(
-        s,
-        ConstraintRef{Model, SetProg.ConstraintIndex, SetProg.SetShape})
-    for t in transitions(s)
-        cons[t] = constrain_invariance(model, resetmap(s, t), p[source(s, t)], p[target(s, t)])
-    end
-    # I suppress the warning "Not solved to optimality, status: Infeasible"
-    #status = solve(model, suppress_warnings=true)
-    #@constraint(model, sum(sum(coefficients(lyap)) for lyap in p))
-    JuMP.optimize!(model)
-    status = (JuMP.termination_status(model),
-              _primalstatus(model),
-              _dualstatus(model))
+    sets = HybridSystems.state_property(s, PolynomialLyapunov{Float64})
+    infeasibility_certificates = HybridSystems.transition_property(s, MeasureLyapunov{Float64})
+    set_variables = PolySet[PolySet(symmetric=true, degree=2d, superset=superset(s, mode, d))
+                            for mode in states(s)]
+    status = invariant_sets!(sets, 1:nstates(s), s, factory, set_variables,
+                             volume_heuristic = nothing,
+                             infeasibility_certificates = infeasibility_certificates,
+                             verbose=0)
     if isinfeasible(status)
-        #println("Infeasible $γ")
         @assert !isfeasible(status)
-        status, nothing, HybridSystems.typed_map(MeasureLyapunov{Float64}, SetProg.SumOfSquares.moment_matrix, cons)
+        status, nothing, infeasibility_certificates
     elseif isfeasible(status)
-        #println("Feasible $γ")
-        status, HybridSystems.typed_map(PolynomialLyapunov{Float64}, JuMP.value, p), nothing
+        status, sets, nothing
     else
         @assert !isdecided(status)
         status, nothing, nothing

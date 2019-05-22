@@ -23,11 +23,11 @@ MathematicalSystems.stateset(hs::ScaledHybridSystem, u) = MathematicalSystems.st
 function scale(lm::LinearMap, γ)
     return LinearMap(lm.A / γ)
 end
-function scale(s::LinearDiscreteSystem, γ)
-    return LinearDiscreteSystem(s.A / γ)
+scale(s::ContinuousIdentitySystem, γ) = s
+
+function HybridSystems.mode(hs::ScaledHybridSystem, u)
+    scale(HybridSystems.mode(hs.system, u), hs.γ)
 end
-
-
 function HybridSystems.resetmap(hs::ScaledHybridSystem, t)
     scale(HybridSystems.resetmap(hs.system, t), hs.γ)
 end
