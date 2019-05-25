@@ -176,7 +176,12 @@ function repetition(seq)
     return 0
 end
 
-function findsmp(seq)
+"""
+    findsmp(seq::HybridSystems.DiscreteSwitchingSequence)
+
+Extract the cycle of highest growth rate in the sequence `seq`.
+"""
+function findsmp(seq::HybridSystems.DiscreteSwitchingSequence)
     s = seq.s
     PS = periodicswitchingtype(s)
     smp = nothing

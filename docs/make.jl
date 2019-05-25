@@ -7,7 +7,9 @@ makedocs(
     # See https://github.com/JuliaOpt/JuMP.jl/issues/1576
     strict = true,
     pages = [
-        "Introduction" => "index.md"
+        "Index" => "index.md",
+        "Invariant Sets" => "invariant.md",
+        "Joint Spectral Radius" => "jsr.md"
     ]
 )
 

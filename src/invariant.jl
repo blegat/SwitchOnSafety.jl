@@ -46,10 +46,42 @@ function isdecided(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode
     return isinfeasible(status) || isfeasible(status)
 end
 
+"""
+    invariant_sets!(sets, modes_to_compute, system::AbstractHybridSystem,
+                    args...; kwargs...)
+
+Similar to `invariant_sets(system, args...; kwargs...)` but stores the result
+in `sets` and only compute the modes in `modes_to_compute`. The other sets in
+`enabled` that are not in `modes_to_compute` are assumed to have the value given
+in `sets`.
+"""
+function invariant_sets! end
+
+"""
+    invariant_sets(system::AbstractHybridSystem, factory::JuMP.OptimizerFactory,
+                   set_variables::AbstractVector{<:SetProg.AbstractVariable};
+                   volume_heuristic = nth_root,
+                   infeasibility_certificates = nothing,
+                   verbose=1,
+                   λ=Dict{transitiontype(system), Float64}(),
+                   enabled = states(system))
+
+Compute maximal invariant sets of the family `set_variables` for the modes of
+`system` using the solver provided by `factory`. The volume of the sets is
+estimated using `volume_heuristic`. If the program is infeasible, the
+certificates for each transition are stored in `infeasibility_certificates`.
+For the containment of non-homogeneous, the S-procedure might be a Bilinear
+Matrix Inequality (BMI) which is NP-hard to solve. To avoid that, provides the
+value of `λ` to use in the dictionary `λ`. To ignore some state and the
+transitions involving these states in the computation, give an `enabled` vector
+without them.
+"""
+function invariant_sets end
+
+
 function invariant_sets!(sets, modes_to_compute, s::AbstractHybridSystem, factory::JuMP.OptimizerFactory,
                          set_variables::AbstractVector{<:SetProg.AbstractVariable} = map(cv->Ellipsoid(InteriorPoint(cv[1])),
                                                                                          chebyshevcenter.(stateset.(s.modes)));
-                         cone=SOSCone(),
                          λ=Dict{transitiontype(s), Float64}(),
                          enabled = states(s),
                          volume_heuristic = nth_root,

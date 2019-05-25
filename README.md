@@ -19,8 +19,7 @@ It also includes utilities for approximation the [Joint Spectral Radius](https:/
 The package currently requires Julia v1.0, you can download it [here](https://julialang.org/downloads/).
 Once Julia is installed, simply launch the REPL an type
 ```julia
-] add https://github.com/blegat/SetProg.jl.git
-] add https://github.com/blegat/SwitchOnSafety.jl.git
+] add SwitchOnSafety
 ```
 
 ## Examples

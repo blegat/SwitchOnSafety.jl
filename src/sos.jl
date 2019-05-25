@@ -1,7 +1,7 @@
 using JuMP
 using SumOfSquares
 
-export getlyap, soslyap, soslyapb
+export getlyap, soslyap, soslyapb, soslyapbs
 
 # Storing the Lyapunov
 function setlyap!(s, lyap::Lyapunov)
