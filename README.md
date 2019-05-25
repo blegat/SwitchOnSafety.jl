@@ -17,12 +17,8 @@ It also includes utilities for approximation the [Joint Spectral Radius](https:/
 ## Installation
 
 The package currently requires Julia v1.0, you can download it [here](https://julialang.org/downloads/).
-It also needs the latest unreleased versions of JuMP, PolyJuMP and SumOfSquares so once Julia is installed,
-launch the REPL an type
+Once Julia is installed, simply launch the REPL an type
 ```julia
-] add JuMP#master
-] add PolyJuMP#master
-] add SumOfSquares#master
 ] add https://github.com/blegat/SetProg.jl.git
 ] add https://github.com/blegat/SwitchOnSafety.jl.git
 ```

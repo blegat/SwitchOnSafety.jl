@@ -17,3 +17,13 @@ before_script:
   - julia -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/blegat/SetProg.jl.git", rev="master"))'
 after_success:
   - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder()); Codecov.submit(process_folder())'
+
+jobs:
+  include:
+    - stage: "Documentation"
+      julia: 1.0
+      os: linux
+      script:
+        - julia --project=docs/ -e 'import Pkg; Pkg.instantiate(); Pkg.develop(Pkg.PackageSpec(path=pwd()))'
+        - julia --project=docs/ docs/make.jl
+      after_success: skip
