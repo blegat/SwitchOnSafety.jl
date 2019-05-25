@@ -96,7 +96,6 @@ include("debruijn.jl")
 
 include("plot.jl")
 
-#include("set.jl")
-include("cis.jl")
+include("invariant.jl")
 
 end # module
