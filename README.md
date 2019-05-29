@@ -1,9 +1,9 @@
 # Switch On Safety (SOS)
 
-| **Documentation** | **Build Status** |
-|:-----------------:|:----------------:|
-| [![][docs-stable-img]][docs-stable-url] | [![Build Status][build-img]][build-url] [![Build Status][winbuild-img]][winbuild-url] |
-| [![][docs-latest-img]][docs-latest-url] | [![Coveralls branch][coveralls-img]][coveralls-url] [![Codecov branch][codecov-img]][codecov-url] |
+| **Documentation** | **Build Status** | **References to cite** |
+|:-----------------:|:----------------:|:----------------------:|
+| [![][docs-stable-img]][docs-stable-url] | [![Build Status][build-img]][build-url] [![Build Status][winbuild-img]][winbuild-url] | [![DOI][zenodo-img]][zenodo-url] |
+| [![][docs-latest-img]][docs-latest-url] | [![Coveralls branch][coveralls-img]][coveralls-url] [![Codecov branch][codecov-img]][codecov-url] | |
 
 [<img src="examples/FinConjCounterEx.png" height="360">](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/Finiteness_conjecture_counterexample.ipynb)
 
@@ -155,3 +155,6 @@ For the `getis` and `fillis!` functions, cite:
 [coveralls-url]: https://coveralls.io/github/blegat/SwitchOnSafety.jl?branch=master
 [codecov-img]: http://codecov.io/github/blegat/SwitchOnSafety.jl/coverage.svg?branch=master
 [codecov-url]: http://codecov.io/github/blegat/SwitchOnSafety.jl?branch=master
+
+[zenodo-url]: https://doi.org/10.5281/zenodo.3234046
+[zenodo-img]: https://zenodo.org/badge/DOI/10.5281/zenodo.3234046.svg
