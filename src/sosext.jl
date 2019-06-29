@@ -27,9 +27,7 @@ function pushapprox!(a, x, id, tol)
 end
 
 function extractatomic(s::AbstractDiscreteSwitchedSystem, d, t, ranktol, dual=getlyap(s, d).dual)
-    σ = symbol(s, t)
-    ν = dual[t]
-    extractatoms(ν, ranktol)
+    return extractatoms(dual[t], ranktol)
 end
 
 function extractstates(args...)
