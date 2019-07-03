@@ -1,5 +1,5 @@
 using LightGraphs
-export sosextractcycle, extractatomic
+export sosextractcycle, extractatomic, pushforward
 
 #function dist(X, Y)
 #    maximum(x -> abs(x[1] - x[2]) / max(x[1], x[2]), zip(X, Y))
@@ -36,6 +36,12 @@ end
 function pushforward(s::AbstractDiscreteSwitchedSystem, t,
                      atom::WeightedDiracMeasure)
     return pushforward(dynamicfort(s, t), atom)
+end
+function pushforward(s::AbstractDiscreteSwitchedSystem, t,
+                     atomic::AtomicMeasure)
+    vars = variables(s, target(s, t))
+    atoms = [pushforward(s, t, atom) for atom in atomic.atoms]
+    return AtomicMeasure(vars, atoms)
 end
 
 function extractatomic(s::AbstractDiscreteSwitchedSystem, d, t, ranktol,
