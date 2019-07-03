@@ -26,14 +26,32 @@ function pushapprox!(a, x, id, tol)
     end
 end
 
-function extractatomic(s::AbstractDiscreteSwitchedSystem, d, t, ranktol, dual=getlyap(s, d).dual)
-    return extractatoms(dual[t], ranktol)
+function project_atom(atom::WeightedDiracMeasure)
+    nx = norm(atom.center, 2)
+    return WeightedDiracMeasure(atom.center / nx, atom.weight * nx)
+end
+function pushforward(A::AbstractMatrix, atom::WeightedDiracMeasure)
+    return project_atom(WeightedDiracMeasure(A * atom.center, atom.weight))
+end
+function pushforward(s::AbstractDiscreteSwitchedSystem, t,
+                     atom::WeightedDiracMeasure)
+    return pushforward(dynamicfort(s, t), atom)
+end
+
+function extractatomic(s::AbstractDiscreteSwitchedSystem, d, t, ranktol,
+                       dual=getlyap(s, d).dual)
+    atoms = extractatoms(dual[t], ranktol)
+    if atoms === nothing
+        return nothing
+    else
+        return AtomicMeasure(atoms.variables, project_atom.(atoms.atoms))
+    end
 end
 
 function extractstates(args...)
     atoms = extractatomic(args...)
     if atoms === nothing
-        MultivariateMoments.WeightedDiracMeasure{Float64}[]
+        return MultivariateMoments.WeightedDiracMeasure{Float64}[]
     else
         atoms.atoms
     end
@@ -43,7 +61,7 @@ function startstates(s::AbstractDiscreteSwitchedSystem, edgestates, G, B, distto
     a = Tuple{Vector{Float64}, Int}[]
     for (t, states) in edgestates
         for atom in states
-            x = atom.center / norm(atom.center)
+            x = atom.center
             i = pushapprox!(a, x, length(G)+1, disttol)
             σ = symbol(s, t)
             if i == length(G)+1
@@ -96,15 +114,14 @@ function sosextractcycle(s::AbstractDiscreteSwitchedSystem, dual, d::Integer;
             for u in eachindex(G)
                 x = B[u]
                 for (σ, t) in G[u]
-                    y = dynamicforσ(s, σ) * x
-                    λ = norm(y)
-                    y /= λ
+                    atom = pushforward(s, t, WeightedDiracMeasure(x, one(eltype(x))))
+                    y = atom.center
                     j = findapprox(GB[target(s, t)], y, disttol)
                     if !iszero(j)
                         v = GB[target(s, t)][j][2]
                         add_edge!(g, u, v)
                         # we use a minimum cycle arithmetic mean algo but we need the maximum cycle geometric mean
-                        w[u, v] = -log(λ)
+                        w[u, v] = -log(atom.weight)
                         ij2t[(u, v)] = t
                     end
                 end
