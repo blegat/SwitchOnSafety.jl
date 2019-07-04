@@ -38,9 +38,13 @@ function pushforward(s::AbstractDiscreteSwitchedSystem, t,
     return pushforward(dynamicfort(s, t), atom)
 end
 function pushforward(s::AbstractDiscreteSwitchedSystem, t,
-                     atomic::AtomicMeasure)
+                     atom::WeightedDiracMeasure, γ)
+    return pushforward(dynamicfort(s, t) / γ, atom)
+end
+function pushforward(s::AbstractDiscreteSwitchedSystem, t,
+                     atomic::AtomicMeasure, args...)
     vars = variables(s, target(s, t))
-    atoms = [pushforward(s, t, atom) for atom in atomic.atoms]
+    atoms = [pushforward(s, t, atom, args...) for atom in atomic.atoms]
     return AtomicMeasure(vars, atoms)
 end
 
