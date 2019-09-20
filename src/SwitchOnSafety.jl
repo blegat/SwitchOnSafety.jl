@@ -9,9 +9,8 @@ using MultivariateMoments
 
 import Reexport
 Reexport.@reexport using SetProg
-
-using MathematicalSystems
-using HybridSystems
+Reexport.@reexport using MathematicalSystems
+Reexport.@reexport using HybridSystems
 
 export ρ, quicklb, quickub, quickb
 

@@ -1,4 +1,4 @@
-export invariant_sets, invariant_sets!, algebraiclift
+export invariant_set, invariant_sets, invariant_sets!, algebraiclift
 
 using FillArrays
 
@@ -7,11 +7,19 @@ using FillArrays
 #     c A]
 #end
 
+# x+ = Ax + Bu, x ∈ X, u ∈ U
+# y+ = [A B; 0 0]y [0; I]w, y ∈ X × U
+# [I 0]y+ = [A B]y, y ∈ X × U
+function algebraiclift(s::ConstrainedLinearControlDiscreteSystem)
+    A = [s.A s.B]
+    E = [Matrix(one(eltype(s.A)) * I, size(s.A)...) zeros(eltype(s.A), size(s.B)...)]
+    return ConstrainedLinearAlgebraicDiscreteSystem(A, E, stateset(s) * inputset(s))
+end
 function algebraiclift(s::LinearControlDiscreteSystem)
     n = statedim(s)
     z = findall(i -> iszero(sum(abs.(s.B[i,:]))), 1:n)
     # TODO ty - 1//2y^3 + 3//1xy + 2//1yhe affine space may not be parallel to classical axis
-    LinearAlgebraicDiscreteSystem(s.A[z, :], Matrix(1.0I, n, n)[z, :])
+    LinearAlgebraicDiscreteSystem(s.A[z, :], Matrix(one(eltype(s.A)) * I, n, n)[z, :])
 end
 algebraiclift(s::ConstrainedDiscreteIdentitySystem) = s
 algebraiclift(S::AbstractVector) = algebraiclift.(S)
@@ -20,14 +28,15 @@ function algebraiclift(h::HybridSystem)
     HybridSystem(h.automaton, algebraiclift(h.modes), algebraiclift(h.resetmaps), h.switchings)
 end
 
-const DTAHAS = HybridSystem{<:AbstractAutomaton, <:ConstrainedDiscreteIdentitySystem, <:LinearAlgebraicDiscreteSystem}
-const DTAHCS = HybridSystem{<:AbstractAutomaton, <:ConstrainedDiscreteIdentitySystem, <:LinearControlDiscreteSystem}
+const DTAHAS = HybridSystem{<:AbstractAutomaton, <:ConstrainedContinuousIdentitySystem, <:LinearAlgebraicDiscreteSystem}
+const DTAHCS = HybridSystem{<:AbstractAutomaton, <:ConstrainedContinuousIdentitySystem, <:LinearControlDiscreteSystem}
 
-function constrain_invariance(model, s::ContinuousIdentitySystem, set) end
+function constrain_invariance(model, ::ContinuousIdentitySystem, set) end
 function constrain_invariance(model, s::ConstrainedContinuousIdentitySystem, set)
     return @constraint(model, set ⊆ stateset(s))
 end
 
+function constrain_invariance(model, ::IdentityMap, source_set, target_set, λ) end
 function constrain_invariance(model, s::LinearMap, source_set, target_set, λ)
     return @constraint(model, s.A * source_set ⊆ target_set)
 end
@@ -79,14 +88,17 @@ without them.
 function invariant_sets end
 
 
-function invariant_sets!(sets, modes_to_compute, s::AbstractHybridSystem, factory::JuMP.OptimizerFactory,
-                         set_variables::AbstractVector{<:SetProg.AbstractVariable} = map(cv->Ellipsoid(InteriorPoint(cv[1])),
-                                                                                         chebyshevcenter.(stateset.(s.modes)));
-                         λ=Dict{transitiontype(s), Float64}(),
-                         enabled = states(s),
-                         volume_heuristic = nth_root,
-                         infeasibility_certificates = nothing,
-                         verbose=1)
+function invariant_sets!(
+    sets, modes_to_compute, s::AbstractHybridSystem, factory::JuMP.OptimizerFactory,
+    set_variables::AbstractVector{<:SetProg.AbstractVariable} = map(
+        cv->Ellipsoid(point=SetProg.InteriorPoint(cv[1])),
+        chebyshevcenter.(stateset.(s.modes)));
+    λ=Dict{transitiontype(s), Float64}(),
+    enabled = states(s),
+    volume_heuristic = nth_root,
+    infeasibility_certificates = nothing,
+    verbose=1
+)
     model = SOSModel(factory)
     #set_vrefs = @variable(model, [q in modes_to_compute], Ellipsoid(point=h[q]))
     # FIXME calls JuMP.variable_type(model, Ellipsoid(point=h[q])) then
@@ -115,8 +127,11 @@ function invariant_sets!(sets, modes_to_compute, s::AbstractHybridSystem, factor
                 if λin !== nothing
                     λouts[t] = λin
                 end
-                transition_constraints[t] = constrain_invariance(
+                con_ref = constrain_invariance(
                     model, resetmap(s, t), source_set, target_set, λin)
+                if con_ref !== nothing
+                    transition_constraints[t] = con_ref
+                end
             end
         end
     end
@@ -162,7 +177,7 @@ function invariant_sets!(sets, modes_to_compute, s::AbstractHybridSystem, factor
     elseif isinfeasible(status) && infeasibility_certificates !== nothing
         for q in modes_to_compute
             for t in out_transitions(s, q)
-                if target(s, t) in enabled
+                if target(s, t) in enabled && t in keys(transition_constraints)
                     infeasibility_certificates[t] = SetProg.SumOfSquares.moment_matrix(transition_constraints[t])
                 end
             end
@@ -176,11 +191,45 @@ function invariant_sets!(sets, modes_to_compute, s::DTAHCS, args...; kws...)
                            kws...)
 end
 
-function invariant_sets(s::DTAHAS, args...; kws...)
+function invariant_sets(s::AbstractHybridSystem, args...; kws...)
     sets = HybridSystems.state_property(s, SetProg.Sets.AbstractSet{Float64})
     invariant_sets!(sets, states(s), s, args...; kws...)
     return sets
 end
 function invariant_sets(s::DTAHCS, args...; kws...)
     return invariant_sets(algebraiclift(s), args...; kws...)
+end
+
+_mode(s::AbstractContinuousSystem) = s
+_mode(s::AbstractDiscreteSystem) = ConstrainedContinuousIdentitySystem(statedim(s), stateset(s))
+
+_resetmap(s::AbstractContinuousSystem) = IdentityMap(statedim(s))
+_resetmap(s::ConstrainedDiscreteIdentitySystem) = IdentityMap(statedim(s))
+_resetmap(s::ConstrainedLinearDiscreteSystem) = LinearMap(s.A)
+# TODO need to add LinearAlgebraicMap to MathematicalSystems
+_resetmap(s::ConstrainedLinearAlgebraicDiscreteSystem) = LinearAlgebraicDiscreteSystem(s.A, s.E)
+
+function invariant_set(
+    system::Union{
+        ConstrainedContinuousIdentitySystem,
+        ConstrainedDiscreteIdentitySystem,
+        ConstrainedLinearDiscreteSystem,
+        ConstrainedLinearAlgebraicDiscreteSystem},
+    factory::JuMP.OptimizerFactory,
+    set_variable::SetProg.AbstractVariable;
+    λ=nothing,
+    kws...)
+    hs = HybridSystem(
+        HybridSystems.OneStateAutomaton(1),
+        [_mode(system)], [_resetmap(system)], [AutonomousSwitching()])
+    λs = Dict{transitiontype(hs), Float64}()
+    if λ != nothing
+        λs[OneStateTransition(1)] = λ
+    end
+    sets = invariant_sets(hs, factory, [set_variable]; λ = λs, kws...)
+    return sets[1]
+end
+function invariant_set(s::ConstrainedLinearControlDiscreteSystem, args...; kws...)
+    set = invariant_set(algebraiclift(s), args...; kws...)
+    return project(set, 1:statedim(s))
 end

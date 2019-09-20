@@ -6,4 +6,4 @@ using Test
 include("solvers.jl")
 
 include("jsr.jl")
-include("cis.jl")
+include("invariant.jl")
