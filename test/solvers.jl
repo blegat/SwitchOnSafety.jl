@@ -39,7 +39,7 @@ ipt = false && try_import(:Ipopt)
 # Semidefinite solvers
 sdp_factories = Any[]
 mos && push!(sdp_factories, mos_factory)
-#csd && push!(sdp_factories, csd_factory)
+csd && push!(sdp_factories, csd_factory)
 #sda && push!(sdp_factories, sda_factory)
 #scs && push!(sdp_factories, scs_factory)
 

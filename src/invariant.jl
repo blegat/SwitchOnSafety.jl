@@ -224,7 +224,7 @@ function invariant_set(
         [_mode(system)], [_resetmap(system)], [AutonomousSwitching()])
     λs = Dict{transitiontype(hs), Float64}()
     if λ != nothing
-        λs[OneStateTransition(1)] = λ
+        λs[HybridSystems.OneStateTransition(1)] = λ
     end
     sets = invariant_sets(hs, factory, [set_variable]; λ = λs, kws...)
     return sets[1]
