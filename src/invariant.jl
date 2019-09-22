@@ -181,7 +181,7 @@ function invariant_sets!(
     elseif isinfeasible(status) && infeasibility_certificates !== nothing
         for q in modes_to_compute
             for t in out_transitions(s, q)
-                if target(s, t) in enabled && t in keys(transition_constraints)
+                if target(s, t) in enabled
                     infeasibility_certificates[t] = SetProg.SumOfSquares.moment_matrix(transition_constraints[t])
                 end
             end
