@@ -6,17 +6,26 @@ using SwitchOnSafety
 using Polyhedra
 const Sets = SetProg.Sets
 using MultivariatePolynomials
+using SemialgebraicSets
 
 function ci_square_test(
-    factory, variable::SetProg.AbstractVariable, set_test; kws...)
+    factory, variable::SetProg.AbstractVariable, set_test, interval_test; kws...)
     □ = polyhedron(HalfSpace([1, 0], 1.0) ∩ HalfSpace([-1, 0], 1) ∩ HalfSpace([0, 1], 1) ∩ HalfSpace([0, -1], 1))
+    interval = polyhedron(HalfSpace([1], 1.0) ∩ HalfSpace([-1], 1))
     Δt = 0.5
-    A = [1.0 Δt]
-    E = [1.0 0.0]
-    system = ConstrainedLinearAlgebraicDiscreteSystem(A, E, □)
-
-    set = invariant_set(system, factory, variable; verbose=0, kws...)
-    set_test(set)
+    control_system = ConstrainedLinearControlDiscreteSystem(reshape([1.0], 1, 1), reshape([Δt], 1, 1), interval, interval)
+    @testset "$(typeof(system))" for system in [
+        ConstrainedLinearAlgebraicDiscreteSystem([1.0 Δt], [1.0 0.0], □),
+        ConstrainedLinearControlDiscreteSystem([1.0 Δt; 0.0 0.0], reshape([0.0 1.0], 2, 1), □, FullSpace()),
+        algebraiclift(control_system)
+    ]
+        set = invariant_set(system, factory, variable; verbose=0, kws...)
+        set_test(set)
+    end
+    @testset "$(typeof(control_system))" begin
+        set = invariant_set(control_system, factory, variable; verbose=0, kws...)
+        interval_test(set)
+    end
 end
 
 const atol = 1e-4
@@ -28,6 +37,10 @@ const rtol = 1e-4
         ◯ -> begin
             @test ◯ isa Sets.Polar{Float64, Sets.EllipsoidAtOrigin{Float64}}
             @test Sets.polar(◯).Q ≈ Symmetric([1.0 -1/4; -1/4 1.0]) atol=atol rtol=rtol
+        end,
+        interval -> begin
+            @test interval isa Sets.Polar{Float64,SetProg.Sets.EllipsoidAtOrigin{Float64}}
+            @test Sets.polar(interval).Q ≈ Symmetric(ones(1, 1)) atol=atol rtol=rtol
         end,
         volume_heuristic = nth_root)
 end
@@ -48,6 +61,11 @@ end
                                                   0.0 1.0 0.0
                                                   0.0 0.0 1.0] atol=atol rtol=rtol
         end,
+        interval -> begin
+            @test interval isa Sets.Translation{Sets.Polar{Float64,Sets.EllipsoidAtOrigin{Float64}},Float64,Vector{Float64}}
+            @test Sets.polar(interval.set).Q ≈ Symmetric(ones(1, 1)) atol=atol rtol=rtol
+            @test interval.c ≈ [0.0] atol=atol rtol=rtol
+        end,
         volume_heuristic = nth_root, λ = 1.0)
 end
 
@@ -66,6 +84,13 @@ end
             @test α ≥ -2 - 2atol - rtol
             @test α ≤ -0.5 + 0.5atol + rtol
             @test ◯_dual.p ≈ -z^2 + x^2 + α*x*y + y^2 atol=atol rtol=rtol
+        end,
+        interval -> begin
+            @test interval isa Sets.PerspectiveDual{Float64, Sets.Householder{Float64, Sets.UnknownSet{Float64}, Float64}}
+            z = Sets.perspective_variable(interval)
+            x, = Sets.space_variables(interval)
+            interval_dual = Sets.perspective_dual(interval)
+            @test interval_dual.p ≈ -z^2 + x^2 atol=atol rtol=rtol
         end,
         volume_heuristic = set -> L1_heuristic(set, [1.0, 1.0]), λ = 1.0)
 end
@@ -89,6 +114,10 @@ end
             Hess = SetProg.SumOfSquares.MultivariateMoments.SymMatrix(hess, 4)
             @test all(eigvals(Matrix(Hess)) .≥ -atol)
             @test convexity_proof.Q ≈ hess atol=atol rtol=rtol
+        end,
+        interval -> begin
+            @test interval isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64}}
+            @test Matrix(Sets.polar(interval).p.Q) ≈ ones(1, 1) atol=atol rtol=rtol
         end,
         volume_heuristic = set -> L1_heuristic(set, [1.0, 1.0]))
 end

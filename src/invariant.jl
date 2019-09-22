@@ -15,6 +15,10 @@ function algebraiclift(s::ConstrainedLinearControlDiscreteSystem)
     E = [Matrix(one(eltype(s.A)) * I, size(s.A)...) zeros(eltype(s.A), size(s.B)...)]
     return ConstrainedLinearAlgebraicDiscreteSystem(A, E, stateset(s) * inputset(s))
 end
+function algebraiclift(s::ConstrainedLinearControlDiscreteSystem{T, MTA, MTB, ST, FullSpace}) where {T, MTA <: AbstractMatrix{T}, MTB <: AbstractMatrix{T}, ST}
+    as = algebraiclift(LinearControlDiscreteSystem(s.A, s.B))
+    return ConstrainedLinearAlgebraicDiscreteSystem(as.A, as.E, stateset(s))
+end
 function algebraiclift(s::LinearControlDiscreteSystem)
     n = statedim(s)
     z = findall(i -> iszero(sum(abs.(s.B[i,:]))), 1:n)
@@ -228,6 +232,9 @@ function invariant_set(
     end
     sets = invariant_sets(hs, factory, [set_variable]; λ = λs, kws...)
     return sets[1]
+end
+function invariant_set(s::ConstrainedLinearControlDiscreteSystem{T, MTA, MTB, ST, FullSpace}, args...; kws...) where {T, MTA <: AbstractMatrix{T}, MTB <: AbstractMatrix{T}, ST}
+    return invariant_set(algebraiclift(s), args...; kws...)
 end
 function invariant_set(s::ConstrainedLinearControlDiscreteSystem, args...; kws...)
     set = invariant_set(algebraiclift(s), args...; kws...)
