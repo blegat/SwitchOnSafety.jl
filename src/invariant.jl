@@ -21,9 +21,15 @@ function algebraiclift(s::ConstrainedLinearControlDiscreteSystem{T, MTA, MTB, ST
 end
 function algebraiclift(s::LinearControlDiscreteSystem)
     n = statedim(s)
-    z = findall(i -> iszero(sum(abs.(s.B[i,:]))), 1:n)
-    # TODO ty - 1//2y^3 + 3//1xy + 2//1yhe affine space may not be parallel to classical axis
-    LinearAlgebraicDiscreteSystem(s.A[z, :], Matrix(one(eltype(s.A)) * I, n, n)[z, :])
+    # We threat zero rows separately to avoid having approximate identity in `E`
+    # as it can lead to numerical difficuly for the SDP solver down the road.
+    z = findall(i -> all(j -> iszero(s.B[i, j]), 1:size(s.B, 2)), 1:n)
+    nz = setdiff(1:n, z)
+    Ez = Matrix(one(eltype(s.A)) * I, n, n)[z, :]
+    null = nullspace(s.B[nz, :]')'
+    Enz = zeros(eltype(null), size(null, 1), n)
+    Enz[:, nz] = null
+    return LinearAlgebraicDiscreteSystem([s.A[z, :]; Enz * s.A], [Ez; Enz])
 end
 algebraiclift(s::ConstrainedDiscreteIdentitySystem) = s
 algebraiclift(S::AbstractVector) = algebraiclift.(S)
@@ -32,11 +38,8 @@ function algebraiclift(h::HybridSystem)
     HybridSystem(h.automaton, algebraiclift(h.modes), algebraiclift(h.resetmaps), h.switchings)
 end
 
-const DTAHAS = HybridSystem{<:AbstractAutomaton, <:ConstrainedContinuousIdentitySystem, <:LinearAlgebraicDiscreteSystem}
-const DTAHCS = HybridSystem{<:AbstractAutomaton, <:ConstrainedContinuousIdentitySystem, <:LinearControlDiscreteSystem}
-
 function constrain_invariance(model, ::ContinuousIdentitySystem, set) end
-function constrain_invariance(model, s::ConstrainedContinuousIdentitySystem, set)
+function constrain_invariance(model, s::Union{ConstrainedContinuousIdentitySystem, ConstrainedDiscreteIdentitySystem}, set)
     return @constraint(model, set ⊆ stateset(s))
 end
 
@@ -44,8 +47,43 @@ function constrain_invariance(model, ::IdentityMap, source_set, target_set, λ) 
 function constrain_invariance(model, s::LinearMap, source_set, target_set, λ)
     return @constraint(model, s.A * source_set ⊆ target_set)
 end
-function constrain_invariance(model, s::LinearAlgebraicDiscreteSystem, source_set, target_set, λ)
+function constrain_invariance(model, s::LinearAlgebraicDiscreteSystem,
+                              source_set, target_set, λ)
     return @constraint(model, s.A * source_set ⊆ s.E * target_set,
+                       S_procedure_scaling = λ)
+end
+
+function Polyhedra.translate(system::ConstrainedLinearAlgebraicDiscreteSystem, c)
+    return ConstrainedAffineAlgebraicDiscreteSystem(
+        system.A, system.E, system.E * c - system.A * c,
+        Polyhedra.translate(stateset(system), c))
+end
+
+struct ConstrainedAffineAlgebraicDiscreteSystem{T, MTA <: AbstractMatrix{T}, MTE <: AbstractMatrix{T}, VTB <: AbstractVector{T}, ST} <: AbstractDiscreteSystem
+    A::MTA
+    E::MTE
+    b::VTB
+    X::ST
+end
+MathematicalSystems.statedim(s::ConstrainedAffineAlgebraicDiscreteSystem) = size(s.A, 1)
+MathematicalSystems.stateset(s::ConstrainedAffineAlgebraicDiscreteSystem) = s.X
+MathematicalSystems.inputdim(::ConstrainedAffineAlgebraicDiscreteSystem) = 0
+MathematicalSystems.islinear(::ConstrainedAffineAlgebraicDiscreteSystem) = false
+MathematicalSystems.isaffine(::ConstrainedAffineAlgebraicDiscreteSystem) = true
+
+struct AffineAlgebraicDiscreteSystem{T, MTA <: AbstractMatrix{T}, MTE <: AbstractMatrix{T}, VTB <: AbstractVector{T}} <: AbstractDiscreteSystem
+    A::MTA
+    E::MTE
+    b::VTB
+end
+MathematicalSystems.statedim(s::AffineAlgebraicDiscreteSystem) = size(s.A, 1)
+MathematicalSystems.inputdim(::AffineAlgebraicDiscreteSystem) = 0
+MathematicalSystems.islinear(::AffineAlgebraicDiscreteSystem) = false
+MathematicalSystems.isaffine(::AffineAlgebraicDiscreteSystem) = true
+
+function constrain_invariance(model, s::AffineAlgebraicDiscreteSystem,
+                              source_set, target_set, λ)
+    return @constraint(model, s.A * source_set + s.b ⊆ s.E * target_set,
                        S_procedure_scaling = λ)
 end
 
@@ -91,12 +129,18 @@ without them.
 """
 function invariant_sets end
 
+function default_variable(system::AbstractSystem, factory::JuMP.OptimizerFactory)
+    return default_variable(stateset(system), factory)
+end
+function default_variable(p::Polyhedra.Rep, factory::JuMP.OptimizerFactory)
+    solver = something(Polyhedra.default_solver(p), factory)
+    center, radius = Polyhedra.chebyshevcenter(p, solver)
+    return SetProg.Ellipsoid(point = SetProg.InteriorPoint(center))
+end
 
 function invariant_sets!(
     sets, modes_to_compute, s::AbstractHybridSystem, factory::JuMP.OptimizerFactory,
-    set_variables::AbstractVector{<:SetProg.AbstractVariable} = map(
-        cv->Ellipsoid(point=SetProg.InteriorPoint(cv[1])),
-        chebyshevcenter.(stateset.(s.modes)));
+    set_variables::AbstractVector{<:SetProg.AbstractVariable} = [default_variable(mode, factory) for mode in s.modes];
     λ=Dict{transitiontype(s), Float64}(),
     enabled = states(s),
     volume_heuristic = nth_root,
@@ -190,17 +234,18 @@ function invariant_sets!(
 
     return status
 end
-function invariant_sets!(sets, modes_to_compute, s::DTAHCS, args...; kws...)
-    return invariant_sets!(sets, modes_to_compute, algebraiclift(s), args...;
-                           kws...)
-end
-
 function invariant_sets(s::AbstractHybridSystem, args...; kws...)
     sets = HybridSystems.state_property(s, SetProg.Sets.AbstractSet{Float64})
     invariant_sets!(sets, states(s), s, args...; kws...)
     return sets
 end
-function invariant_sets(s::DTAHCS, args...; kws...)
+
+const HybridSystemWithControlResetMap = HybridSystem{<:AbstractAutomaton, <:AbstractSystem, <:LinearControlDiscreteSystem}
+function invariant_sets!(sets, modes_to_compute, s::HybridSystemWithControlResetMap, args...; kws...)
+    return invariant_sets!(sets, modes_to_compute, algebraiclift(s), args...;
+                           kws...)
+end
+function invariant_sets(s::HybridSystemWithControlResetMap, args...; kws...)
     return invariant_sets(algebraiclift(s), args...; kws...)
 end
 
@@ -212,15 +257,17 @@ _resetmap(s::ConstrainedDiscreteIdentitySystem) = IdentityMap(statedim(s))
 _resetmap(s::ConstrainedLinearDiscreteSystem) = LinearMap(s.A)
 # TODO need to add LinearAlgebraicMap to MathematicalSystems
 _resetmap(s::ConstrainedLinearAlgebraicDiscreteSystem) = LinearAlgebraicDiscreteSystem(s.A, s.E)
+_resetmap(s::ConstrainedAffineAlgebraicDiscreteSystem) = AffineAlgebraicDiscreteSystem(s.A, s.E, s.b)
 
 function invariant_set(
     system::Union{
         ConstrainedContinuousIdentitySystem,
         ConstrainedDiscreteIdentitySystem,
         ConstrainedLinearDiscreteSystem,
-        ConstrainedLinearAlgebraicDiscreteSystem},
+        ConstrainedLinearAlgebraicDiscreteSystem,
+        ConstrainedAffineAlgebraicDiscreteSystem},
     factory::JuMP.OptimizerFactory,
-    set_variable::SetProg.AbstractVariable;
+    set_variable::SetProg.AbstractVariable=default_variable(system, factory);
     λ=nothing,
     kws...)
     hs = HybridSystem(
