@@ -55,6 +55,7 @@ const expected_lb = expected_ub ./ ratio
     @test msmp.growthrate == 0.9748171979372074
 
     @testset "CJSR with $factory" for factory in sdp_factories
+        iscsdp(factory) && continue # Segfault on Travis: https://travis-ci.org/blegat/SwitchOnSafety.jl/jobs/590021991
         @testset "With $(s == hs ? "original system" : "2-dependent lift")" for s in (hs, hsm)
             m = s === hs ? 1 : 2
             @testset "SOS d=$d" for d in 1:(7-m)
