@@ -32,6 +32,7 @@ SumOfSquares = "4b9e565b-77fc-50a5-a571-1244f986bda1"
 HybridSystems = "0.3"
 JuMP = "0.20"
 ParameterJuMP = "0.1.2"
+SetProg = "0.0.4"
 SumOfSquares = "~0.3.5"
 julia = "1"
 
