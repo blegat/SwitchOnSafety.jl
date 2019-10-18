@@ -74,13 +74,17 @@ function soslyap(s::HybridSystems.AbstractHybridSystem, d; factory=nothing)
                              volume_heuristic = nothing,
                              infeasibility_certificates = infeasibility_certificates,
                              verbose=0)
-    if isinfeasible(status)
-        @assert !isfeasible(status)
-        status, nothing, infeasibility_certificates
-    elseif isfeasible(status)
+    if isinfeasible(status, true)
+        @assert !isfeasible(status, true)
+        if status[3] == MOI.NO_SOLUTION
+            return status, nothing, nothing
+        else
+            return status, nothing, infeasibility_certificates
+        end
+    elseif isfeasible(status, true)
         status, sets, nothing
     else
-        @assert !isdecided(status)
+        @assert !isdecided(status, true)
         status, nothing, nothing
     end
 end
@@ -140,12 +144,13 @@ function showmid(γ, status, verbose)
         println("Termination status: $(status[1])")
         println("     Primal status: $(status[2])")
         println("       Dual status: $(status[3])")
-        if !isdecided(status)
+        println("        Raw status: $(status[4])")
+        if !isdecided(status, true)
             problem_status = "Unknown"
-        elseif isfeasible(status)
+        elseif isfeasible(status, true)
             problem_status = "Feasible"
         else
-            @assert isinfeasible(status)
+            @assert isinfeasible(status, true)
             problem_status = "Infeasible"
         end
         println("    Problem status: $problem_status")
@@ -175,7 +180,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
         mid = sosmid(s, soslb, sosub, step, scaling)
         status, curprimal, curdual = _lyap(mid)
         showmid(mid, status, verbose)
-        if !isdecided(status)
+        if !isdecided(status, true)
             if usestep(s, soslb, sosub)
                 step *= 2
                 continue
@@ -193,7 +198,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
             end
             statuslb, curprimallb, curduallb = _lyap(midlb)
             showmid(midlb, statuslb, verbose)
-            if isdecided(statuslb)
+            if isdecided(statuslb, true)
                 mid = midlb
                 status = statuslb
                 curprimal = curprimallb
@@ -206,7 +211,7 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
                 end
                 statusub, curprimalub, curdualub = _lyap(midub)
                 showmid(midub, statusub, verbose)
-                if isdecided(statusub)
+                if isdecided(statusub, true)
                     mid = midub
                     status = statusub
                     curprimal = curprimalub
@@ -214,11 +219,13 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
                 end
             end
         end
-        if isinfeasible(status)
+        if isinfeasible(status, true)
             dual = curdual
-            sosextractcycle(s, dual, d, ranktols=ranktols, disttols=disttols)
+            if dual !== nothing
+                sosextractcycle(s, dual, d, ranktols=ranktols, disttols=disttols)
+            end
             soslb = mid
-        elseif isfeasible(status)
+        elseif isfeasible(status, true)
             if !(curprimal === nothing) # FIXME remove
                 primal = curprimal
             end
@@ -260,7 +267,7 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; factory=nothing, tol=1e
         if primal === nothing
             if isfinite(sosub)
                 status, primal, _ = _lyap(sosub)
-                @assert isfeasible(status)
+                @assert isfeasible(status, true)
                 @assert primal !== nothing
             else
                 error("Bisection ended with infinite sosub=$sosub")
@@ -269,10 +276,10 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; factory=nothing, tol=1e
         if dual === nothing
             if isfinite(soslb)
                 status, _, dual = _lyap(soslb)
-                if !isinfeasible(status)
+                if !isinfeasible(status, true)
                     soslb = sosshift(s, soslb, -tol)
                     status, _, dual = _lyap(soslb)
-                    if !isinfeasible(status)
+                    if !isinfeasible(status, true)
                         @warn("We ignore getlb and start from scratch. tol was probably set too small and soslb is too close to the JSR so soslb-tol is too close to the JSR")
                         soslb = 0. # FIXME fix for continuous
                     end
