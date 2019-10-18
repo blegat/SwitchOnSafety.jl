@@ -87,14 +87,14 @@ function constrain_invariance(model, s::AffineAlgebraicDiscreteSystem,
                        S_procedure_scaling = λ)
 end
 
-function isinfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
-    status[3] == MOI.INFEASIBILITY_CERTIFICATE
+function isinfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode, String}, no_objective::Bool)
+    status[1] == MOI.INFEASIBLE || (no_objective && status[1] == MOI.INFEASIBLE_OR_UNBOUNDED)
 end
-function isfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
+function isfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode, String}, no_objective::Bool)
     status[2] == MOI.FEASIBLE_POINT
 end
-function isdecided(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode})
-    return isinfeasible(status) || isfeasible(status)
+function isdecided(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode, String}, no_objective::Bool)
+    return isinfeasible(status, no_objective) || isfeasible(status, no_objective)
 end
 
 """
@@ -202,6 +202,7 @@ function invariant_sets!(
                 rethrow(err)
             end
         end
+        @show JuMP.raw_status(model)
         @show JuMP.termination_status(model)
         @show JuMP.primal_status(model)
         @show JuMP.dual_status(model)
@@ -216,13 +217,16 @@ function invariant_sets!(
 
     status = (JuMP.termination_status(model),
               JuMP.primal_status(model),
-              JuMP.dual_status(model))
+              JuMP.dual_status(model),
+              JuMP.raw_status(model))
 
-    if isfeasible(status)
+    if isfeasible(status, volume_heuristic === nothing)
         for q in modes_to_compute
             sets[q] = JuMP.value(set_vrefs[q])
         end
-    elseif isinfeasible(status) && infeasibility_certificates !== nothing
+    elseif isinfeasible(status, volume_heuristic === nothing) &&
+            infeasibility_certificates !== nothing &&
+            status[3] != MOI.NO_SOLUTION # if `status[1]` is `MOI.INFEASIBLE_OR_UNBOUNDED`, there might be no certificate.
         for q in modes_to_compute
             for t in out_transitions(s, q)
                 if target(s, t) in enabled
