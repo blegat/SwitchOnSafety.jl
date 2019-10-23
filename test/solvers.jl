@@ -25,13 +25,13 @@ else
     csd_factory = nothing
 end
 iscsdp(solver) = solver === csd_factory
-sda = false && try_import(:SDPA)
+sda = try_import(:SDPA)
 if sda
     sda_factory = with_optimizer(SDPA.Optimizer)
 else
     sda_factory = nothing
 end
-issdpa(solver) = solver === sda_solver
+issdpa(solver) = solver === sda_factory
 scs = false && try_import(:SCS) # It does not work
 isscs(solver) = false
 ipt = false && try_import(:Ipopt)
@@ -40,7 +40,7 @@ ipt = false && try_import(:Ipopt)
 sdp_factories = Any[]
 mos && push!(sdp_factories, mos_factory)
 csd && push!(sdp_factories, csd_factory)
-#sda && push!(sdp_factories, sda_factory)
+sda && push!(sdp_factories, sda_factory)
 #scs && push!(sdp_factories, scs_factory)
 
 # Bilinear LP solvers

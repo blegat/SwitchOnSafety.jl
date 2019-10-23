@@ -37,7 +37,6 @@ using LinearAlgebra
     end
 
     for factory in sdp_factories
-        iscsdp(factory) && continue # Segfault on Travis: https://travis-ci.org/blegat/SwitchOnSafety.jl/jobs/588075484
         sosdata(s).lb = 0
         for d in 1:3
             tol = 1e-5

@@ -88,7 +88,9 @@ function constrain_invariance(model, s::AffineAlgebraicDiscreteSystem,
 end
 
 function isinfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode, String}, no_objective::Bool)
-    status[1] == MOI.INFEASIBLE || (no_objective && status[1] == MOI.INFEASIBLE_OR_UNBOUNDED)
+    # Mosek may find an INFEASIBILITY_CERTIFICATE with a STALL/MOI.SLOW_PROGRESS status.
+    # SDPA may prove that the problem is INFEASIBILITY_OR_UNBOUNDED which means INFEASIBLE if there is no objective but it has not INFEASIBILITY_CERTIFICATE.
+    status[3] == MOI.INFEASIBILITY_CERTIFICATE || status[1] == MOI.INFEASIBLE || (no_objective && status[1] == MOI.INFEASIBLE_OR_UNBOUNDED)
 end
 function isfeasible(status::Tuple{MOI.TerminationStatusCode, MOI.ResultStatusCode, MOI.ResultStatusCode, String}, no_objective::Bool)
     status[2] == MOI.FEASIBLE_POINT
