@@ -55,7 +55,7 @@ end
 # So we ask the user to give a scaled system, i.e. do `p(A/γx) ≥ p(x)` rather
 # than do `p(Ax) ≥ γ p(x)`
 """
-    soslyap(s::AbstractSwitchedSystem, d, γ; factory=nothing)
+    soslyap(s::AbstractSwitchedSystem, d; factory=nothing)
 
 Find Sum-of-Squares Lyapunov functions; i.e. solves [(5), PJ08]
 or gives moment matrices certifying the infeasibility of the problem.
