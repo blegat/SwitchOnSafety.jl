@@ -36,6 +36,9 @@ const expected_lb = expected_ub ./ ratio
     end
     sbp = periodicswitching(hs, t.([3 => 3]))
     @test sbp.growthrate == 0.9392550239418471
+    sap = periodicswitching(hs, t.([3 => 1, 1 => 3, 3 => 1, 1 => 3, 3 => 1, 1 => 3, 3 => 3, 3 => 3, 3 => 3,
+                                    3 => 1, 1 => 3, 3 => 1, 1 => 3, 3 => 1, 1 => 3, 3 => 3, 3 => 3, 3 => 3, 3 => 3]))
+    @test sap.growthrate == 0.96076337693942
     snp = periodicswitching(hs, t.([3 => 1, 1 => 3, 3 => 1, 1 => 3, 3 => 3, 3 => 3, 3 => 3, 3 => 3]))
     @test snp.growthrate == 0.9728940109399586
     smp = periodicswitching(hs, t.([3 => 1, 1 => 3, 3 => 1, 1 => 2, 2 => 3, 3 => 3, 3 => 3, 3 => 3]))
@@ -73,6 +76,8 @@ const expected_lb = expected_ub ./ ratio
                             if d == 1
                                 if v_0 == 5
                                     @test psw == msbp
+                                elseif v_0 == 3 || v_0 == 4
+                                    @test psw == sap || psw == msnp
                                 else
                                     @test psw == msnp
                                 end
