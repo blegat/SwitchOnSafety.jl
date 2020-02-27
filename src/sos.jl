@@ -55,7 +55,7 @@ end
 # So we ask the user to give a scaled system, i.e. do `p(A/γx) ≥ p(x)` rather
 # than do `p(Ax) ≥ γ p(x)`
 """
-    soslyap(s::AbstractSwitchedSystem, d; factory=nothing)
+    soslyap(s::AbstractSwitchedSystem, d; optimizer_constructor=nothing)
 
 Find Sum-of-Squares Lyapunov functions; i.e. solves [(5), PJ08]
 or gives moment matrices certifying the infeasibility of the problem.
@@ -65,12 +65,12 @@ Use [`ScaledHybridSystem`](@ref) to use a different growth rate than 1.
 *Approximation of the joint spectral radius using sum of squares*.
 Linear Algebra and its Applications, Elsevier, **2008**, 428, 2385-2402
 """
-function soslyap(s::HybridSystems.AbstractHybridSystem, d; factory=nothing)
+function soslyap(s::HybridSystems.AbstractHybridSystem, d; optimizer_constructor=nothing)
     sets = HybridSystems.state_property(s, PolynomialLyapunov{Float64})
     infeasibility_certificates = HybridSystems.transition_property(s, MeasureLyapunov{Float64})
     set_variables = PolySet[PolySet(symmetric=true, degree=2d, superset=superset(s, mode, d))
                             for mode in states(s)]
-    status = invariant_sets!(sets, 1:nstates(s), s, factory, set_variables,
+    status = invariant_sets!(sets, 1:nstates(s), s, optimizer_constructor, set_variables,
                              volume_heuristic = nothing,
                              infeasibility_certificates = infeasibility_certificates,
                              verbose=0)
@@ -260,9 +260,9 @@ IEEE Transactions on Automatic Control, **2019**.
 *Approximation of the joint spectral radius using sum of squares*.
 Linear Algebra and its Applications, Elsevier, **2008**, 428, 2385-2402
 """
-function soslyapb(s::AbstractSwitchedSystem, d::Integer; factory=nothing, tol=1e-5, cached=true, kws...)
-    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, getsoslyapinit(s, d)...; factory=factory, tol=tol, kws...)
-    _lyap(γ) = soslyap(ScaledHybridSystem(s, γ), d, factory=factory)
+function soslyapb(s::AbstractSwitchedSystem, d::Integer; optimizer_constructor=nothing, tol=1e-5, cached=true, kws...)
+    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, getsoslyapinit(s, d)...; optimizer_constructor=optimizer_constructor, tol=tol, kws...)
+    _lyap(γ) = soslyap(ScaledHybridSystem(s, γ), d, optimizer_constructor=optimizer_constructor)
     if cached
         if primal === nothing
             if isfinite(sosub)
@@ -283,7 +283,7 @@ function soslyapb(s::AbstractSwitchedSystem, d::Integer; factory=nothing, tol=1e
                         @warn("We ignore getlb and start from scratch. tol was probably set too small and soslb is too close to the JSR so soslb-tol is too close to the JSR")
                         soslb = 0. # FIXME fix for continuous
                     end
-                    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; factory=factory, tol=tol, kws...)
+                    soslb, dual, sosub, primal = soslyapbs(s::AbstractSwitchedSystem, d::Integer, soslb, dual, sosub, primal; optimizer_constructor=optimizer_constructor, tol=tol, kws...)
                     @assert dual !== nothing
                 end
             else

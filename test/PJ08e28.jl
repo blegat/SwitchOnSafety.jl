@@ -11,13 +11,13 @@
 @testset "[PJ08] Example 2.8" begin
     expected_lb = [1, 1/2^(1/4)]
     expected_ub = [√2, 1]
-    for factory in sdp_factories
+    for optimizer_constructor in sdp_factories
         s = discreteswitchedsystem([[1 0; 1 0], [0 1; 0 -1]])
-        tol = ismosek(factory) ? 2e-4 : 1e-3
+        tol = ismosek(optimizer_constructor) ? 2e-4 : 1e-3
         for d in 1:2
             # We set lb=0 for d=2, otherwise there might be no infeasibile problem and hence no extraction done
             sosdata(s).lb = 0
-            lb, ub = soslyapb(s, d, factory=factory, tol=tol)
+            lb, ub = soslyapb(s, d, optimizer_constructor=optimizer_constructor, tol=tol)
             @test abs(log(expected_lb[d]) - log(lb)) <= tol
             @test abs(log(expected_ub[d]) - log(ub)) <= tol
 

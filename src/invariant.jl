@@ -111,7 +111,7 @@ in `sets`.
 function invariant_sets! end
 
 """
-    invariant_sets(system::AbstractHybridSystem, factory::JuMP.OptimizerFactory,
+    invariant_sets(system::AbstractHybridSystem, optimizer_constructor,
                    set_variables::AbstractVector{<:SetProg.AbstractVariable};
                    volume_heuristic = nth_root,
                    infeasibility_certificates = nothing,
@@ -120,7 +120,7 @@ function invariant_sets! end
                    enabled = states(system))
 
 Compute maximal invariant sets of the family `set_variables` for the modes of
-`system` using the solver provided by `factory`. The volume of the sets is
+`system` using the solver provided by `optimizer_constructor`. The volume of the sets is
 estimated using `volume_heuristic`. If the program is infeasible, the
 certificates for each transition are stored in `infeasibility_certificates`.
 For the containment of non-homogeneous, the S-procedure might be a Bilinear
@@ -131,25 +131,25 @@ without them.
 """
 function invariant_sets end
 
-function default_variable(system::AbstractSystem, factory::JuMP.OptimizerFactory)
-    return default_variable(stateset(system), factory)
+function default_variable(system::AbstractSystem, optimizer_constructor)
+    return default_variable(stateset(system), optimizer_constructor)
 end
-function default_variable(p::Polyhedra.Rep, factory::JuMP.OptimizerFactory)
-    solver = something(Polyhedra.default_solver(p), factory)
+function default_variable(p::Polyhedra.Rep, optimizer_constructor)
+    solver = something(Polyhedra.default_solver(p), optimizer_constructor)
     center, radius = Polyhedra.chebyshevcenter(p, solver)
     return SetProg.Ellipsoid(point = SetProg.InteriorPoint(center))
 end
 
 function invariant_sets!(
-    sets, modes_to_compute, s::AbstractHybridSystem, factory::JuMP.OptimizerFactory,
-    set_variables::AbstractVector{<:SetProg.AbstractVariable} = [default_variable(mode, factory) for mode in s.modes];
+    sets, modes_to_compute, s::AbstractHybridSystem, optimizer_constructor,
+    set_variables::AbstractVector{<:SetProg.AbstractVariable} = [default_variable(mode, optimizer_constructor) for mode in s.modes];
     λ=Dict{transitiontype(s), Float64}(),
     enabled = states(s),
     volume_heuristic = nth_root,
     infeasibility_certificates = nothing,
     verbose=1
 )
-    model = SOSModel(factory)
+    model = SOSModel(optimizer_constructor)
     #set_vrefs = @variable(model, [q in modes_to_compute], Ellipsoid(point=h[q]))
     # FIXME calls JuMP.variable_type(model, Ellipsoid(point=h[q])) then
     # complains that q is not defined
@@ -272,8 +272,8 @@ function invariant_set(
         ConstrainedLinearDiscreteSystem,
         ConstrainedLinearAlgebraicDiscreteSystem,
         ConstrainedAffineAlgebraicDiscreteSystem},
-    factory::JuMP.OptimizerFactory,
-    set_variable::SetProg.AbstractVariable=default_variable(system, factory);
+    optimizer_constructor,
+    set_variable::SetProg.AbstractVariable=default_variable(system, optimizer_constructor);
     λ=nothing,
     kws...)
     hs = HybridSystem(
@@ -283,7 +283,7 @@ function invariant_set(
     if λ != nothing
         λs[HybridSystems.OneStateTransition(1)] = λ
     end
-    sets = invariant_sets(hs, factory, [set_variable]; λ = λs, kws...)
+    sets = invariant_sets(hs, optimizer_constructor, [set_variable]; λ = λs, kws...)
     return sets[1]
 end
 function invariant_set(s::ConstrainedLinearControlDiscreteSystem{T, MTA, MTB, ST, FullSpace}, args...; kws...) where {T, MTA <: AbstractMatrix{T}, MTB <: AbstractMatrix{T}, ST}

@@ -4,16 +4,16 @@ using Polyhedra
 mutable struct BalancedComplexPolytope{T, VT <: AbstractVector{T}, D<:Polyhedra.FullDim}
     d::D
     points::Vector{VT}
-    factory::Union{Nothing, JuMP.OptimizerFactory}
+    optimizer_constructor
     model::Union{Nothing, JuMP.Model}
     real_z::Union{Nothing, Vector{ParameterJuMP.ParameterRef}}
     imag_z::Union{Nothing, Vector{ParameterJuMP.ParameterRef}}
     t_0::Union{Nothing, JuMP.VariableRef}
     function BalancedComplexPolytope{T, VT, D}(
         d::Polyhedra.FullDim, points::Polyhedra.PointIt,
-        factory::Union{Nothing, JuMP.OptimizerFactory}=nothing) where {T, VT, D}
+        optimizer_constructor=nothing) where {T, VT, D}
         new{T, VT, D}(Polyhedra.FullDim_convert(D, d),
-                      Polyhedra.lazy_collect(points), factory, nothing, nothing, nothing, nothing)
+                      Polyhedra.lazy_collect(points), optimizer_constructor, nothing, nothing, nothing, nothing)
     end
 end
 function BalancedComplexPolytope(d::Polyhedra.FullDim, points::Polyhedra.PointIt, args...)
@@ -32,7 +32,7 @@ end
 
 function _build_model(brp::BalancedComplexPolytope)
     n = length(brp.points)
-    brp.model = ParameterJuMP.ModelWithParams(brp.factory)
+    brp.model = ParameterJuMP.ModelWithParams(brp.optimizer_constructor)
     # Real part of `t`
     α = @variable(brp.model, [1:n])
     # Imaginary part of `t`

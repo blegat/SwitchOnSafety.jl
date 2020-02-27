@@ -40,13 +40,13 @@
     @test smp != periodicswitching(s, [1, 2, 1, 2])
     @test smp != periodicswitching(s, [1, 1])
     #@test smp != periodicswitching(discreteswitchedsystem([[-1 -1; -4 0],[3 3; -2 1]]), [1, 2])
-    @testset "JSR with $factory" for factory in sdp_factories
+    @testset "JSR with $optimizer_constructor" for optimizer_constructor in sdp_factories
         sosdata(s).lb = 0
-        tol = ismosek(factory) ? 1e-5 : 5e-4
-        lb, ub = soslyapb(s, 1, factory=factory, tol=tol)
+        tol = ismosek(optimizer_constructor) ? 1e-5 : 5e-4
+        lb, ub = soslyapb(s, 1, optimizer_constructor=optimizer_constructor, tol=tol)
         @test log(lb) ≈ log(2.814640557) rtol=tol
         @test log(ub) ≈ log(3.980502849) rtol=tol
-        lb, ub = soslyapb(s, 2, factory=factory, tol=tol)
+        lb, ub = soslyapb(s, 2, optimizer_constructor=optimizer_constructor, tol=tol)
         @test log(lb) ≈ log(3.299750624) rtol=tol
         @test log(ub) ≈ log(3.924086919) rtol=tol
         @test_throws ArgumentError sosbuildsequence(s, 1, v_0 = 2)

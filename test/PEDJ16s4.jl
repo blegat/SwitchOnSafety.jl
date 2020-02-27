@@ -54,12 +54,12 @@ const expected_lb = expected_ub ./ ratio
     msmp = periodicswitching(hsm, t.([5 => 3, 3 => 8, 8 => 3, 3 => 7, 7 => 2, 2 => 5, 5 => 5, 5 => 5]))
     @test msmp.growthrate == 0.9748171979372074
 
-    @testset "CJSR with $factory" for factory in sdp_factories
+    @testset "CJSR with $optimizer_constructor" for optimizer_constructor in sdp_factories
         @testset "With $(s == hs ? "original system" : "2-dependent lift")" for s in (hs, hsm)
             m = s === hs ? 1 : 2
             @testset "SOS d=$d" for d in 1:(7-m)
-                tol = ismosek(factory) ? 6e-4 : 1e-3
-                lb, ub = soslyapb(s, d, factory=factory, tol=tol)
+                tol = ismosek(optimizer_constructor) ? 6e-4 : 1e-3
+                lb, ub = soslyapb(s, d, optimizer_constructor=optimizer_constructor, tol=tol)
                 @test log(lb) ≈ log(expected_lb[d, m]) atol=tol
                 @test log(ub) ≈ log(expected_ub[d, m]) atol=tol
             end

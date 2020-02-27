@@ -8,14 +8,14 @@ const Sets = SetProg.Sets
 using MultivariatePolynomials
 
 function square_test(
-    factory, variable::SetProg.AbstractVariable,
+    optimizer_constructor, variable::SetProg.AbstractVariable,
     set_test; kws...)
     □ = polyhedron(HalfSpace([1, 0], 1.0) ∩ HalfSpace([-1, 0], 1) ∩ HalfSpace([0, 1], 1) ∩ HalfSpace([0, -1], 1))
     for system in [
         ConstrainedContinuousIdentitySystem(2, □),
         ConstrainedDiscreteIdentitySystem(2, □)]
 
-        set = invariant_set(system, factory, variable; verbose=0, kws...)
+        set = invariant_set(system, optimizer_constructor, variable; verbose=0, kws...)
         set_test(set)
     end
 end
@@ -23,18 +23,18 @@ end
 const atol = 1e-4
 const rtol = 1e-4
 
-@testset "Homogeneous ellipsoid with $factory" for factory in sdp_factories
+@testset "Homogeneous ellipsoid with $optimizer_constructor" for optimizer_constructor in sdp_factories
     square_test(
-        factory, Ellipsoid(symmetric=true, dimension=2),
+        optimizer_constructor, Ellipsoid(symmetric=true, dimension=2),
         ◯ -> begin
             @test ◯ isa Sets.Polar{Float64, Sets.EllipsoidAtOrigin{Float64}}
             @test Sets.polar(◯).Q ≈ Symmetric([1.0 0.0; 0.0 1.0]) atol=atol rtol=rtol
         end, volume_heuristic = nth_root)
 end
 
-@testset "Non-homogeneous ellipsoid with $factory" for factory in sdp_factories
+@testset "Non-homogeneous ellipsoid with $optimizer_constructor" for optimizer_constructor in sdp_factories
     square_test(
-        factory, Ellipsoid(point=SetProg.InteriorPoint([0.0, 0.0])),
+        optimizer_constructor, Ellipsoid(point=SetProg.InteriorPoint([0.0, 0.0])),
         ◯ -> begin
             @test ◯ isa Sets.PerspectiveDual{Float64, Sets.Householder{Float64, Sets.ShiftedEllipsoid{Float64}, Float64}}
             z = Sets.perspective_variable(◯)
@@ -51,12 +51,12 @@ end
         volume_heuristic = nth_root)
 end
 
-@testset "Non-homogeneous quadratic with $factory" for factory in sdp_factories
+@testset "Non-homogeneous quadratic with $optimizer_constructor" for optimizer_constructor in sdp_factories
     square_test(
-        factory,
+        optimizer_constructor,
         PolySet(degree=2, convex=true, point=SetProg.InteriorPoint([0.0, 0.0])),
         ◯ -> begin
-            @test ◯ isa Sets.PerspectiveDual{Float64, Sets.Householder{Float64, Sets.ConvexPolynomialSet{Float64}, Float64}}
+            @test ◯ isa Sets.PerspectiveDual{Float64, Sets.Householder{Float64, Sets.ConvexPolynomialSet{Float64,Float64}, Float64}}
             z = Sets.perspective_variable(◯)
             x, y = Sets.space_variables(◯)
             ◯_dual = Sets.perspective_dual(◯)
@@ -71,12 +71,12 @@ const quartic_inner_α = 5.6567546886722795
 const quartic_inner_convexity = [12.0, 0.0, quartic_inner_α, 0.0, quartic_inner_poly[1]+2quartic_inner_poly[2],
                                  quartic_inner_α, 8.48516455194103, 0.0, 0.0, 12.0]
 
-@testset "Quartic inner homogeneous with $factory" for factory in sdp_factories
+@testset "Quartic inner homogeneous with $optimizer_constructor" for optimizer_constructor in sdp_factories
     square_test(
-        factory,
+        optimizer_constructor,
         PolySet(symmetric=true, degree=4, dimension=2, convex=true),
         ◯ -> begin
-            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64}}
+            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64,Float64}}
             ◯_polar = Sets.polar(◯)
             @test ◯_polar.degree == 4
             x, y = variables(◯_polar.p)

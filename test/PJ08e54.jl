@@ -36,11 +36,11 @@ using LinearAlgebra
         @test ub ≈ psw.growthrate + 1e-2 # 1e-2 is the default δ
     end
 
-    for factory in sdp_factories
+    for optimizer_constructor in sdp_factories
         sosdata(s).lb = 0
         for d in 1:3
             tol = 1e-5
-            lb, ub = soslyapb(s, d, factory=factory, tol=tol)
+            lb, ub = soslyapb(s, d, optimizer_constructor=optimizer_constructor, tol=tol)
             @test abs(log(expected_lb[d]) - log(lb)) <= tol
             @test abs(log(expected_ub[d]) - log(ub)) <= tol
             seq = sosbuildsequence(s, d, p_0=:Primal)

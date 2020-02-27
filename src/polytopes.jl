@@ -78,7 +78,7 @@ Computes invariant balanced polytopes for system `s` using the algorithm of
 [GP13] with the spectral maximizing product candidate (s.m.p.) `smp`. The
 choice between Complex Balanced Polytope, Real Balanced Polytope or Conitope
 using invariance of the positive orthant is done automatically. The solver used
-is `factory`. This solver should support second order cone if the Complex
+is `optimizer_constructor`. This solver should support second order cone if the Complex
 Balanced Polytope is used (e.g. if the leading eigenvalue has an imaginary
 part). The maximum depth considered is `max_length`, a point `x` is considered
 to be in the interior of the polytope if the maximum `λ` such that `λ * x` is
@@ -100,7 +100,7 @@ of `log_step_length`.
 Foundations of Computational Mathematics 13.1, **2013**, 37-97.
 """
 function invariant_polytopes(
-    s::AbstractDiscreteSwitchedSystem, factory::JuMP.OptimizerFactory,
+    s::AbstractDiscreteSwitchedSystem, optimizer_constructor,
     smp::AbstractPeriodicSwitching; max_length=10, verbose=2, tol=nothing,
     max_cycles=10, new_candidate_tol=1e-6, gready=false, max_smp_length=50,
     log_step_length=10)
@@ -140,18 +140,18 @@ function invariant_polytopes(
                 v1 = -v1
             end
             @assert all(x -> x ≥ 0, v1)
-            sets = [Conitope(statedim(s, mode), Vector{eltype(v1)}[], factory)
+            sets = [Conitope(statedim(s, mode), Vector{eltype(v1)}[], optimizer_constructor)
                     for mode in modes(s)]
         else
             if isreal(λ_raw)
                 sets = [BalancedRealPolytope(statedim(s, mode),
                                              Vector{eltype(v1)}[],
-                                             factory)
+                                             optimizer_constructor)
                         for mode in modes(s)]
             else
                 sets = [BalancedComplexPolytope(statedim(s, mode),
                                                 Vector{eltype(v1)}[],
-                                                factory)
+                                                optimizer_constructor)
                         for mode in modes(s)]
             end
         end

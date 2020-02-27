@@ -5,7 +5,7 @@
 # The JSR is 1
 
 @testset "[AP12] Example 2.1" begin
-    for factory in sdp_factories
+    for optimizer_constructor in sdp_factories
         tol = 1e-4
         for d in 1:3
             # Get a fresh system to discard lyapunovs, smp and sets lb to 0
@@ -14,7 +14,7 @@
             @test smp.growthrate == 1
             @test periodicswitching(s, [1, 1]) != periodicswitching(s, [2, 2])
 
-            lb, ub = soslyapb(s, d, factory=factory, tol=tol)
+            lb, ub = soslyapb(s, d, optimizer_constructor=optimizer_constructor, tol=tol)
             @test lb ≈ 1 / 2^(1/(2*d)) rtol=tol
             @test ub ≈ 1 rtol=tol
 

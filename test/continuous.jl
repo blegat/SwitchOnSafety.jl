@@ -25,12 +25,12 @@
                       -0.7117890677652648, # 10
                       -0.7118256033710013, # 11
                       -0.7120087088397513] # 12
-    for factory in sdp_factories
+    for optimizer_constructor in sdp_factories
         for d in 1:12
-            tol = (d < 10 ? (ismosek(factory) ? 1e-5 : 1e-4) : (ismosek(factory) ? 1e-4 : 1e-3))
-            lb, ub = soslyapb(s, d, factory=factory, tol=tol)
+            tol = (d < 10 ? (ismosek(optimizer_constructor) ? 1e-5 : 1e-4) : (ismosek(optimizer_constructor) ? 1e-4 : 1e-3))
+            lb, ub = soslyapb(s, d, optimizer_constructor=optimizer_constructor, tol=tol)
             @test lb == -Inf
-            if ismosek(factory)
+            if ismosek(optimizer_constructor)
                 @test isapprox(ub, expected[d])
             else
                 @test isapprox(ub, expected[d], rtol=2*tol)

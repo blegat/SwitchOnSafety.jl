@@ -5,15 +5,15 @@ using Polyhedra
 mutable struct Conitope{T, VT <: AbstractVector{T}, D<:Polyhedra.FullDim}
     d::D
     points::Vector{VT}
-    factory::Union{Nothing, JuMP.OptimizerFactory}
+    optimizer_constructor
     model::Union{Nothing, JuMP.Model}
     z::Union{Nothing, Vector{ParameterJuMP.ParameterRef}}
     t_0::Union{Nothing, JuMP.VariableRef}
     function Conitope{T, VT, D}(
         d::Polyhedra.FullDim, points::Polyhedra.PointIt,
-        factory::Union{Nothing, JuMP.OptimizerFactory}=nothing) where {T, VT, D}
+        optimizer_constructor=nothing) where {T, VT, D}
         new{T, VT, D}(Polyhedra.FullDim_convert(D, d),
-                      Polyhedra.lazy_collect(points), factory, nothing, nothing, nothing)
+                      Polyhedra.lazy_collect(points), optimizer_constructor, nothing, nothing, nothing)
     end
 end
 function Conitope(d::Polyhedra.FullDim, points::Polyhedra.PointIt, args...)
@@ -25,7 +25,7 @@ Polyhedra.FullDim(v::Conitope) = v.d
 
 function _build_model(brp::Conitope)
     n = length(brp.points)
-    brp.model = ParameterJuMP.ModelWithParams(brp.factory)
+    brp.model = ParameterJuMP.ModelWithParams(brp.optimizer_constructor)
     @variable(brp.model, t[1:n] ≥ 0)
     @constraint(brp.model, sum(t) ≤ 1)
     return sum(t[i] .* brp.points[i] for i in 1:n)

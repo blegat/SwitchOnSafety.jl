@@ -13,36 +13,36 @@ end
 
 mos = try_import(:MosekTools)
 if mos
-    mos_factory = with_optimizer(MosekTools.Mosek.Optimizer, QUIET=true)
+    mos_optimizer_constructor = optimizer_with_attributes(MosekTools.Mosek.Optimizer, "QUIET" => true)
 else
-    mos_factory = nothing
+    mos_optimizer_constructor = nothing
 end
-ismosek(factory) = factory === mos_factory
+ismosek(optimizer_constructor) = optimizer_constructor === mos_optimizer_constructor
 csd = try_import(:CSDP)
 if csd
-    csd_factory = with_optimizer(CSDP.Optimizer, printlevel=0)
+    csd_optimizer_constructor = optimizer_with_attributes(CSDP.Optimizer, "printlevel" => 0)
 else
-    csd_factory = nothing
+    csd_optimizer_constructor = nothing
 end
-iscsdp(solver) = solver === csd_factory
+iscsdp(solver) = solver === csd_optimizer_constructor
 sda = try_import(:SDPA)
 if sda
-    sda_factory = with_optimizer(SDPA.Optimizer)
+    sda_optimizer_constructor = SDPA.Optimizer
 else
-    sda_factory = nothing
+    sda_optimizer_constructor = nothing
 end
-issdpa(solver) = solver === sda_factory
+issdpa(solver) = solver === sda_optimizer_constructor
 scs = false && try_import(:SCS) # It does not work
 isscs(solver) = false
 ipt = false && try_import(:Ipopt)
 
 # Semidefinite solvers
 sdp_factories = Any[]
-mos && push!(sdp_factories, mos_factory)
-csd && push!(sdp_factories, csd_factory)
-sda && push!(sdp_factories, sda_factory)
-#scs && push!(sdp_factories, scs_factory)
+mos && push!(sdp_factories, mos_optimizer_constructor)
+csd && push!(sdp_factories, csd_optimizer_constructor)
+sda && push!(sdp_factories, sda_optimizer_constructor)
+#scs && push!(sdp_factories, scs_optimizer_constructor)
 
 # Bilinear LP solvers
 blp_factories = Any[]
-ipt && push!(blp_factories, with_optimizer(Ipopt.Optimizer, print_level=0))
+ipt && push!(blp_factories, optimizer_with_attributes(Ipopt.Optimizer, "print_level" => 0))

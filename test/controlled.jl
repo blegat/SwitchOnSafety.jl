@@ -9,7 +9,7 @@ using MultivariatePolynomials
 using SemialgebraicSets
 
 function ci_square_test(
-    factory, variable::SetProg.AbstractVariable, set_test, interval_test; kws...)
+    optimizer_constructor, variable::SetProg.AbstractVariable, set_test, interval_test; kws...)
     □ = polyhedron(HalfSpace([1, 0], 1.0) ∩ HalfSpace([-1, 0], 1) ∩ HalfSpace([0, 1], 1) ∩ HalfSpace([0, -1], 1))
     interval = polyhedron(HalfSpace([1], 1.0) ∩ HalfSpace([-1], 1))
     Δt = 0.5
@@ -19,11 +19,11 @@ function ci_square_test(
         ConstrainedLinearControlDiscreteSystem([1.0 Δt; 0.0 0.0], reshape([0.0 1.0], 2, 1), □, FullSpace()),
         algebraiclift(control_system)
     ]
-        set = invariant_set(system, factory, variable; verbose=0, kws...)
+        set = invariant_set(system, optimizer_constructor, variable; verbose=0, kws...)
         set_test(set)
     end
     @testset "$(typeof(control_system))" begin
-        set = invariant_set(control_system, factory, variable; verbose=0, kws...)
+        set = invariant_set(control_system, optimizer_constructor, variable; verbose=0, kws...)
         interval_test(set)
     end
 end
@@ -31,9 +31,9 @@ end
 const atol = 1e-4
 const rtol = 1e-4
 
-@testset "Ellipsoid homogeneous with $factory" for factory in sdp_factories
+@testset "Ellipsoid homogeneous with $optimizer_constructor" for optimizer_constructor in sdp_factories
     ci_square_test(
-        factory, Ellipsoid(symmetric=true, dimension=2),
+        optimizer_constructor, Ellipsoid(symmetric=true, dimension=2),
         ◯ -> begin
             @test ◯ isa Sets.Polar{Float64, Sets.EllipsoidAtOrigin{Float64}}
             @test Sets.polar(◯).Q ≈ Symmetric([1.0 -1/4; -1/4 1.0]) atol=atol rtol=rtol
@@ -45,9 +45,9 @@ const rtol = 1e-4
         volume_heuristic = nth_root)
 end
 
-@testset "Ellipsoid non-homogeneous with $factory" for factory in sdp_factories
+@testset "Ellipsoid non-homogeneous with $optimizer_constructor" for optimizer_constructor in sdp_factories
     ci_square_test(
-        factory, Ellipsoid(point=SetProg.InteriorPoint([0.0, 0.0])),
+        optimizer_constructor, Ellipsoid(point=SetProg.InteriorPoint([0.0, 0.0])),
         ◯ -> begin
             @test ◯ isa Sets.PerspectiveDual{Float64, Sets.Householder{Float64, Sets.ShiftedEllipsoid{Float64}, Float64}}
             z = Sets.perspective_variable(◯)
@@ -69,11 +69,11 @@ end
         volume_heuristic = nth_root, λ = 1.0)
 end
 
-@testset "Quadratic non-homogeneous with $factory" for factory in sdp_factories
+@testset "Quadratic non-homogeneous with $optimizer_constructor" for optimizer_constructor in sdp_factories
     ci_square_test(
-        factory, PolySet(degree=2, convex=true, point=SetProg.InteriorPoint([0.0, 0.0])),
+        optimizer_constructor, PolySet(degree=2, convex=true, point=SetProg.InteriorPoint([0.0, 0.0])),
         ◯ -> begin
-            @test ◯ isa Sets.PerspectiveDual{Float64, Sets.Householder{Float64, Sets.ConvexPolynomialSet{Float64}, Float64}}
+            @test ◯ isa Sets.PerspectiveDual{Float64, Sets.Householder{Float64, Sets.ConvexPolynomialSet{Float64,Float64}, Float64}}
             z = Sets.perspective_variable(◯)
             x, y = Sets.space_variables(◯)
             ◯_dual = Sets.perspective_dual(◯)
@@ -95,11 +95,11 @@ end
         volume_heuristic = set -> L1_heuristic(set, [1.0, 1.0]), λ = 1.0)
 end
 
-@testset "Quartic homogeneous with $factory" for factory in sdp_factories
+@testset "Quartic homogeneous with $optimizer_constructor" for optimizer_constructor in sdp_factories
     ci_square_test(
-        factory, PolySet(symmetric=true, degree=4, convex=true),
+        optimizer_constructor, PolySet(symmetric=true, degree=4, convex=true),
         ◯ -> begin
-            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64}}
+            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64,Float64}}
             @test Sets.polar(◯).degree == 4
             x, y = variables(Sets.polar(◯).p)
             α = coefficient(Sets.polar(◯).p, x^3*y) / 2
@@ -116,7 +116,7 @@ end
             @test convexity_proof.Q ≈ hess atol=atol rtol=rtol
         end,
         interval -> begin
-            @test interval isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64}}
+            @test interval isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64,Float64}}
             @test Matrix(Sets.polar(interval).p.Q) ≈ ones(1, 1) atol=atol rtol=rtol
         end,
         volume_heuristic = set -> L1_heuristic(set, [1.0, 1.0]))

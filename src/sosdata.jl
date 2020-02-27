@@ -36,7 +36,7 @@ function SOSData{S, TT, XT, PT, DT}(s::S) where {S, TT,
 end
 
 const PolynomialLyapunov{T} = SetProg.Sets.PolynomialSublevelSetAtOrigin{T}
-const MeasureLyapunov{T} = MultivariateMoments.MomentMatrix{T, DynamicPolynomials.Monomial{true}, DynamicPolynomials.MonomialVector{true}}
+const MeasureLyapunov{T} = MultivariateMoments.MomentMatrix{T, SetProg.Sets.MonoBasis}
 
 function SOSData(s::AbstractDiscreteSwitchedSystem)
     S = typeof(s)

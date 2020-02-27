@@ -16,11 +16,11 @@
                                  -1  0  0  0
                                  -1 -1  0 -1]])
     smp = periodicswitching(s, [2])
-    for factory in sdp_factories
+    for optimizer_constructor in sdp_factories
         sosdata(s).lb = 0
         tol = 1e-4
         for d in 1:2
-            lb, ub = soslyapb(s, d, factory=factory, tol=tol)
+            lb, ub = soslyapb(s, d, optimizer_constructor=optimizer_constructor, tol=tol)
             @test isapprox(lb, expected_lb[d], rtol=tol)
             @test isapprox(ub, expected_ub[d], rtol=tol)
             seq = sosbuildsequence(s, d, p_0=:Primal)
