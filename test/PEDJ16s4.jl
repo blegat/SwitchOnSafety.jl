@@ -76,8 +76,6 @@ const expected_lb = expected_ub ./ ratio
                             if d == 1
                                 if v_0 == 5
                                     @test psw == msbp
-                                elseif v_0 == 3 || v_0 == 4
-                                    @test psw == sap || psw == msnp
                                 else
                                     @test psw == msnp
                                 end
@@ -88,6 +86,9 @@ const expected_lb = expected_ub ./ ratio
                         elseif d <= 3
                             if 2 <= d && v_0 == 3
                                 @test psw == sbp
+                            elseif d == 1 && v_0 in [3, 4]
+                                # See https://travis-ci.org/blegat/SwitchOnSafety.jl/jobs/655778174#L568-L665
+                                @test psw == sap || psw == snp
                             else
                                 @test psw == snp
                             end
