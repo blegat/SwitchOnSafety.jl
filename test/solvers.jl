@@ -35,6 +35,17 @@ issdpa(solver) = solver === sda_optimizer_constructor
 scs = false && try_import(:SCS) # It does not work
 isscs(solver) = false
 ipt = false && try_import(:Ipopt)
+eco = try_import(:ECOS)
+if eco
+    eco_optimizer_constructor = optimizer_with_attributes(ECOS.Optimizer, MOI.Silent() => true)
+else
+    eco_optimizer_constructor = nothing
+end
+
+
+# Accurate SOC solvers
+soc_optimizer_constructors = Any[]
+eco && push!(soc_optimizer_constructors, eco_optimizer_constructor)
 
 # Semidefinite solvers
 sdp_factories = Any[]
