@@ -54,8 +54,10 @@ julia = "1"
 
 [extras]
 CSDP = "0a46da34-8e4b-519e-b418-48813639ff34"
+ECOS = "e2685f51-7e38-5353-a97d-a921fd2c8199"
+GLPK = "60bf3e95-4087-53dc-ae20-288a0d20c6a6"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["LinearAlgebra", "Test", "CSDP"]
+test = ["LinearAlgebra", "Test", "CSDP", "ECOS", "GLPK"]
