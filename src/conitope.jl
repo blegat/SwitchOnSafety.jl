@@ -66,7 +66,7 @@ end
 function _fix(brp::Conitope, v)
     for i in 1:brp.d
         if brp.t_0 === nothing
-            MOI.set(brp.model, brp.z[i], MOI.ConstraintSet(), MOI.GreaterThan(v[i]))
+            MOI.set(brp.model, MOI.ConstraintSet(), brp.z[i], MOI.GreaterThan(v[i]))
         else
             MOI.modify(brp.model, brp.z[i], MOI.ScalarCoefficientChange(brp.t_0, -v[i]))
         end

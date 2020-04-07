@@ -61,6 +61,9 @@ const expected_lb = expected_ub ./ ratio
         psw, isemp, sets = invariant_polytopes(hs, optimizer_constructor, sbp, tol=1e-4, max_length=8, verbose=0)
         @test psw == smp
         @test isemp
+        psw, isemp, sets = invariant_polytopes(hs, optimizer_constructor, sbp, max_length=8, verbose=0)
+        @test psw == smp
+        @test isemp
     end
 
     @testset "Polyset with $optimizer_constructor" for optimizer_constructor in sdp_factories

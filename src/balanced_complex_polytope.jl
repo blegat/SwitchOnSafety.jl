@@ -84,8 +84,8 @@ end
 function _fix(bcp::BalancedComplexPolytope, v)
     for i in 1:bcp.d
         if bcp.t_0 === nothing
-            MOI.set(bcp.model, bcp.real_z[i], MOI.ConstraintSet(), MOI.EqualTo(real(v[i])))
-            MOI.set(bcp.model, bcp.imag_z[i], MOI.ConstraintSet(), MOI.EqualTo(imag(v[i])))
+            MOI.set(bcp.model, MOI.ConstraintSet(), bcp.real_z[i], MOI.EqualTo(real(v[i])))
+            MOI.set(bcp.model, MOI.ConstraintSet(), bcp.imag_z[i], MOI.EqualTo(imag(v[i])))
         else
             MOI.modify(bcp.model, bcp.real_z[i], MOI.ScalarCoefficientChange(bcp.t_0, -real(v[i])))
             MOI.modify(bcp.model, bcp.imag_z[i], MOI.ScalarCoefficientChange(bcp.t_0, -imag(v[i])))

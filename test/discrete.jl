@@ -1,4 +1,5 @@
 @testset "Unconstrained" begin
+    include("finiteness_conjecture_counterexample.jl")
     include("double_msd.jl")
     include("AJPR14e54.jl")
     include("AP12e21.jl")

@@ -11,6 +11,12 @@ function try_import(name::Symbol)
     end
 end
 
+glp = try_import(:GLPK)
+if glp
+    glp_optimizer_constructor = optimizer_with_attributes(GLPK.Optimizer, MOI.Silent() => true)
+else
+    glp_optimizer_constructor = nothing
+end
 mos = try_import(:MosekTools)
 if mos
     mos_optimizer_constructor = optimizer_with_attributes(MosekTools.Mosek.Optimizer, "QUIET" => true)
@@ -42,6 +48,10 @@ else
     eco_optimizer_constructor = nothing
 end
 
+
+# LP solvers
+lp_optimizer_constructors = Any[]
+glp && push!(lp_optimizer_constructors, glp_optimizer_constructor)
 
 # Accurate SOC solvers
 soc_optimizer_constructors = Any[]
