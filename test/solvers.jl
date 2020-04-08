@@ -11,6 +11,12 @@ function try_import(name::Symbol)
     end
 end
 
+glp = try_import(:GLPK)
+if glp
+    glp_optimizer_constructor = optimizer_with_attributes(GLPK.Optimizer, MOI.Silent() => true)
+else
+    glp_optimizer_constructor = nothing
+end
 mos = try_import(:MosekTools)
 if mos
     mos_optimizer_constructor = optimizer_with_attributes(MosekTools.Mosek.Optimizer, "QUIET" => true)
@@ -35,6 +41,21 @@ issdpa(solver) = solver === sda_optimizer_constructor
 scs = false && try_import(:SCS) # It does not work
 isscs(solver) = false
 ipt = false && try_import(:Ipopt)
+eco = try_import(:ECOS)
+if eco
+    eco_optimizer_constructor = optimizer_with_attributes(ECOS.Optimizer, MOI.Silent() => true)
+else
+    eco_optimizer_constructor = nothing
+end
+
+
+# LP solvers
+lp_optimizer_constructors = Any[]
+glp && push!(lp_optimizer_constructors, glp_optimizer_constructor)
+
+# Accurate SOC solvers
+soc_optimizer_constructors = Any[]
+eco && push!(soc_optimizer_constructors, eco_optimizer_constructor)
 
 # Semidefinite solvers
 sdp_factories = Any[]

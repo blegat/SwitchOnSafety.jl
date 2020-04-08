@@ -11,18 +11,11 @@ include("balanced_complex_polytope.jl")
 
 const PolytopeLike = Union{Conitope, BalancedRealPolytope, BalancedComplexPolytope}
 
-function _reset_model(p::PolytopeLike)
-    p.model = nothing
-    p.z = nothing
-    p.t_0 = nothing
-end
 function Polyhedra.convexhull!(p::PolytopeLike, v::SymPoint)
     push!(p.points, v.point)
-    # Invalidates the model
-    _reset_model(p)
-end
-function _fix(p::PolytopeLike, v)
-    JuMP.fix.(p.z, v)
+    if p.model !== nothing
+        _update_model(p, v.point)
+    end
 end
 function Base.in(v, brp::PolytopeLike)
     if isempty(brp.points)
@@ -33,11 +26,13 @@ function Base.in(v, brp::PolytopeLike)
     else
         _fix(brp, v)
     end
-    JuMP.optimize!(brp.model)
-    status = termination_status(brp.model)
+    MOI.optimize!(brp.model)
+    status = MOI.get(brp.model, MOI.TerminationStatus())
     if status == MOI.OPTIMAL
         return true
     elseif status == MOI.INFEASIBLE || status == MOI.INFEASIBLE_OR_UNBOUNDED
+        # There is no objective so it cannot be unbounded.
+        # Therefore, `MOI.INFEASIBLE_OR_UNBOUNDED` means infeasible.
         return false
     else
         error("Solver returned status $status.")
@@ -49,16 +44,20 @@ function in_ratio(v, p::PolytopeLike)
         # multiplied by 0.0 to be mapped to the polytope
         return 0.0
     end
-    _ratio_model(p, v)
-    @objective(p.model, Max, p.t_0)
-    JuMP.optimize!(p.model)
-    status = termination_status(p.model)
+    if p.model === nothing
+        _ratio_model(p, v)
+        MOI.set(p.model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
+        MOI.set(p.model, MOI.ObjectiveFunction{MOI.SingleVariable}(),
+                MOI.SingleVariable(p.t_0))
+    else
+        _fix(p, v)
+    end
+    MOI.optimize!(p.model)
+    status = MOI.get(p.model, MOI.TerminationStatus())
     if status == MOI.OPTIMAL
-        r = JuMP.value(p.t_0)
-        _reset_model(p)
+        r = MOI.get(p.model, MOI.VariablePrimal(), p.t_0)
         return r
     else
-        _reset_model(p)
         error("Solver returned status $status.")
     end
 end

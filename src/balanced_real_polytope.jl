@@ -5,13 +5,14 @@ mutable struct BalancedRealPolytope{T, VT <: AbstractVector{T}, D<:Polyhedra.Ful
     d::D
     points::Vector{VT}
     optimizer_constructor
-    model::Union{Nothing, JuMP.Model}
-    z::Union{Nothing, Vector{ParameterJuMP.ParameterRef}}
-    t_0::Union{Nothing, JuMP.VariableRef}
+    model::Union{Nothing, MOI.ModelLike}
+    sum_con::Union{Nothing, MOI.ConstraintIndex{MOI.ScalarAffineFunction{T}, MOI.LessThan{T}}}
+    z::Union{Nothing, Vector{MOI.ConstraintIndex{MOI.ScalarAffineFunction{T}, MOI.EqualTo{T}}}}
+    t_0::Union{Nothing, MOI.VariableIndex}
     function BalancedRealPolytope{T, VT, D}(
         d::Polyhedra.FullDim, points::Polyhedra.PointIt,
         optimizer_constructor=nothing) where {T, VT, D}
-        new{T, VT, D}(Polyhedra.FullDim_convert(D, d), Polyhedra.lazy_collect(points), optimizer_constructor, nothing, nothing, nothing)
+        new{T, VT, D}(Polyhedra.FullDim_convert(D, d), Polyhedra.lazy_collect(points), optimizer_constructor, nothing, nothing, nothing, nothing)
     end
 end
 function BalancedRealPolytope(d::Polyhedra.FullDim, points::Polyhedra.PointIt, args...)
@@ -56,27 +57,56 @@ function Polyhedra.nextindex(rep::BalancedRealPolytope{T}, idx::Polyhedra.PointI
     end
 end
 
-function _build_model(brp::BalancedRealPolytope)
+function _abs_constraint(model::MOI.ModelLike, t::MOI.VariableIndex, q::MOI.VariableIndex, T::Type)
+    ft = MOI.SingleVariable(t)
+    fq = MOI.SingleVariable(q)
+    MOI.add_constraint(model, MOI.Utilities.operate(-, T, fq, ft), MOI.GreaterThan(zero(T)))
+    MOI.add_constraint(model, MOI.Utilities.operate(+, T, fq, ft), MOI.GreaterThan(zero(T)))
+end
+
+function _build_model(brp::BalancedRealPolytope{T}) where T
+    @assert brp.model === nothing
     n = length(brp.points)
-    brp.model = ParameterJuMP.ModelWithParams(brp.optimizer_constructor)
-    t = @variable(brp.model, [1:n])
-    q = @variable(brp.model, [1:n])
+    brp.model = MOI.instantiate(brp.optimizer_constructor, with_bridge_type = T)
+    t = MOI.add_variables(brp.model, n)
+    q = MOI.add_variables(brp.model, n)
     # |t| ≤ q
-    @constraint(brp.model,  t .≤ q)
-    @constraint(brp.model, -t .≤ q)
+    for i in 1:n
+        _abs_constraint(brp.model, t[i], q[i], T)
+    end
     # sum |t| ≤ sum q ≤ 1
-    @constraint(brp.model, sum(q) ≤ 1)
-    return sum(t[i] .* brp.points[i] for i in 1:n)
+    brp.sum_con = MOI.add_constraint(brp.model, _sum(q, T), MOI.LessThan(one(T)))
+    return _convex_combination(t, brp.points, brp.d)
 end
 
 function _parametrized_model(brp::BalancedRealPolytope, v)
     hull = _build_model(brp)
-    brp.z = ParameterJuMP.add_parameters(brp.model, collect(v))
-    @constraint(brp.model, brp.z .== hull)
+    brp.z = [MOI.add_constraint(brp.model, hull[i], MOI.EqualTo(v[i])) for i in 1:brp.d]
+end
+function _ratio_model(brp::BalancedRealPolytope{T}, v) where T
+    hull = _build_model(brp)
+    brp.t_0 = MOI.add_variable(brp.model)
+    for i in 1:brp.d
+        push!(hull[i].terms, MOI.ScalarAffineTerm(-v[i], brp.t_0))
+    end
+    brp.z = [MOI.add_constraint(brp.model, hull[i], MOI.EqualTo(zero(T))) for i in 1:brp.d]
+end
+function _update_model(p::BalancedRealPolytope{T}, v) where T
+    t = MOI.add_variable(p.model)
+    q = MOI.add_variable(p.model)
+    _abs_constraint(p.model, t, q, T)
+    MOI.modify(p.model, p.sum_con, MOI.ScalarCoefficientChange(q, one(T)))
+    for i in 1:p.d
+        MOI.modify(p.model, p.z[i], MOI.ScalarCoefficientChange(t, v[i]))
+    end
 end
 
-function _ratio_model(brp::BalancedRealPolytope, v)
-    hull = _build_model(brp)
-    brp.t_0 = @variable(brp.model)
-    @constraint(brp.model, brp.t_0 .* v .== hull)
+function _fix(brp::BalancedRealPolytope, v)
+    for i in 1:brp.d
+        if brp.t_0 === nothing
+            MOI.set(brp.model, MOI.ConstraintSet(), brp.z[i], MOI.EqualTo(v[i]))
+        else
+            MOI.modify(brp.model, brp.z[i], MOI.ScalarCoefficientChange(brp.t_0, -v[i]))
+        end
+    end
 end

@@ -2,6 +2,9 @@ module SwitchOnSafety
 
 using LinearAlgebra, SparseArrays, Statistics
 
+import MutableArithmetics
+const MA = MutableArithmetics
+
 using DynamicPolynomials
 using MultivariatePolynomials
 using SemialgebraicSets
