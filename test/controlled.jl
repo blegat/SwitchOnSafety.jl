@@ -35,11 +35,11 @@ const rtol = 1e-4
     ci_square_test(
         optimizer_constructor, Ellipsoid(symmetric=true, dimension=2),
         ◯ -> begin
-            @test ◯ isa Sets.Polar{Float64, Sets.EllipsoidAtOrigin{Float64}}
+            @test ◯ isa Sets.Polar{Float64, Sets.Ellipsoid{Float64}}
             @test Sets.polar(◯).Q ≈ Symmetric([1.0 -1/4; -1/4 1.0]) atol=atol rtol=rtol
         end,
         interval -> begin
-            @test interval isa Sets.Polar{Float64,SetProg.Sets.EllipsoidAtOrigin{Float64}}
+            @test interval isa Sets.Polar{Float64,SetProg.Sets.Ellipsoid{Float64}}
             @test Sets.polar(interval).Q ≈ Symmetric(ones(1, 1)) atol=atol rtol=rtol
         end,
         volume_heuristic = nth_root)
@@ -62,7 +62,7 @@ end
                                                   0.0 0.0 1.0] atol=atol rtol=rtol
         end,
         interval -> begin
-            @test interval isa Sets.Translation{Sets.Polar{Float64,Sets.EllipsoidAtOrigin{Float64}},Float64,Vector{Float64}}
+            @test interval isa Sets.Translation{Sets.Polar{Float64,Sets.Ellipsoid{Float64}},Float64,Vector{Float64}}
             @test Sets.polar(interval.set).Q ≈ Symmetric(ones(1, 1)) atol=atol rtol=rtol
             @test interval.c ≈ [0.0] atol=atol rtol=rtol
         end,
@@ -99,7 +99,7 @@ end
     ci_square_test(
         optimizer_constructor, PolySet(symmetric=true, degree=4, convex=true),
         ◯ -> begin
-            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64,Float64}}
+            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolySet{Float64,Float64}}
             @test Sets.polar(◯).degree == 4
             x, y = variables(Sets.polar(◯).p)
             α = coefficient(Sets.polar(◯).p, x^3*y) / 2
@@ -116,7 +116,7 @@ end
             @test convexity_proof.Q ≈ hess atol=atol rtol=rtol
         end,
         interval -> begin
-            @test interval isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64,Float64}}
+            @test interval isa Sets.Polar{Float64, Sets.ConvexPolySet{Float64,Float64}}
             @test Matrix(Sets.polar(interval).p.Q) ≈ ones(1, 1) atol=atol rtol=rtol
         end,
         volume_heuristic = set -> L1_heuristic(set, [1.0, 1.0]))

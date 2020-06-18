@@ -27,7 +27,7 @@ const rtol = 1e-4
     square_test(
         optimizer_constructor, Ellipsoid(symmetric=true, dimension=2),
         ◯ -> begin
-            @test ◯ isa Sets.Polar{Float64, Sets.EllipsoidAtOrigin{Float64}}
+            @test ◯ isa Sets.Polar{Float64, Sets.Ellipsoid{Float64}}
             @test Sets.polar(◯).Q ≈ Symmetric([1.0 0.0; 0.0 1.0]) atol=atol rtol=rtol
         end, volume_heuristic = nth_root)
 end
@@ -76,7 +76,7 @@ const quartic_inner_convexity = [12.0, 0.0, quartic_inner_α, 0.0, quartic_inner
         optimizer_constructor,
         PolySet(symmetric=true, degree=4, dimension=2, convex=true),
         ◯ -> begin
-            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64,Float64}}
+            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolySet{Float64,Float64}}
             ◯_polar = Sets.polar(◯)
             @test ◯_polar.degree == 4
             x, y = variables(◯_polar.p)

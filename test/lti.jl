@@ -25,7 +25,7 @@ const rtol = 1e-4
     invariant_square_test(
         optimizer_constructor, Ellipsoid(symmetric=true, dimension=2),
         ◯ -> begin
-            @test ◯ isa Sets.Polar{Float64, Sets.EllipsoidAtOrigin{Float64}}
+            @test ◯ isa Sets.Polar{Float64, Sets.Ellipsoid{Float64}}
             @test Sets.polar(◯).Q ≈ Symmetric([1.0 0.0; 0.0 1.0]) atol=atol rtol=rtol
         end,
         volume_heuristic = nth_root)
@@ -37,7 +37,7 @@ end
     invariant_square_test(
         optimizer_constructor, PolySet(degree=2, convex=true, symmetric=true),
         ◯ -> begin
-            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolynomialSublevelSetAtOrigin{Float64,Float64}}
+            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolySet{Float64,Float64}}
             x, y = Sets.space_variables(◯)
             ◯_polar = Sets.polar(◯)
             @test ◯_polar.p ≈ x^2 + y^2 atol=atol rtol=rtol
