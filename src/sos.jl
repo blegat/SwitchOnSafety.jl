@@ -46,7 +46,7 @@ end
 
 function superset(s::HybridSystems.AbstractHybridSystem, mode, d)
     q = GramMatrix(SOSDecomposition(variables(s, mode).^d))
-    return SetProg.Sets.PolynomialSublevelSetAtOrigin(2d, q)
+    return SetProg.Sets.PolySet(2d, q)
 end
 
 # For values of γ far from 1.0, it is better to divide A_i's by γ,
