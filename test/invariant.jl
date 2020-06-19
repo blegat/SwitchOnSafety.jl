@@ -1,3 +1,4 @@
+using Test
 @testset "Identity dynamical system in square" begin
     include("identity.jl")
 end

@@ -37,7 +37,7 @@ end
     invariant_square_test(
         optimizer_constructor, PolySet(degree=2, convex=true, symmetric=true),
         ◯ -> begin
-            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolySet{Float64,Float64}}
+            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolySet{Float64,SetProg.Sets.MonoBasis,Float64}}
             x, y = Sets.space_variables(◯)
             ◯_polar = Sets.polar(◯)
             @test ◯_polar.p ≈ x^2 + y^2 atol=atol rtol=rtol

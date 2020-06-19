@@ -7,11 +7,6 @@ using Polyhedra
 const Sets = SetProg.Sets
 using MultivariatePolynomials
 
-import DynamicPolynomials
-import MultivariateBases
-const MB = MultivariateBases
-const MonoBasis = MB.MonomialBasis{DynamicPolynomials.Monomial{true}, DynamicPolynomials.MonomialVector{true}}
-
 function square_test(
     optimizer_constructor, variable::SetProg.AbstractVariable,
     set_test; kws...)
@@ -61,7 +56,7 @@ end
         optimizer_constructor,
         PolySet(degree=2, convex=true, point=SetProg.InteriorPoint([0.0, 0.0])),
         ◯ -> begin
-            @test ◯ isa Sets.PerspectiveDual{Float64, Sets.Householder{Float64, Sets.ConvexPolynomialSet{Float64,MonoBasis,Float64}, Float64}}
+            @test ◯ isa Sets.PerspectiveDual{Float64, Sets.Householder{Float64, Sets.ConvexPolynomialSet{Float64,SetProg.Sets.MonoBasis,Float64}, Float64}}
             z = Sets.perspective_variable(◯)
             x, y = Sets.space_variables(◯)
             ◯_dual = Sets.perspective_dual(◯)
@@ -81,7 +76,7 @@ const quartic_inner_convexity = [12.0, 0.0, quartic_inner_α, 0.0, quartic_inner
         optimizer_constructor,
         PolySet(symmetric=true, degree=4, dimension=2, convex=true),
         ◯ -> begin
-            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolySet{Float64,MonoBasis,Float64}}
+            @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolySet{Float64,SetProg.Sets.MonoBasis,Float64}}
             ◯_polar = Sets.polar(◯)
             @test ◯_polar.degree == 4
             x, y = variables(◯_polar.p)
