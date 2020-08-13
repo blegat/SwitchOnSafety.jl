@@ -37,11 +37,11 @@ end
 
 T = 2
 N = 1 + (T+1) * length(v)
-function system(M, T; v=v, N = 1 + (T+1) * length(v), sym=false, vmax = vmax)
+function system(M, T; v=v, N = 1 + (T+1) * length(v), sym=false, vmax = vmax, lib::Polyhedra.Library = Polyhedra.default_library(2M+2, Float64))
     H = h * T
     #return cruise_control_example(N, M, vmin = vmin, vmax=vmax, v=v, U=U, H=H, D=D, T=T, sym=sym, m0 = m0)
     return cruise_control_example(N, M, vmin = vmin, vmax=vmax, v=v,
-        U=U, H=h*T, D=D, T=T, sym=sym, m0 = m0, ks=ks, m=m, kd=kd)
+        U=U, H=h*T, D=D, T=T, sym=sym, m0 = m0, ks=ks, m=m, kd=kd, lib=lib)
 end
 _vec(M, d, v, u) = [repeat([d, v], M); v; u]
 # |string_elongation| < D
