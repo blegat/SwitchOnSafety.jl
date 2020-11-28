@@ -47,7 +47,7 @@ RecipesBase = "0.7, 0.8, 1.0"
 Reexport = "0.2"
 SemialgebraicSets = "0.2"
 SetProg = "0.1.2"
-StaticArrays = "0.11, 0.12"
+StaticArrays = "0.11, 0.12, 1.0"
 SumOfSquares = "0.4"
 julia = "1"
 
