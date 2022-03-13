@@ -6,6 +6,7 @@ using SwitchOnSafety
 using Polyhedra
 const Sets = SetProg.Sets
 using MultivariatePolynomials
+const MP = MultivariatePolynomials
 using SemialgebraicSets
 
 function ci_square_test(
@@ -80,7 +81,7 @@ end
             # The coefficient of `x*y` does not influence the volume
             # and with the values of the other parameters, it should
             # simply be in the interval [-2, -0.5].
-            α = coefficient(◯_dual.p, x*y)
+            α = MP.coefficient(◯_dual.p, x*y)
             @test α ≥ -2 - 2atol - rtol
             @test α ≤ -0.5 + 0.5atol + rtol
             @test ◯_dual.p ≈ -z^2 + x^2 + α*x*y + y^2 atol=atol rtol=rtol
@@ -102,7 +103,7 @@ end
             @test ◯ isa Sets.Polar{Float64, Sets.ConvexPolySet{Float64,SetProg.Sets.MonoBasis,Float64}}
             @test Sets.polar(◯).degree == 4
             x, y = variables(Sets.polar(◯).p)
-            α = coefficient(Sets.polar(◯).p, x^3*y) / 2
+            α = MP.coefficient(Sets.polar(◯).p, x^3*y) / 2
             q = x^4 + 2α*x^3*y + 6x^2*y^2 + 2α*x*y^3 + y^4
             @test all(eigvals(Matrix(Sets.polar(◯).p.Q)) .≥ -atol)
             @test polynomial(Sets.polar(◯).p) ≈ q atol=atol rtol=rtol
