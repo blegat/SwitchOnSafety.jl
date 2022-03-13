@@ -32,5 +32,6 @@ makedocs(
 )
 
 deploydocs(
-    repo   = "github.com/blegat/SwitchOnSafety.jl.git"
+    repo   = "github.com/blegat/SwitchOnSafety.jl.git",
+    push_preview = true,
 )
