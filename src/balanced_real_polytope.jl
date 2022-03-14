@@ -58,10 +58,8 @@ function Polyhedra.nextindex(rep::BalancedRealPolytope{T}, idx::Polyhedra.PointI
 end
 
 function _abs_constraint(model::MOI.ModelLike, t::MOI.VariableIndex, q::MOI.VariableIndex, T::Type)
-    ft = MOI.SingleVariable(t)
-    fq = MOI.SingleVariable(q)
-    MOI.add_constraint(model, MOI.Utilities.operate(-, T, fq, ft), MOI.GreaterThan(zero(T)))
-    MOI.add_constraint(model, MOI.Utilities.operate(+, T, fq, ft), MOI.GreaterThan(zero(T)))
+    MOI.add_constraint(model, MOI.Utilities.operate(-, T, q, t), MOI.GreaterThan(zero(T)))
+    MOI.add_constraint(model, MOI.Utilities.operate(+, T, q, t), MOI.GreaterThan(zero(T)))
 end
 
 function _build_model(brp::BalancedRealPolytope{T}) where T

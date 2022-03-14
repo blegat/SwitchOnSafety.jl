@@ -47,8 +47,7 @@ function in_ratio(v, p::PolytopeLike)
     if p.model === nothing
         _ratio_model(p, v)
         MOI.set(p.model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
-        MOI.set(p.model, MOI.ObjectiveFunction{MOI.SingleVariable}(),
-                MOI.SingleVariable(p.t_0))
+        MOI.set(p.model, MOI.ObjectiveFunction{MOI.VariableIndex}(), p.t_0)
     else
         _fix(p, v)
     end
