@@ -1,9 +1,11 @@
-function hexcolor(rgb::UInt32)
+function _split_rgb(rgb::UInt32)
     r = ((0xff0000 & rgb) >> 16) / 255
     g = ((0x00ff00 & rgb) >>  8) / 255
     b = ((0x0000ff & rgb)      ) / 255
-    Plots.RGBA(r, g, b)
+    return r, g, b
 end
+import Colors
+hexcolor(rgb::UInt32) = Colors.RGBA(_split_rgb(rgb)...)
 
 # Values taken from http://www.toutes-les-couleurs.com/code-couleur-rvb.php
 troyes = hexcolor(0xfefdf0)
@@ -21,3 +23,20 @@ gre = hexcolor(0xcbdf80)
 blu = hexcolor(0x2394ce)
 ora = hexcolor(0xfacb95)
 yel = hexcolor(0xf2f08b)
+
+function LaTeX_colors()
+    for (s, v) in [
+        ("troyes", troyes),
+        ("frambo", frambo),
+        ("lichen", lichen),
+        ("canard", canard),
+        ("aurore", aurore),
+        ("re",  re),
+        ("gre", gre),
+        ("blu", blu),
+        ("ora", ora),
+        ("yel", yel)
+    ]
+        println("\\definecolor{$s}{rgb}{$(v.r), $(v.g), $(v.b)}")
+    end
+end

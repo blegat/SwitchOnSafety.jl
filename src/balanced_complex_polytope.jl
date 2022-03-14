@@ -28,7 +28,7 @@ Polyhedra.FullDim(v::BalancedComplexPolytope) = v.d
 function _build_model(brp::BalancedComplexPolytope{T}) where T
     @assert brp.model === nothing
     n = length(brp.points)
-    brp.model = MOI.instantiate(brp.optimizer_constructor, with_bridge_type = T)
+    brp.model = _instantiate(brp.optimizer_constructor, T)
     # Real part of `t`
     α = Vector{MOI.VariableIndex}(undef, n)
     # Imaginary part of `t`

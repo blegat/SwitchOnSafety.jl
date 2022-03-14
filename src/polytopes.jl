@@ -5,6 +5,13 @@ struct SymPoint{VT}
     point::VT
 end
 
+function _instantiate(solver, with_bridge_type)
+    return MOI.Utilities.CachingOptimizer(
+        MOI.Utilities.UniversalFallback(MOI.Utilities.Model{Float64}()),
+        MOI.instantiate(solver, with_bridge_type = with_bridge_type),
+    )
+end
+
 include("conitope.jl")
 include("balanced_real_polytope.jl")
 include("balanced_complex_polytope.jl")
@@ -47,8 +54,7 @@ function in_ratio(v, p::PolytopeLike)
     if p.model === nothing
         _ratio_model(p, v)
         MOI.set(p.model, MOI.ObjectiveSense(), MOI.MAX_SENSE)
-        MOI.set(p.model, MOI.ObjectiveFunction{MOI.SingleVariable}(),
-                MOI.SingleVariable(p.t_0))
+        MOI.set(p.model, MOI.ObjectiveFunction{MOI.VariableIndex}(), p.t_0)
     else
         _fix(p, v)
     end
