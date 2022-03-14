@@ -104,28 +104,34 @@ Automatica, 72:242-250, **2016**:
 ## How to cite
 
 For the `soslyapb` and `sosbuildsequence` functions, cite:
-```latex
-@InProceedings{legat2016generating,
-  author    = {Legat, Beno\^{\i}t and Jungers, Rapha\"{e}l M. and Parrilo, Pablo A.},
-  title     = {{G}enerating unstable trajectories for {S}witched {S}ystems via {D}ual {S}um-{O}f-{S}quares techniques},
-  booktitle = {Proceedings of the 19th International Conference on Hybrid Systems: Computation and Control},
-  year      = {2016},
-  series    = {HSCC '16},
-  pages     = {51--60},
-  publisher = {ACM},
-  acmid     = {2883821},
-  doi       = {10.1145/2883817.2883821},
-  isbn      = {978-1-4503-3955-1},
-  keywords  = {joint spectral radius, path-complete lyapunov functions, sum of squares programming, switched systems},
-  location  = {Vienna, Austria},
-  numpages  = {10},
-  timestamp = {2016.02.18},
-  url       = {http://doi.acm.org/10.1145/2883817.2883821},
+```bibtex
+@Article{legat2020certifying,
+  author    = {Legat, Beno\^it and Parrilo, Pablo A. and Jungers, Rapha\"el M.},
+  journal   = {{SIAM} Journal on Control and Optimization},
+  title     = {Certifying Unstability of Switched Systems Using Sum of Squares Programming},
+  year      = {2020},
+  month     = jan,
+  number    = {4},
+  pages     = {2616--2638},
+  volume    = {58},
+  doi       = {10.1137/18M1173460},
+  publisher = {Society for Industrial {\&} Applied Mathematics ({SIAM})},
+}
+```
+and for the lower bound obtained by `soslyapb`, see:
+```bibtex
+@Article{legat2019entropy,
+  author    = {Beno\^it Legat and Pablo A. Parrilo and Rapha\"el M. Jungers},
+  title     = {An entropy-based bound for the computational complexity of a switched system},
+  journal   = {IEEE Transactions on Automatic Control},
+  year      = {2019},
+  doi       = {10.1109/TAC.2019.2902625},
+  publisher = {IEEE},
 }
 ```
 
-For the `getis` and `fillis!` functions, cite:
-```latex
+For the `getis` and `fillis!` functions with ellipsoids or polysets, cite:
+```bibtex
 @InProceedings{legat2018computing,
   author   = {Beno\^it Legat and Paulo Tabuada and Rapha\"el M. Jungers},
   title    = {Computing controlled invariant sets for hybrid systems with applications to model-predictive control},
@@ -139,6 +145,21 @@ For the `getis` and `fillis!` functions, cite:
   journal  = {IFAC-PapersOnLine},
   keywords = {Controller Synthesis, Set Invariance, LMIs, Scalable Methods},
   url      = {http://www.sciencedirect.com/science/article/pii/S2405896318311480},
+}
+```
+or with piecewise semi-ellipsoids, cite:
+```bibtex
+@Article{legat2020piecewise,
+  author    = {Beno{\^\i}t Legat and Sa{\v{s}}a V. Rakovi{\'c} and Rapha{\"e}l M. Jungers},
+  journal   = {{IEEE} Control Systems Letters},
+  title     = {Piecewise Semi-Ellipsoidal Control Invariant Sets},
+  year      = {2021},
+  month     = jul,
+  number    = {3},
+  pages     = {755--760},
+  volume    = {5},
+  doi       = {10.1109/LCSYS.2020.3005326},
+  publisher = {Institute of Electrical and Electronics Engineers ({IEEE})},
 }
 ```
 
