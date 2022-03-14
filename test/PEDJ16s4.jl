@@ -45,16 +45,16 @@ const expected_lb = expected_ub ./ ratio
     @test smp.growthrate == 0.9748171979372074
 
     hsm = mdependentlift(hs, 2)
-    function t(pair::Pair)
-        edge = Edge(pair)
+    function tm(pair::Pair)
+        edge = HybridSystems.edge_object(hsm.automaton, pair.first, pair.second)
         id = first(keys(hsm.automaton.Σ[edge]))
         return HybridSystems.LightTransition(edge, id)
     end
-    msbp = periodicswitching(hsm, t.([5 => 5]))
+    msbp = periodicswitching(hsm, tm.([5 => 5]))
     @test msbp.growthrate == 0.9392550239418471
-    msnp = periodicswitching(hsm, t.([5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5]))
-    @test msnp.growthrate == 0.9653214971459174
-    msmp = periodicswitching(hsm, t.([5 => 3, 3 => 8, 8 => 3, 3 => 7, 7 => 2, 2 => 5, 5 => 5, 5 => 5]))
+    msnp = periodicswitching(hsm, tm.([5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 3, 3 => 8, 8 => 5, 5 => 5, 5 => 5, 5 => 5, 5 => 5]))
+    @test msnp.growthrate ≈ 0.9653214971459174
+    msmp = periodicswitching(hsm, tm.([5 => 3, 3 => 8, 8 => 3, 3 => 7, 7 => 2, 2 => 5, 5 => 5, 5 => 5]))
     @test msmp.growthrate == 0.9748171979372074
 
     @testset "Polytope with $optimizer_constructor" for optimizer_constructor in soc_optimizer_constructors
