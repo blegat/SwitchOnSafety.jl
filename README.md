@@ -1,9 +1,9 @@
 # Switch On Safety (SOS)
 
-| **Documentation** | **Build Status** | **References to cite** |
+| **Documentation** | **Build Status** | **Zenodo** |
 |:-----------------:|:----------------:|:----------------------:|
-| [![][docs-stable-img]][docs-stable-url] | [![Build Status][build-img]][build-url] [![Build Status][winbuild-img]][winbuild-url] | [![DOI][zenodo-img]][zenodo-url] |
-| [![][docs-latest-img]][docs-latest-url] | [![Coveralls branch][coveralls-img]][coveralls-url] [![Codecov branch][codecov-img]][codecov-url] | |
+| [![][docs-stable-img]][docs-stable-url] | [![Build Status][build-img]][build-url] | [![DOI][zenodo-img]][zenodo-url] |
+| [![][docs-latest-img]][docs-latest-url] | [![Codecov branch][codecov-img]][codecov-url] | |
 
 [<img src="examples/FinConjCounterEx.png" height="360">](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/Finiteness_conjecture_counterexample.ipynb)
 
