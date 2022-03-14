@@ -36,7 +36,7 @@ end
 function _build_model(brp::Conitope{T}) where T
     @assert brp.model === nothing
     n = length(brp.points)
-    brp.model = MOI.instantiate(brp.optimizer_constructor, with_bridge_type = T)
+    brp.model = _instantiate(brp.optimizer_constructor, T)
     t, ct = MOI.add_constrained_variables(brp.model, MOI.Nonnegatives(n))
     # sum t_i ≤ 1
     brp.sum_con = MOI.add_constraint(brp.model, _sum(t, T), MOI.LessThan(one(T)))

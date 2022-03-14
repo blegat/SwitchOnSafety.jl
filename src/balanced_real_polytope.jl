@@ -65,7 +65,7 @@ end
 function _build_model(brp::BalancedRealPolytope{T}) where T
     @assert brp.model === nothing
     n = length(brp.points)
-    brp.model = MOI.instantiate(brp.optimizer_constructor, with_bridge_type = T)
+    brp.model = _instantiate(brp.optimizer_constructor, T)
     t = MOI.add_variables(brp.model, n)
     q = MOI.add_variables(brp.model, n)
     # |t| ≤ q
