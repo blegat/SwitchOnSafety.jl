@@ -147,12 +147,8 @@ For the `getis` and `fillis!` functions, cite:
 [docs-stable-url]: https://blegat.github.io/SwitchOnSafety.jl/stable
 [docs-latest-url]: https://blegat.github.io/SwitchOnSafety.jl/latest
 
-[build-img]: https://travis-ci.org/blegat/SwitchOnSafety.jl.svg?branch=master
-[build-url]: https://travis-ci.org/blegat/SwitchOnSafety.jl
-[winbuild-img]: https://ci.appveyor.com/api/projects/status/afm00qxhh89f8drm/branch/master?svg=true
-[winbuild-url]: https://ci.appveyor.com/project/blegat/switchedsystems-jl/branch/master
-[coveralls-img]: https://coveralls.io/repos/blegat/SwitchOnSafety.jl/badge.svg?branch=master&service=github
-[coveralls-url]: https://coveralls.io/github/blegat/SwitchOnSafety.jl?branch=master
+[build-img]: https://github.com/blegat/SwitchOnSafety.jl/workflows/CI/badge.svg?branch=master
+[build-url]: https://github.com/blegat/SwitchOnSafety.jl/actions?query=workflow%3ACI
 [codecov-img]: http://codecov.io/github/blegat/SwitchOnSafety.jl/coverage.svg?branch=master
 [codecov-url]: http://codecov.io/github/blegat/SwitchOnSafety.jl?branch=master
 
