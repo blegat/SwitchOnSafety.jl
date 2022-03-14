@@ -4,6 +4,7 @@ using LinearAlgebra, SparseArrays, Statistics
 
 using DynamicPolynomials
 using MultivariatePolynomials
+const MP = MultivariatePolynomials
 using SemialgebraicSets
 using MultivariateMoments
 

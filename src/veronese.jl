@@ -96,7 +96,7 @@ function veroneselift(A::AbstractMatrix, d::Integer)
     for (i, mono) in enumerate(Y)
         α = exponents(mono)
         Axα = prod(i -> Ax[i]^α[i], 1:m)
-        Ad[i, :] = coefficients(Axα, X) .* row_scaling[i] ./ col_scaling
+        Ad[i, :] = MP.coefficients(Axα, X) .* row_scaling[i] ./ col_scaling
     end
     return Ad
 end
