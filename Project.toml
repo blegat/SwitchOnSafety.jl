@@ -30,8 +30,11 @@ SumOfSquares = "4b9e565b-77fc-50a5-a571-1244f986bda1"
 
 [compat]
 Combinatorics = "1"
+CSDP = "1"
 DynamicPolynomials = "0.4"
+ECOS = "1"
 FillArrays = "0.7, 0.8, 0.9, 0.10, 0.11, 0.12, 0.13"
+GLPK = "1"
 GraphPlot = "0.3, 0.4, 0.5"
 HybridSystems = "0.3"
 JuMP = "0.23, 1"
