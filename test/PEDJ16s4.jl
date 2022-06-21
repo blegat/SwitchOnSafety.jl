@@ -4,7 +4,7 @@
 # Automatica, 72:242-250, 2016
 # The JSR is 0.9748171979372074
 
-using LightGraphs
+using Graphs
 
 const expected_ub = [1.0035568400762171 0.9820958128927598
                      0.9863261446338583 0.9753566329765574
@@ -32,7 +32,7 @@ const expected_lb = expected_ub ./ ratio
     function t(pair::Pair)
         edge = HybridSystems.edge_object(hs.automaton, pair.first, pair.second)
         id = first(keys(hs.automaton.Σ[edge]))
-        return HybridSystems.LightTransition(edge, id)
+        return HybridSystems.GraphTransition(edge, id)
     end
     sbp = periodicswitching(hs, t.([3 => 3]))
     @test sbp.growthrate == 0.9392550239418471
@@ -48,7 +48,7 @@ const expected_lb = expected_ub ./ ratio
     function tm(pair::Pair)
         edge = HybridSystems.edge_object(hsm.automaton, pair.first, pair.second)
         id = first(keys(hsm.automaton.Σ[edge]))
-        return HybridSystems.LightTransition(edge, id)
+        return HybridSystems.GraphTransition(edge, id)
     end
     msbp = periodicswitching(hsm, tm.([5 => 5]))
     @test msbp.growthrate == 0.9392550239418471

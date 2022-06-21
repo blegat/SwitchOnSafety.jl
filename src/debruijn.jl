@@ -33,7 +33,7 @@ function mdependentlift(s::AbstractDiscreteSwitchedSystem, n::Integer, forward=t
             end
         end
     end
-    G = LightAutomaton(curstid)
+    G = GraphAutomaton(curstid)
     for st in states(s)
         for sw in switchings(s, n+1, st, forward)
             seq = sw.seq

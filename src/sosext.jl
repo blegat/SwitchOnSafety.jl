@@ -1,4 +1,4 @@
-using LightGraphs
+using Graphs
 export sosextractcycle, extractatomic, pushforward
 
 #function dist(X, Y)
