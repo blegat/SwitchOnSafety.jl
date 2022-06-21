@@ -1,7 +1,7 @@
 using GraphPlot
 export aplot
 
-function aplot(s, A::LightAutomaton)
+function aplot(s, A::GraphAutomaton)
     el = map(t -> symbol(s, t), transitions(A))
     if haskey(s.ext, :statelabels)
         gplot(A.G, nodelabel=s.ext[:statelabels], edgelabel=el)
@@ -10,7 +10,7 @@ function aplot(s, A::LightAutomaton)
     end
 end
 function aplot(s, osa::OneStateAutomaton)
-    A = LightAutomaton(1)
+    A = GraphAutomaton(1)
     for σ in 1:ntransitions(osa)
         add_transition!(A, 1, 1, σ)
     end
