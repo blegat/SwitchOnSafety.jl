@@ -28,7 +28,7 @@ makedocs(
         "Invariant Sets" => "invariant.md",
         "Joint Spectral Radius" => "jsr.md",
         "Examples" => Any[
-            name => "generated/name.md"
+            name => "generated/$name.md"
             for name in EXAMPLES
         ]
     ]
