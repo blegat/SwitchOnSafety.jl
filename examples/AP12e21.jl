@@ -28,7 +28,7 @@ optimizer_constructor = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() =
 lb, ub = soslyapb(s, 1, optimizer_constructor=optimizer_constructor, tol=1e-4)
 @test ub ≈ 1 rtol=1e-4 #src
 
-# From the infeasibility certificate of the last infeasible SemiDefinite Program (SDP) solved by in order to obtain the upper bound, we find the lower bound $\rho(A_2A_1)^{1/2} \approx 1$.
+# From the infeasibility certificate of the last infeasible SemiDefinite Program (SDP) solved by in order to obtain the upper bound, we find the lower bound $\rho(A_1A_2)^{1/2} \approx 1$.
 
 seq = sosbuildsequence(s, 1, p_0=:Primal)
 psw = findsmp(seq)
