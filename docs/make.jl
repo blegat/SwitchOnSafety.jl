@@ -5,10 +5,12 @@ const EXAMPLES_DIR = joinpath(@__DIR__, "..", "examples")
 const OUTPUT_DIR   = joinpath(@__DIR__, "src/generated")
 
 const EXAMPLES = [
-    "AJPR14e54.jl",
+    "AJPR14e54",
+    "AP12e21",
 ]
+const EXAMPLE_FILES = [name * ".jl" for name in EXAMPLES]
 
-for example in EXAMPLES
+for example in EXAMPLE_FILES
     example_filepath = joinpath(EXAMPLES_DIR, example)
     Literate.markdown(example_filepath, OUTPUT_DIR)
     Literate.notebook(example_filepath, OUTPUT_DIR)
@@ -26,7 +28,8 @@ makedocs(
         "Invariant Sets" => "invariant.md",
         "Joint Spectral Radius" => "jsr.md",
         "Examples" => Any[
-            "AJPR14e54" => "generated/AJPR14e54.md",
+            name => "generated/name.md"
+            for name in EXAMPLES
         ]
     ]
 )
