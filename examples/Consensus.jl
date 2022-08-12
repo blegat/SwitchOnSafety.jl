@@ -46,10 +46,8 @@ H3 = [1   0   0   0   0
       0   0   0   0.2 0.8]
 A3 = P' * H3 * P
 function automaton(N)
-    # See [P17, Figure 2.17] for what automaton(3) should be
-    a = GraphAutomaton(N)
-    # Node i means, H1 was used i-1 steps ago
-    add_transition!(a, 1, 1, 1)
+    a = GraphAutomaton(N) # See [P17, Figure 2.17] for what automaton(3) should be
+    add_transition!(a, 1, 1, 1) # Node i means, H1 was used i-1 steps ago
     for i in 2:N
         add_transition!(a, i-1, i, 2)
         add_transition!(a, i-1, i, 3)
