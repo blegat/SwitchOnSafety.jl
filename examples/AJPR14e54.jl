@@ -20,7 +20,7 @@ A2 = [ 3  3
       -2  1]
 s = discreteswitchedsystem([A1, A2])
 
-# Pick an SDP solver from [this list](http://jump.dev/JuMP.jl/v0.21.3/installation/#Getting-Solvers-1).
+# Pick an SDP solver from [this list](https://jump.dev/JuMP.jl/stable/installation/#Supported-solvers).
 
 import CSDP
 optimizer_constructor = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() => true);

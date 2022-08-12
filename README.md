@@ -51,11 +51,11 @@ package:
 * [AJPR14] A. Ahmadi, R. Jungers, P. Parrilo and M. Roozbehani,
 *Joint spectral radius and path-complete graph Lyapunov functions.*
 SIAM J. CONTROL OPTIM 52(1), 687-717, **2014**:
-[Example 5.4](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/AJPR14e54.ipynb).
+[Example 5.4](https://blegat.github.io/SwitchOnSafety.jl/latest/generated/AJPR14e54/).
 * [AP12] A. Ahmadi, and P. Parrilo
 *Joint spectral radius of rank one matrices and the maximum cycle mean problem.*
 CDC, 731-733, **2012**:
-[Example 2.1](https://github.com/blegat/SwitchOnSafety.jl/blob/master/examples/AP12e21.ipynb).
+[Example 2.1](https://blegat.github.io/SwitchOnSafety.jl/latest/generated/AP12e21/).
 * [AS98] Ando, T. and Shih, M.-h.
 *Simultaneous Contractibility*.
 SIAM Journal on Matrix Analysis & Applications, **1998**, 19, 487:
