@@ -7,6 +7,7 @@ const OUTPUT_DIR   = joinpath(@__DIR__, "src/generated")
 const EXAMPLES = [
     "AJPR14e54",
     "AP12e21",
+    "PJ08e54",
 ]
 const EXAMPLE_FILES = [name * ".jl" for name in EXAMPLES]
 
