@@ -25,7 +25,7 @@ optimizer_constructor = optimizer_with_attributes(CSDP.Optimizer, MOI.Silent() =
 
 # We can see that we obtain the value of the JSR as upper and lower bound already with a CQLF. This is to be expected since the problem can be reduced to a maximum cycle mean problem which is easy to solve [AP12].
 
-lb, ub = soslyapb(s, 1, factory=factory, tol=1e-4)
+lb, ub = soslyapb(s, 1, optimizer_constructor=optimizer_constructor, tol=1e-4)
 @test ub ≈ 1 rtol=1e-4 #src
 
 # From the infeasibility certificate of the last infeasible SemiDefinite Program (SDP) solved by in order to obtain the upper bound, we find the lower bound $\rho(A_2A_1)^{1/2} \approx 1$.
