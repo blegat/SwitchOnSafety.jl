@@ -49,6 +49,6 @@ The following method can verify numerically that a cycle is an s.m.p. by
 computing invariant polytopes. When it is not an s.m.p., it find a candidate
 of higher growth rate.
 
-```@docs`
+```@docs
 invariant_polytopes
 ```
