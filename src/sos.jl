@@ -242,11 +242,9 @@ function soslyapbs(s::AbstractSwitchedSystem, d::Integer,
 end
 
 """
-    soslyapbs(s::AbstractSwitchedSystem, d::Integer,
-              soslb, dual,
-              sosub, primal;
-              verbose=0, tol=1e-5, step=0.5, scaling=quickub(s),
-              ranktols=tol, disttols=tol, kws...)
+    soslyapb(s::AbstractSwitchedSystem, d::Integer;
+             verbose=0, tol=1e-5, step=0.5, scaling=quickub(s),
+             ranktols=tol, disttols=tol, kws...)
 
 
 Find upper bounds to the (constrained) Joint Spectral Radius [(5), PJ08].
