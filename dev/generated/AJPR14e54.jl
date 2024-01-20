@@ -25,4 +25,3 @@ seq = sosbuildsequence(s, 2, p_0=:Primal)
 psw = findsmp(seq)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-

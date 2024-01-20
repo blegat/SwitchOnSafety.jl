@@ -16,4 +16,3 @@ psw = findsmp(seq)
 psw = sosextractcycle(s, 1, ranktols=1e-4)
 
 # This file was generated using Literate.jl, https://github.com/fredrikekre/Literate.jl
-
