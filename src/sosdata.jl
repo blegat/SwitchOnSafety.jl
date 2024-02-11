@@ -38,7 +38,7 @@ end
 const PolynomialLyapunov{T} = SetProg.Sets.PolySet{T, SetProg.Sets.MonoBasis, T}
 const MeasureLyapunov{T} = MultivariateMoments.MomentMatrix{T, SetProg.Sets.MonoBasis}
 
-function SOSData(s::AbstractDiscreteSwitchedSystem)
+function SOSData(s::HybridSystem)
     S = typeof(s)
     TT = transitiontype(s)
     XT = HybridSystems.state_property_type(S, Vector{PolyVar{true}})
@@ -49,7 +49,7 @@ end
 
 const sosdatakey = :SwitchOnSafetyData
 
-function sosdata(s::AbstractSwitchedSystem)
+function sosdata(s::HybridSystem)
     if !haskey(s.ext, sosdatakey)
         s.ext[sosdatakey] = SOSData(s)
     end
@@ -112,6 +112,6 @@ end
 
 for f in (:getsmp, :hassmp, :unstable_periodic_switchings, :notifyperiodic!, :updatesmp!, :updateub!, :getub, :updatelb!, :getlyaps, :getlb)
     @eval begin
-        $f(s::AbstractSwitchedSystem, args...) = $f(sosdata(s), args...)
+        $f(s::HybridSystem, args...) = $f(sosdata(s), args...)
     end
 end

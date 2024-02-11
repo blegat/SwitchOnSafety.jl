@@ -15,12 +15,44 @@ Reexport.@reexport using HybridSystems
 
 export ρ, quicklb, quickub, quickb
 
+struct AB
+    A::Matrix{Float64}
+    B::Matrix{Float64}
+end
+
+Base.:*(ab1::AB, ab2::AB) = AB(ab1.A * ab2.A, [ab1.A * ab2.B ab1.B])
+
+function LinearAlgebra.norm(ab::AB)
+    C = nullspace(ab.B')
+    norm(C' * ab.A)
+end
+
 function ρ(A::Matrix)
     if isempty(A)
         throw(ArgumentError("Cannot compute the spectral radius of 0x0 matrix"))
     end
     maximum(abs.(eigvals(A)))
 end
+
+function ρ(A::Matrix, B::Matrix)
+    n = size(A, 1)
+    powerA = I
+    Cspace = zeros(n, 0)
+    for i in (1; n)
+        Cspace = [Cspace (powerA * B)]
+        powerA *= A
+    end 
+    C = nullspace(Cspace')
+    E = (C) * (C)'
+    A22 = (C)' * A * C
+    if size(C, 2) == 0
+        return 0
+    end
+    ρ(A22)
+end
+
+ρ(ab::AB) = ρ(ab.A, ab.B)
+
 # eigvals is not defined for SparseMatrixCSC
 # eigvals is not defined for SMatrix in StaticArrays for non-Hermitian
 ρ(A::AbstractMatrix) = ρ(Matrix(A))
@@ -66,9 +98,11 @@ function dynamicfort(s::AbstractDiscreteSwitchedSystem, sw::HybridSystems.Discre
     sw.A
 end
 
+dynamicforσ(s::HybridSystem, σ) = AB(s.resetmaps[σ].A, s.resetmaps[σ].B)
 dynamicforσ(s::AbstractDiscreteSwitchedSystem, σ) = s.resetmaps[σ].A
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t) = dynamicforσ(s, symbol(s, t))
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t, γ) = dynamicfort(s, t) / γ
+dynamicfort(s::HybridSystem, t) = dynamicforσ(s, symbol(s, t))
 
 io_transitions(s, st, forward::Bool) = forward ? out_transitions(s, st) : in_transitions(s, st)
 

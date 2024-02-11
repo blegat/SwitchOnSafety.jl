@@ -1,6 +1,6 @@
 export gripenberg
 
-struct BranchState{MT<:AbstractMatrix, ET}
+struct BranchState{MT, ET}
     A::MT
     seq::Vector{ET}
     mode::Int
@@ -19,13 +19,13 @@ Gripenberg algorithm [G96] for computing an upper bound `ub` and a lower bound
 [G96] Gripenberg, G. Computing the joint spectral radius.
 *Linear Algebra and its Applications*, *Elsevier*, **1996**, *234*, 43-60
 """
-function gripenberg(s::AbstractDiscreteSwitchedSystem; δ=1e-2,
+function gripenberg(s; δ=1e-2,
                     max_eval = 10000, max_ρ_eval = max_eval,
                     max_norm_eval = max_eval, max_length = 50,
-                    matrix_norm = A -> opnorm(A, 2), verbose = 1)
+                    matrix_norm = A -> norm(A), verbose = 1)
     MT = typeof(dynamicfort(s, first(out_transitions(s, 1))))
     ET = transitiontype(s)
-    branches = [BranchState{MT, ET}(Matrix(LinearAlgebra.I, HybridSystems.statedim(s, mode), HybridSystems.statedim(s, mode)), ET[], mode, Inf) for mode in modes(s)]
+    branches = [BranchState{MT, ET}(AB(Matrix(1.0I, HybridSystems.statedim(s, mode), HybridSystems.statedim(s, mode)), zeros(HybridSystems.statedim(s, mode), 0)), ET[], mode, Inf) for mode in modes(s)]
     smp = nothing
     ub = Inf
     n_ρ_eval = 0
@@ -39,7 +39,7 @@ function gripenberg(s::AbstractDiscreteSwitchedSystem; δ=1e-2,
         new_branches = eltype(branches)[]
         for branch in branches
             for t in out_transitions(s, branch.mode)
-                A = dynamicfort(s, t) * branch.A
+                A::MT = dynamicfort(s, t)::MT * branch.A::MT
                 seq = [branch.seq; t]
                 if source(s, first(seq)) == target(s, last(seq))
                     new_smp = periodicswitching(s, seq, A)
