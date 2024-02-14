@@ -38,11 +38,12 @@ function ρ(A::Matrix, B::Matrix)
     n = size(A, 1)
     powerA = I
     Cspace = zeros(n, 0)
-    for i in (1; n)
+    for i in (1: n)
         Cspace = [Cspace (powerA * B)]
         powerA *= A
     end 
     C = nullspace(Cspace')
+    @show C
     E = (C) * (C)'
     A22 = (C)' * A * C
     if size(C, 2) == 0
