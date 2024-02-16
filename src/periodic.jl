@@ -38,10 +38,6 @@ function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, gr
     DiscretePeriodicSwitching(s, period, growthrate)
 end
 
-function periodicswitching(s::HybridSystem, period::Vector, growthrate, args...)
-    DiscretePeriodicSwitching(s, period, growthrate)
-end
-
 _scale(A, ::Nothing) = A
 _scale(A, scaling) = A * scaling
 _unscale(A, ::Nothing) = A
@@ -53,19 +49,7 @@ function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, A:
     periodicswitching(s, period, growthrate)
 end
 
-function periodicswitching(s::HybridSystem, period::Vector, A::AbstractMatrix; scaling = nothing)
-    B = zeros(size(A, 1), 0)
-    for sigma in period
-        Bsigma = s.resetmaps[symbol(s, sigma)].B
-        #TODO: Multiply by As
-        B = [B Bsigma]
-    end
-    lambda = ρ(A, B)
-    growthrate = _scale(adaptgrowthrate(abs(lambda), period), scaling)
-    periodicswitching(s, period, growthrate)
-end
-
-function periodicswitching(s::HybridSystem, period::Vector, A::AB; scaling = nothing)
+function periodicswitching(s::DiscreteSwitchedLinearControlSystem, period::Vector, A::AB; scaling = nothing)
     B = zeros(size(A.A, 1), 0)
     for sigma in period
         Bsigma = s.resetmaps[symbol(s, sigma)].B

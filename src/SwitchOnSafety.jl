@@ -76,7 +76,8 @@ end
 
 include("scaled.jl")
 
-const AbstractDiscreteSwitchedSystem = Union{DiscreteSwitchedLinearSystem, ConstrainedDiscreteSwitchedLinearSystem}
+const DiscreteSwitchedLinearControlSystem = HybridSystem{OneStateAutomaton, <:ContinuousIdentitySystem, <:LinearControlMap, AutonomousSwitching}
+const AbstractDiscreteSwitchedSystem = Union{DiscreteSwitchedLinearSystem, ConstrainedDiscreteSwitchedLinearSystem, DiscreteSwitchedLinearControlSystem}
 const AbstractSwitchedSystem = AbstractDiscreteSwitchedSystem
 integratorfor(s::AbstractDiscreteSwitchedSystem, t) = dynamicfort(s, t)
 #integratorfor(s::AbstractContinuousSwitchedSystem, mode::Tuple{Int,Float64}) = expm(dynamicfor(s, mode[1]) * mode[2])
@@ -98,11 +99,10 @@ function dynamicfort(s::AbstractDiscreteSwitchedSystem, sw::HybridSystems.Discre
     sw.A
 end
 
-dynamicforσ(s::HybridSystem, σ) = AB(s.resetmaps[σ].A, s.resetmaps[σ].B)
+dynamicforσ(s::DiscreteSwitchedLinearControlSystem, σ) = AB(s.resetmaps[σ].A, s.resetmaps[σ].B)
 dynamicforσ(s::AbstractDiscreteSwitchedSystem, σ) = s.resetmaps[σ].A
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t) = dynamicforσ(s, symbol(s, t))
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t, γ) = dynamicfort(s, t) / γ
-dynamicfort(s::HybridSystem, t) = dynamicforσ(s, symbol(s, t))
 
 io_transitions(s, st, forward::Bool) = forward ? out_transitions(s, st) : in_transitions(s, st)
 
