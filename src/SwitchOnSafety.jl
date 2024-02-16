@@ -100,10 +100,10 @@ function dynamicfort(s::AbstractDiscreteSwitchedSystem, sw::HybridSystems.Discre
     sw.A
 end
 
-function identity_dynamic_for_mode(s::AbstractDiscreteSwitchedLinearSystem, mode)
+function identity_for_mode(s::AbstractDiscreteSwitchedLinearSystem, mode)
     return Matrix(LinearAlgebra.I, HybridSystems.statedim(s, mode), HybridSystems.statedim(s, mode))
 end
-function identity_dynamic_for_mode(s::DiscreteSwitchedLinearControlSystem, mode)
+function identity_for_mode(s::DiscreteSwitchedLinearControlSystem, mode)
     return AB(Matrix(1.0I, HybridSystems.statedim(s, mode), HybridSystems.statedim(s, mode)), zeros(HybridSystems.statedim(s, mode), 0))
 end
 dynamicforσ(s::AbstractDiscreteSwitchedLinearSystem, σ) = s.resetmaps[σ].A
