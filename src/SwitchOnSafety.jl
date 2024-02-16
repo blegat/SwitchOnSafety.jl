@@ -77,7 +77,8 @@ end
 include("scaled.jl")
 
 const DiscreteSwitchedLinearControlSystem = HybridSystem{OneStateAutomaton, <:ContinuousIdentitySystem, <:LinearControlMap, AutonomousSwitching}
-const AbstractDiscreteSwitchedSystem = Union{DiscreteSwitchedLinearSystem, ConstrainedDiscreteSwitchedLinearSystem, DiscreteSwitchedLinearControlSystem}
+const AbstractDiscreteSwitchedLinearSystem = Union{DiscreteSwitchedLinearSystem, ConstrainedDiscreteSwitchedLinearSystem}
+const AbstractDiscreteSwitchedSystem = Union{AbstractDiscreteSwitchedLinearSystem, DiscreteSwitchedLinearControlSystem}
 const AbstractSwitchedSystem = AbstractDiscreteSwitchedSystem
 integratorfor(s::AbstractDiscreteSwitchedSystem, t) = dynamicfort(s, t)
 #integratorfor(s::AbstractContinuousSwitchedSystem, mode::Tuple{Int,Float64}) = expm(dynamicfor(s, mode[1]) * mode[2])
@@ -99,8 +100,14 @@ function dynamicfort(s::AbstractDiscreteSwitchedSystem, sw::HybridSystems.Discre
     sw.A
 end
 
+function identity_dynamic_for_mode(s::AbstractDiscreteSwitchedLinearSystem, mode)
+    return Matrix(LinearAlgebra.I, HybridSystems.statedim(s, mode), HybridSystems.statedim(s, mode))
+end
+function identity_dynamic_for_mode(s::DiscreteSwitchedLinearControlSystem, mode)
+    return AB(Matrix(1.0I, HybridSystems.statedim(s, mode), HybridSystems.statedim(s, mode)), zeros(HybridSystems.statedim(s, mode), 0))
+end
+dynamicforσ(s::AbstractDiscreteSwitchedLinearSystem, σ) = s.resetmaps[σ].A
 dynamicforσ(s::DiscreteSwitchedLinearControlSystem, σ) = AB(s.resetmaps[σ].A, s.resetmaps[σ].B)
-dynamicforσ(s::AbstractDiscreteSwitchedSystem, σ) = s.resetmaps[σ].A
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t) = dynamicforσ(s, symbol(s, t))
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t, γ) = dynamicfort(s, t) / γ
 

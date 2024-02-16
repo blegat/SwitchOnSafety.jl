@@ -19,7 +19,7 @@ Gripenberg algorithm [G96] for computing an upper bound `ub` and a lower bound
 [G96] Gripenberg, G. Computing the joint spectral radius.
 *Linear Algebra and its Applications*, *Elsevier*, **1996**, *234*, 43-60
 """
-function gripenberg(s; δ=1e-2,
+function gripenberg(s::AbstractDiscreteSwitchedSystem; δ=1e-2,
                     max_eval = 10000, max_ρ_eval = max_eval,
                     max_norm_eval = max_eval, max_length = 50,
                     matrix_norm = A -> norm(A), verbose = 1)
@@ -39,7 +39,7 @@ function gripenberg(s; δ=1e-2,
         new_branches = eltype(branches)[]
         for branch in branches
             for t in out_transitions(s, branch.mode)
-                A::MT = dynamicfort(s, t)::MT * branch.A::MT
+                A = dynamicfort(s, t) * branch.A
                 seq = [branch.seq; t]
                 if source(s, first(seq)) == target(s, last(seq))
                     new_smp = periodicswitching(s, seq, A)
