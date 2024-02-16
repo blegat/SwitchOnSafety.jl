@@ -16,7 +16,10 @@ end
     A2 = [12 0; 10 0]
     B2 = [0 0; 1 0]
     s = controlswitch([A1, A2], [B1, B2])
-    gripenberg(s)
+    psw, ub = gripenberg(s)
+    @test psw.growthrate ≈ 12
+    @test psw.period == [HybridSystems.OneStateTransition(2)]
+    @test ub ≈ 12.01
 end
 
 r_l = 888
