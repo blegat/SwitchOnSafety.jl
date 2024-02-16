@@ -43,7 +43,6 @@ function ρ(A::Matrix, B::Matrix)
         powerA *= A
     end 
     C = nullspace(Cspace')
-    @show C
     E = (C) * (C)'
     A22 = (C)' * A * C
     if size(C, 2) == 0
