@@ -22,9 +22,12 @@ end
 
 Base.:*(ab1::AB, ab2::AB) = AB(ab1.A * ab2.A, [ab1.A * ab2.B ab1.B])
 
-function LinearAlgebra.norm(ab::AB)
+function LinearAlgebra.opnorm(ab::AB, p::Real=2)
+    if p != 2
+        throw(ArgumentError("`opnorm(::AB, $p)` not supported, only `2` is supported."))
+    end
     C = nullspace(ab.B')
-    norm(C' * ab.A)
+    return opnorm(C' * ab.A, 2)
 end
 
 function ρ(A::Matrix)

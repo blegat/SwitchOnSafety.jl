@@ -44,7 +44,10 @@ end
 
     s = controlswitch([A1, A2], [B1, B2])
     controlswitch
-    @show gripenberg(s, δ=0.002)
+    psw, ub = gripenberg(s, δ=0.002)
+    @test psw.growthrate ≈ 0.999 rtol = 1e-4
+    @test psw.period == [HybridSystems.OneStateTransition(1)]
+    @test ub ≈ 1.001 rtol = 1e-4
 end
 
 

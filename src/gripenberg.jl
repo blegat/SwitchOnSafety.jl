@@ -22,7 +22,7 @@ Gripenberg algorithm [G96] for computing an upper bound `ub` and a lower bound
 function gripenberg(s::AbstractDiscreteSwitchedSystem; δ=1e-2,
                     max_eval = 10000, max_ρ_eval = max_eval,
                     max_norm_eval = max_eval, max_length = 50,
-                    matrix_norm = A -> norm(A), verbose = 1)
+                    matrix_norm = A -> opnorm(A, 2), verbose = 1)
     MT = typeof(dynamicfort(s, first(out_transitions(s, 1))))
     ET = transitiontype(s)
     branches = [BranchState{MT, ET}(identity_for_mode(s, mode), ET[], mode, Inf) for mode in modes(s)]
