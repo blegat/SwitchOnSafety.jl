@@ -50,12 +50,6 @@ function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, A:
 end
 
 function periodicswitching(s::DiscreteSwitchedLinearControlSystem, period::Vector, A::AB; scaling = nothing)
-    B = zeros(size(A.A, 1), 0)
-    for sigma in period
-        Bsigma = s.resetmaps[symbol(s, sigma)].B
-        #TODO: Multiply by As
-        B = [A.B Bsigma]
-    end
     lambda = ρ(A)
     growthrate = _scale(adaptgrowthrate(abs(lambda), period), scaling)
     periodicswitching(s, period, growthrate)

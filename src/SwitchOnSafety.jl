@@ -26,7 +26,7 @@ function LinearAlgebra.opnorm(ab::AB, p::Real=2)
     if p != 2
         throw(ArgumentError("`opnorm(::AB, $p)` not supported, only `2` is supported."))
     end
-    C = nullspace(ab.B')
+    C = nullspace(ab.B', atol = 1.0)
     return opnorm(C' * ab.A, 2)
 end
 
@@ -41,13 +41,12 @@ function ρ(A::Matrix, B::Matrix)
     n = size(A, 1)
     powerA = I
     Cspace = zeros(n, 0)
-    for i in (1: n)
+    for _ in 1:n
         Cspace = [Cspace (powerA * B)]
         powerA *= A
     end 
-    C = nullspace(Cspace')
-    E = (C) * (C)'
-    A22 = (C)' * A * C
+    C = nullspace(Cspace', atol = 1.0)
+    A22 = C' * A * C
     if size(C, 2) == 0
         return 0
     end
