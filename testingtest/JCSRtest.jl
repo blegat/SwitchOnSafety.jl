@@ -10,10 +10,10 @@ function controlswitch(A::AbstractVector{<:AbstractMatrix}, B::AbstractVector{<:
     HybridSystem(G, modes, rm, sw, Dict{Symbol, Any}())
 end
 
-r_l = 120
-r_c = 3
+r_l = 15000
+r_c = 2
 r_0 = 2
-x_l = 3
+x_l = 0.1
 x_c = 3
 
 a1_11 = (-(r_l / x_l))
@@ -31,4 +31,11 @@ B2 = [1.0 0.0; 0.0 0.0]
 
 s = controlswitch([A1, A2], [B1, B2])
 controlswitch
-@show gripenberg(s, δ=0.000002)
+@show gripenberg(s, δ=0.002)
+
+using LinearAlgebra
+import SwitchOnSafety:AB
+ab = SwitchOnSafety.AB(Matrix(I, 2, 2), Matrix(I, 2, 2))
+ab1 = SwitchOnSafety.AB(A1, B1)
+ab2 = SwitchOnSafety.AB(A2, B2)
+
