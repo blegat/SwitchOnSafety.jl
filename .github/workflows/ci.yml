@@ -18,9 +18,9 @@ jobs:
           - version: '1'
             os: ubuntu-latest
             arch: x64
-          - version: '1'
-            os: ubuntu-latest
-            arch: x86
+#          - version: '1' # SymbolicWedderburn does not support 32-bits
+#            os: ubuntu-latest
+#            arch: x86
     steps:
       - uses: actions/checkout@v3
       - uses: julia-actions/setup-julia@v1
