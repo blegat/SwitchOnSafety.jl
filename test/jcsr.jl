@@ -20,7 +20,7 @@ end
     @test psw.growthrate ≈ 12
     @test psw.period == [HybridSystems.OneStateTransition(2)]
     @show ub
-    @test ub ≈ 12.06345 rtol=1e-6
+    @test ub ≈ 12.01 rtol=1e-6
 end
 
 @testset "DC-DC" begin
@@ -47,6 +47,6 @@ end
     controlswitch
     psw, ub = gripenberg(s, δ=0.002)
     @test psw.growthrate ≈ 0.999 rtol = 1e-4
-    @test psw.period == [HybridSystems.OneStateTransition(1), HybridSystems.OneStateTransition(1)]
+    @test psw.period == [HybridSystems.OneStateTransition(1)]
     @test ub ≈ 1.001 rtol = 1e-4
 end

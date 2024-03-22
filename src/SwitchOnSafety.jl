@@ -26,7 +26,7 @@ function LinearAlgebra.opnorm(ab::AB, p::Real=2)
     if p != 2
         throw(ArgumentError("`opnorm(::AB, $p)` not supported, only `2` is supported."))
     end
-    C = nullspace(ab.B', atol = 1.0)
+    C = nullspace(ab.B') # FIXME we need to improve the rank check
     return opnorm(C' * ab.A, 2)
 end
 
