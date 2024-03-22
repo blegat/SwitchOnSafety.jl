@@ -15,12 +15,46 @@ Reexport.@reexport using HybridSystems
 
 export ρ, quicklb, quickub, quickb
 
+struct AB
+    A::Matrix{Float64}
+    B::Matrix{Float64}
+end
+
+Base.:*(ab1::AB, ab2::AB) = AB(ab1.A * ab2.A, [ab1.A * ab2.B ab1.B])
+
+function LinearAlgebra.opnorm(ab::AB, p::Real=2)
+    if p != 2
+        throw(ArgumentError("`opnorm(::AB, $p)` not supported, only `2` is supported."))
+    end
+    C = nullspace(ab.B') # FIXME we need to improve the rank check
+    return opnorm(C' * ab.A, 2)
+end
+
 function ρ(A::Matrix)
     if isempty(A)
         throw(ArgumentError("Cannot compute the spectral radius of 0x0 matrix"))
     end
     maximum(abs.(eigvals(A)))
 end
+
+function ρ(A::Matrix, B::Matrix)
+    n = size(A, 1)
+    powerA = I
+    Cspace = zeros(n, 0)
+    for _ in 1:n
+        Cspace = [Cspace (powerA * B)]
+        powerA *= A
+    end 
+    C = nullspace(Cspace', atol = 1.0)
+    A22 = C' * A * C
+    if size(C, 2) == 0
+        return 0
+    end
+    ρ(A22)
+end
+
+ρ(ab::AB) = ρ(ab.A, ab.B)
+
 # eigvals is not defined for SparseMatrixCSC
 # eigvals is not defined for SMatrix in StaticArrays for non-Hermitian
 ρ(A::AbstractMatrix) = ρ(Matrix(A))
@@ -44,7 +78,9 @@ end
 
 include("scaled.jl")
 
-const AbstractDiscreteSwitchedSystem = Union{DiscreteSwitchedLinearSystem, ConstrainedDiscreteSwitchedLinearSystem}
+const DiscreteSwitchedLinearControlSystem = HybridSystem{OneStateAutomaton, <:ContinuousIdentitySystem, <:LinearControlMap, AutonomousSwitching}
+const AbstractDiscreteSwitchedLinearSystem = Union{DiscreteSwitchedLinearSystem, ConstrainedDiscreteSwitchedLinearSystem}
+const AbstractDiscreteSwitchedSystem = Union{AbstractDiscreteSwitchedLinearSystem, DiscreteSwitchedLinearControlSystem}
 const AbstractSwitchedSystem = AbstractDiscreteSwitchedSystem
 integratorfor(s::AbstractDiscreteSwitchedSystem, t) = dynamicfort(s, t)
 #integratorfor(s::AbstractContinuousSwitchedSystem, mode::Tuple{Int,Float64}) = expm(dynamicfor(s, mode[1]) * mode[2])
@@ -66,7 +102,14 @@ function dynamicfort(s::AbstractDiscreteSwitchedSystem, sw::HybridSystems.Discre
     sw.A
 end
 
-dynamicforσ(s::AbstractDiscreteSwitchedSystem, σ) = s.resetmaps[σ].A
+function identity_for_mode(s::AbstractDiscreteSwitchedLinearSystem, mode)
+    return Matrix(LinearAlgebra.I, HybridSystems.statedim(s, mode), HybridSystems.statedim(s, mode))
+end
+function identity_for_mode(s::DiscreteSwitchedLinearControlSystem, mode)
+    return AB(Matrix(1.0I, HybridSystems.statedim(s, mode), HybridSystems.statedim(s, mode)), zeros(HybridSystems.statedim(s, mode), 0))
+end
+dynamicforσ(s::AbstractDiscreteSwitchedLinearSystem, σ) = s.resetmaps[σ].A
+dynamicforσ(s::DiscreteSwitchedLinearControlSystem, σ) = AB(s.resetmaps[σ].A, s.resetmaps[σ].B)
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t) = dynamicforσ(s, symbol(s, t))
 dynamicfort(s::AbstractDiscreteSwitchedSystem, t, γ) = dynamicfort(s, t) / γ
 

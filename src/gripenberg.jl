@@ -1,6 +1,6 @@
 export gripenberg
 
-struct BranchState{MT<:AbstractMatrix, ET}
+struct BranchState{MT, ET}
     A::MT
     seq::Vector{ET}
     mode::Int
@@ -25,7 +25,7 @@ function gripenberg(s::AbstractDiscreteSwitchedSystem; δ=1e-2,
                     matrix_norm = A -> opnorm(A, 2), verbose = 1)
     MT = typeof(dynamicfort(s, first(out_transitions(s, 1))))
     ET = transitiontype(s)
-    branches = [BranchState{MT, ET}(Matrix(LinearAlgebra.I, HybridSystems.statedim(s, mode), HybridSystems.statedim(s, mode)), ET[], mode, Inf) for mode in modes(s)]
+    branches = [BranchState{MT, ET}(identity_for_mode(s, mode), ET[], mode, Inf) for mode in modes(s)]
     smp = nothing
     ub = Inf
     n_ρ_eval = 0

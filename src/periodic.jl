@@ -49,6 +49,12 @@ function periodicswitching(s::AbstractDiscreteSwitchedSystem, period::Vector, A:
     periodicswitching(s, period, growthrate)
 end
 
+function periodicswitching(s::DiscreteSwitchedLinearControlSystem, period::Vector, A::AB; scaling = nothing)
+    lambda = ρ(A)
+    growthrate = _scale(adaptgrowthrate(abs(lambda), period), scaling)
+    periodicswitching(s, period, growthrate)
+end
+
 function periodicswitching(s::AbstractSwitchedSystem, period::Vector; scaling = nothing)
     A = prod(t -> _unscale(integratorfor(s, t), scaling), reverse(period))
     return periodicswitching(s, period, A, scaling = scaling)
