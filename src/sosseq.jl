@@ -11,7 +11,7 @@ function best_dynamic(s::AbstractSwitchedSystem, d, μs, p::GramMatrix, l, curst
         soslf = SetProg.apply_transformation(p, transformation)
         ν = measurefor(μs, dyn)
         # return dot(μ, soslf)
-        return dot(getmat(ν), getmat(soslf))
+        return dot(value_matrix(ν), value_matrix(soslf))
     end
     best_dyn = nothing
     best = -Inf
