@@ -48,8 +48,9 @@ function veroneselift_explicit(A::AbstractMatrix, d::Integer)
 
     # Computing permutations is the most expensive part so we precompute it
     perms = collect(permutations(1:d))
-    for (i,α) in enumerate(with_replacement_combinations(1:n, d))
-        for (j,β) in enumerate(with_replacement_combinations(1:n, d))
+    combi = reverse(collect(with_replacement_combinations(1:n, d)))
+    for (i,α) in enumerate(combi)
+        for (j,β) in enumerate(combi)
             Ad[i, j] = permanent(A[α, β], perms) / sqrt(μ(α) * μ(β))
         end
     end
