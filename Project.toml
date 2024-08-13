@@ -29,12 +29,9 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 SumOfSquares = "4b9e565b-77fc-50a5-a571-1244f986bda1"
 
 [compat]
-CSDP = "1"
 Combinatorics = "1"
 DynamicPolynomials = "0.5"
-ECOS = "1"
 FillArrays = "1"
-GLPK = "1"
 GraphPlot = "0.3, 0.4, 0.5, 0.6"
 Graphs = "1"
 HybridSystems = "0.4"
