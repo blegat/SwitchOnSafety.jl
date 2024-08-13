@@ -26,7 +26,7 @@ function SOSData{S, TT, XT, PT, DT}(s::S) where {S, TT,
                                                  XT <: HybridSystems.StateProperty,
                                                  PT <: HybridSystems.StateProperty,
                                                  DT <: HybridSystems.TransitionProperty}
-    y = HybridSystems.state_property(s, Vector{PolyVar{true}})::XT
+    y = HybridSystems.state_property(s, Vector{SetProg.Sets.SpaceVariable})::XT
     for st in states(s)
         @polyvar x[1:statedim(s, st)]
         y[st] = x
@@ -41,7 +41,7 @@ const MeasureLyapunov{T} = MultivariateMoments.MomentMatrix{T, SetProg.Sets.Mono
 function SOSData(s::AbstractDiscreteSwitchedSystem)
     S = typeof(s)
     TT = transitiontype(s)
-    XT = HybridSystems.state_property_type(S, Vector{PolyVar{true}})
+    XT = HybridSystems.state_property_type(S, Vector{SetProg.Sets.SpaceVariable})
     PT = HybridSystems.state_property_type(S, PolynomialLyapunov{Float64})
     DT = HybridSystems.transition_property_type(S, MeasureLyapunov{Float64})
     SOSData{S, TT, XT, PT, DT}(s)

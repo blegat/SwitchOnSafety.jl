@@ -50,7 +50,7 @@ end
 
 function extractatomic(s::AbstractDiscreteSwitchedSystem, d, t, ranktol,
                        dual=getlyap(s, d).dual)
-    atoms = extractatoms(dual[t], ranktol)
+    atoms = atomic_measure(dual[t], ranktol)
     if atoms === nothing
         return nothing
     else
