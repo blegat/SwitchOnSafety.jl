@@ -13,11 +13,11 @@ using FillArrays
 function algebraiclift(s::ConstrainedLinearControlDiscreteSystem)
     A = [s.A s.B]
     E = [Matrix(one(eltype(s.A)) * I, size(s.A)...) zeros(eltype(s.A), size(s.B)...)]
-    return ConstrainedLinearAlgebraicDiscreteSystem(A, E, stateset(s) * inputset(s))
+    return ConstrainedLinearDescriptorDiscreteSystem(A, E, stateset(s) * inputset(s))
 end
 function algebraiclift(s::ConstrainedLinearControlDiscreteSystem{T, MTA, MTB, ST, FullSpace}) where {T, MTA <: AbstractMatrix{T}, MTB <: AbstractMatrix{T}, ST}
     as = algebraiclift(LinearControlDiscreteSystem(s.A, s.B))
-    return ConstrainedLinearAlgebraicDiscreteSystem(as.A, as.E, stateset(s))
+    return ConstrainedLinearDescriptorDiscreteSystem(as.A, as.E, stateset(s))
 end
 function algebraiclift(s::LinearControlDiscreteSystem)
     n = statedim(s)
@@ -29,7 +29,7 @@ function algebraiclift(s::LinearControlDiscreteSystem)
     null = nullspace(s.B[nz, :]')'
     Enz = zeros(eltype(null), size(null, 1), n)
     Enz[:, nz] = null
-    return LinearAlgebraicDiscreteSystem([s.A[z, :]; Enz * s.A], [Ez; Enz])
+    return LinearDescriptorDiscreteSystem([s.A[z, :]; Enz * s.A], [Ez; Enz])
 end
 algebraiclift(s::ConstrainedDiscreteIdentitySystem) = s
 algebraiclift(S::AbstractVector) = algebraiclift.(S)
@@ -47,41 +47,41 @@ function constrain_invariance(model, ::IdentityMap, source_set, target_set, λ) 
 function constrain_invariance(model, s::LinearMap, source_set, target_set, λ)
     return @constraint(model, s.A * source_set ⊆ target_set)
 end
-function constrain_invariance(model, s::LinearAlgebraicDiscreteSystem,
+function constrain_invariance(model, s::LinearDescriptorDiscreteSystem,
                               source_set, target_set, λ)
     return @constraint(model, s.A * source_set ⊆ s.E * target_set,
                        S_procedure_scaling = λ)
 end
 
-function Polyhedra.translate(system::ConstrainedLinearAlgebraicDiscreteSystem, c)
-    return ConstrainedAffineAlgebraicDiscreteSystem(
+function Polyhedra.translate(system::ConstrainedLinearDescriptorDiscreteSystem, c)
+    return ConstrainedAffineDescriptorDiscreteSystem(
         system.A, system.E, system.E * c - system.A * c,
         Polyhedra.translate(stateset(system), c))
 end
 
-struct ConstrainedAffineAlgebraicDiscreteSystem{T, MTA <: AbstractMatrix{T}, MTE <: AbstractMatrix{T}, VTB <: AbstractVector{T}, ST} <: AbstractDiscreteSystem
+struct ConstrainedAffineDescriptorDiscreteSystem{T, MTA <: AbstractMatrix{T}, MTE <: AbstractMatrix{T}, VTB <: AbstractVector{T}, ST} <: AbstractDiscreteSystem
     A::MTA
     E::MTE
     b::VTB
     X::ST
 end
-MathematicalSystems.statedim(s::ConstrainedAffineAlgebraicDiscreteSystem) = size(s.A, 1)
-MathematicalSystems.stateset(s::ConstrainedAffineAlgebraicDiscreteSystem) = s.X
-MathematicalSystems.inputdim(::ConstrainedAffineAlgebraicDiscreteSystem) = 0
-MathematicalSystems.islinear(::ConstrainedAffineAlgebraicDiscreteSystem) = false
-MathematicalSystems.isaffine(::ConstrainedAffineAlgebraicDiscreteSystem) = true
+MathematicalSystems.statedim(s::ConstrainedAffineDescriptorDiscreteSystem) = size(s.A, 1)
+MathematicalSystems.stateset(s::ConstrainedAffineDescriptorDiscreteSystem) = s.X
+MathematicalSystems.inputdim(::ConstrainedAffineDescriptorDiscreteSystem) = 0
+MathematicalSystems.islinear(::ConstrainedAffineDescriptorDiscreteSystem) = false
+MathematicalSystems.isaffine(::ConstrainedAffineDescriptorDiscreteSystem) = true
 
-struct AffineAlgebraicDiscreteSystem{T, MTA <: AbstractMatrix{T}, MTE <: AbstractMatrix{T}, VTB <: AbstractVector{T}} <: AbstractDiscreteSystem
+struct AffineDescriptorDiscreteSystem{T, MTA <: AbstractMatrix{T}, MTE <: AbstractMatrix{T}, VTB <: AbstractVector{T}} <: AbstractDiscreteSystem
     A::MTA
     E::MTE
     b::VTB
 end
-MathematicalSystems.statedim(s::AffineAlgebraicDiscreteSystem) = size(s.A, 1)
-MathematicalSystems.inputdim(::AffineAlgebraicDiscreteSystem) = 0
-MathematicalSystems.islinear(::AffineAlgebraicDiscreteSystem) = false
-MathematicalSystems.isaffine(::AffineAlgebraicDiscreteSystem) = true
+MathematicalSystems.statedim(s::AffineDescriptorDiscreteSystem) = size(s.A, 1)
+MathematicalSystems.inputdim(::AffineDescriptorDiscreteSystem) = 0
+MathematicalSystems.islinear(::AffineDescriptorDiscreteSystem) = false
+MathematicalSystems.isaffine(::AffineDescriptorDiscreteSystem) = true
 
-function constrain_invariance(model, s::AffineAlgebraicDiscreteSystem,
+function constrain_invariance(model, s::AffineDescriptorDiscreteSystem,
                               source_set, target_set, λ)
     return @constraint(model, s.A * source_set + s.b ⊆ s.E * target_set,
                        S_procedure_scaling = λ)
@@ -261,17 +261,17 @@ _mode(s::AbstractDiscreteSystem) = ConstrainedContinuousIdentitySystem(statedim(
 _resetmap(s::AbstractContinuousSystem) = IdentityMap(statedim(s))
 _resetmap(s::ConstrainedDiscreteIdentitySystem) = IdentityMap(statedim(s))
 _resetmap(s::ConstrainedLinearDiscreteSystem) = LinearMap(s.A)
-# TODO need to add LinearAlgebraicMap to MathematicalSystems
-_resetmap(s::ConstrainedLinearAlgebraicDiscreteSystem) = LinearAlgebraicDiscreteSystem(s.A, s.E)
-_resetmap(s::ConstrainedAffineAlgebraicDiscreteSystem) = AffineAlgebraicDiscreteSystem(s.A, s.E, s.b)
+# TODO need to add LinearDescriptorMap to MathematicalSystems
+_resetmap(s::ConstrainedLinearDescriptorDiscreteSystem) = LinearDescriptorDiscreteSystem(s.A, s.E)
+_resetmap(s::ConstrainedAffineDescriptorDiscreteSystem) = AffineDescriptorDiscreteSystem(s.A, s.E, s.b)
 
 function invariant_set(
     system::Union{
         ConstrainedContinuousIdentitySystem,
         ConstrainedDiscreteIdentitySystem,
         ConstrainedLinearDiscreteSystem,
-        ConstrainedLinearAlgebraicDiscreteSystem,
-        ConstrainedAffineAlgebraicDiscreteSystem},
+        ConstrainedLinearDescriptorDiscreteSystem,
+        ConstrainedAffineDescriptorDiscreteSystem},
     optimizer_constructor,
     set_variable::SetProg.AbstractVariable=default_variable(system, optimizer_constructor);
     λ=nothing,

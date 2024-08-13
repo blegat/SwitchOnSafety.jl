@@ -16,7 +16,7 @@ function ci_square_test(
     Δt = 0.5
     control_system = ConstrainedLinearControlDiscreteSystem(reshape([1.0], 1, 1), reshape([Δt], 1, 1), interval, interval)
     @testset "$(typeof(system))" for system in [
-        ConstrainedLinearAlgebraicDiscreteSystem([1.0 Δt], [1.0 0.0], □),
+        ConstrainedLinearDescriptorDiscreteSystem([1.0 Δt], [1.0 0.0], □),
         ConstrainedLinearControlDiscreteSystem([1.0 Δt; 0.0 0.0], reshape([0.0 1.0], 2, 1), □, FullSpace()),
         algebraiclift(control_system)
     ]
