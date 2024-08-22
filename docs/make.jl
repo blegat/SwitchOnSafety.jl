@@ -8,6 +8,7 @@ const EXAMPLES = [
     "AJPR14e54",
     "AP12e21",
     "PJ08e54",
+    "Consensus",
 ]
 const EXAMPLE_FILES = [name * ".jl" for name in EXAMPLES]
 
